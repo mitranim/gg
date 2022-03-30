@@ -1,0 +1,786 @@
+package gg
+
+import (
+	"sort"
+)
+
+// Like `[]typ{...}` but with parens.
+func SliceOf[A any](val ...A) []A { return val }
+
+// Returns the underlying data pointer of the given slice.
+func SliceDat[A any](src []A) *A { return CastUnsafe[*A](src) }
+
+// True if slice length is 0. The slice may or may not be nil.
+func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) == 0 }
+
+// True if slice length is above 0.
+func HasLen[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) > 0 }
+
+// Same as `len(val)` but can be passed to higher-order functions.
+func Len[Slice ~[]Elem, Elem any](val Slice) int { return len(val) }
+
+// Same as `cap(val)` but can be passed to higher-order functions.
+func Cap[Slice ~[]Elem, Elem any](val Slice) int { return cap(val) }
+
+// Counts the total length of the given slices.
+func Lens[Slice ~[]Elem, Elem any](val ...Slice) int { return Sum(val, Len[Slice]) }
+
+// Grows the length of the given slice by appending N zero values.
+func GrowLen[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
+	return append(src, make(Slice, size)...)
+}
+
+/*
+Missing feature of the language / standard library. Grows the slice to ensure at
+least this much additional capacity (not total capacity), returning a modified
+version of the slice. The returned slice always has the same length as the
+original, but its capacity and backing array may have changed. This doesn't
+ensure EXACTLY the given additional capacity. It follows the usual hidden Go
+rules for slice growth, and may allocate significantly more than asked. Similar
+to `(*bytes.Buffer).Grow` but without wrapping, unwrapping, or spurious escapes
+to the heap.
+
+TODO variant that grows capacity to the given TOTAL amount.
+*/
+func GrowCap[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
+	len, cap := len(src), cap(src)
+	if cap-len >= size {
+		return src
+	}
+
+	out := make(Slice, len, 2*cap+size)
+	copy(out, src)
+	return out
+}
+
+// Zeroes each element of the given slice.
+func SliceZero[A any](val []A) {
+	var zero A
+	for ind := range val {
+		val[ind] = zero
+	}
+}
+
+/*
+Collapses the slice's length, preserving the capacity.
+Does not modify any elements.
+*/
+func SliceTrunc[Slice ~[]Elem, Elem any](tar *Slice) {
+	if tar != nil && *tar != nil {
+		*tar = (*tar)[:0]
+	}
+}
+
+/*
+If the index is within bounds, returns the value at that index and true.
+Otherwise returns zero value and false.
+*/
+func Got[A any](src []A, ind int) (A, bool) {
+	if ind >= 0 && ind < len(src) {
+		return src[ind], true
+	}
+	return Zero[A](), false
+}
+
+/*
+If the index is within bounds, returns the value at that index.
+Otherwise returns zero value.
+*/
+func Get[A any](src []A, ind int) A {
+	val, _ := Got(src, ind)
+	return val
+}
+
+/*
+If the index is within bounds, returns a pointer to the value at that index.
+Otherwise returns nil.
+*/
+func GetPtr[A any](src []A, ind int) *A {
+	if ind >= 0 && ind < len(src) {
+		return &src[ind]
+	}
+	return nil
+}
+
+/*
+Same as `append`, but makes a copy instead of mutating the original.
+Useful when reusing one "base" slice for in multiple append calls.
+*/
+func CloneAppend[Slice ~[]Elem, Elem any](src Slice, val ...Elem) Slice {
+	if src == nil && val == nil {
+		return nil
+	}
+
+	out := make(Slice, 0, len(src)+len(val))
+	out = append(out, src...)
+	out = append(out, val...)
+	return out
+}
+
+/*
+Appends the given element to the given slice. Similar to built-in `append` but
+less noisy.
+*/
+func AppendTo[Slice ~[]Elem, Elem any](tar *Slice, val Elem) {
+	*tar = append(*tar, val)
+}
+
+/*
+Appends the given element to the given slice, returning the pointer to the newly
+appended position in the slice.
+*/
+func AppendPtr[Slice ~[]Elem, Elem any](tar *Slice, val Elem) *Elem {
+	*tar = append(*tar, val)
+	return LastPtr(*tar)
+}
+
+/*
+Appends a zero element to the given slice, returning the pointer to the newly
+appended position in the slice.
+*/
+func AppendPtrZero[Slice ~[]Elem, Elem any](tar *Slice) *Elem {
+	return AppendPtr(tar, Zero[Elem]())
+}
+
+/*
+Returns the first element of the given slice. If the slice is empty, returns the
+zero value.
+*/
+func Head[A any](val []A) A { return Get(val, 0) }
+
+/*
+Returns a pointer to the first element of the given slice. If the slice is
+empty, the pointer is nil.
+*/
+func HeadPtr[A any](val []A) *A { return GetPtr(val, 0) }
+
+/*
+Returns the last element of the given slice. If the slice is empty, returns the
+zero value.
+*/
+func Last[A any](val []A) A { return Get(val, len(val)-1) }
+
+/*
+Returns a pointer to the last element of the given slice. If the slice is empty,
+the pointer is nil.
+*/
+func LastPtr[A any](val []A) *A { return GetPtr(val, len(val)-1) }
+
+/*
+Returns the initial part of the given slice: all except the last value.
+If the slice is nil, returns nil.
+*/
+func Init[Slice ~[]Elem, Elem any](val Slice) Slice {
+	if len(val) == 0 {
+		return val
+	}
+	return val[:len(val)-1]
+}
+
+/*
+Returns the tail part of the given slice: all except the first value.
+If the slice is nil, returns nil.
+*/
+func Tail[Slice ~[]Elem, Elem any](val Slice) Slice {
+	if len(val) == 0 {
+		return val
+	}
+	return val[1:]
+}
+
+// Returns a subslice containing N elements from the start.
+func Take[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
+	return src[:MaxPrim2(0, MinPrim2(size, len(src)))]
+}
+
+// Returns a subslice excluding N elements from the start.
+func Drop[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
+	return src[MaxPrim2(0, MinPrim2(size, len(src))):]
+}
+
+/*
+Returns a subslice containing only elements at the start of the slice
+for which the given function contiguously returned `true`.
+*/
+func TakeWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
+	return Take(src, 1+FindIndex(src, func(val Elem) bool { return !fun(val) }))
+}
+
+/*
+Returns a subslice excluding elements at the start of the slice
+for which the given function contiguously returned `true`.
+*/
+func DropWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
+	return Drop(src, 1+FindIndex(src, fun))
+}
+
+/*
+Returns a shallow copy of the given slice. The capacity of the resulting slice
+is equal to its length.
+*/
+func Clone[Slice ~[]Elem, Elem any](src Slice) Slice {
+	if src == nil {
+		return nil
+	}
+
+	out := make(Slice, len(src))
+	copy(out, src)
+	return out
+}
+
+/*
+Calls the given function for each element's pointer in the given slice.
+The pointer is always non-nil.
+*/
+func EachPtr[A any](val []A, fun func(*A)) {
+	if fun != nil {
+		for i := range val {
+			fun(&val[i])
+		}
+	}
+}
+
+// Calls the given function for each element of the given slice.
+func Each[A any](val []A, fun func(A)) {
+	if fun != nil {
+		for _, val := range val {
+			fun(val)
+		}
+	}
+}
+
+/*
+Similar to `Each` but iterates two slices pairwise. If slice lengths don't
+match, panics.
+*/
+func Each2[A, B any](one []A, two []B, fun func(A, B)) {
+	if len(one) != len(two) {
+		panic(Errf(
+			`unable to iterate pairwise: length mismatch: %v and %v`,
+			len(one), len(two),
+		))
+	}
+
+	if fun != nil {
+		for i := range one {
+			fun(one[i], two[i])
+		}
+	}
+}
+
+/*
+Returns the smallest value from among the inputs, which must be comparable
+primitives. For non-primitives, see `Min`.
+*/
+func MinPrim[A LesserPrim](val ...A) A { return Fold1(val, MinPrim2[A]) }
+
+/*
+Calls the given function for each element of the given slice and returns the
+smallest value from among the results, which must be comparable primitives.
+For non-primitives, see `MinBy`.
+*/
+func MinPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
+	if len(src) == 0 || fun == nil {
+		return Zero[Out]()
+	}
+
+	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
+		return MinPrim2(acc, fun(src))
+	})
+}
+
+/*
+Returns the smallest value from among the inputs. For primitive types that don't
+implement `Lesser`, see `MinPrim`.
+*/
+func Min[A Lesser[A]](val ...A) A { return Fold1(val, Min2[A]) }
+
+/*
+Calls the given function for each element of the given slice and returns the
+smallest value from among the results. For primitive types that don't implement
+`Lesser`, see `MinPrimBy`.
+*/
+func MinBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
+	if len(src) == 0 || fun == nil {
+		return Zero[Out]()
+	}
+
+	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
+		return Min2(acc, fun(src))
+	})
+}
+
+/*
+Returns the largest value from among the inputs, which must be comparable
+primitives. For non-primitives, see `Max`.
+*/
+func MaxPrim[A LesserPrim](val ...A) A { return Fold1(val, MaxPrim2[A]) }
+
+/*
+Calls the given function for each element of the given slice and returns the
+largest value from among the results, which must be comparable primitives.
+For non-primitives, see `MaxBy`.
+*/
+func MaxPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
+	if len(src) == 0 || fun == nil {
+		return Zero[Out]()
+	}
+
+	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
+		return MaxPrim2(acc, fun(src))
+	})
+}
+
+/*
+Returns the largest value from among the inputs. For primitive types that don't
+implement `Lesser`, see `MaxPrim`.
+*/
+func Max[A Lesser[A]](val ...A) A { return Fold1(val, Max2[A]) }
+
+/*
+Calls the given function for each element of the given slice and returns the
+largest value from among the results. For primitive types that don't implement
+`Lesser`, see `MaxPrimBy`.
+*/
+func MaxBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
+	if len(src) == 0 || fun == nil {
+		return Zero[Out]()
+	}
+
+	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
+		return Max2(acc, fun(src))
+	})
+}
+
+// Combines all inputs via "+". If the input is empty, returns the zero value.
+func Plus[A Plusable](val ...A) A { return Foldz(val, Plus2[A]) }
+
+/*
+Calls the given function on each element of the given slice and returns the sum
+of all results, combined via "+".
+*/
+func Sum[Src any, Out Plusable](src []Src, fun func(Src) Out) Out {
+	if fun == nil {
+		return Zero[Out]()
+	}
+	return Foldz(src, func(acc Out, src Src) Out { return acc + fun(src) })
+}
+
+/*
+Maps one slice to another. The resulting slice has exactly the same length as
+the original. Each element is created by calling the given function on the
+corresponding element of the original slice. The name refers to a well-known
+functional programming abstraction which doesn't have anything in common with
+the Go `map` types. Unlike many other higher-order slice functions, this one
+requires a non-nil function.
+*/
+func Map[A, B any](src []A, fun func(A) B) []B {
+	if src == nil {
+		return nil
+	}
+
+	out := make([]B, 0, len(src))
+	for _, val := range src {
+		out = append(out, fun(val))
+	}
+	return out
+}
+
+// Similar to `Map` but excludes any zero values produced by the given function.
+func MapCompact[A, B any](src []A, fun func(A) B) []B {
+	if fun == nil {
+		return nil
+	}
+
+	var out []B
+	for _, val := range src {
+		val := fun(val)
+		if !IsZero(val) {
+			out = append(out, val)
+		}
+	}
+	return out
+}
+
+/*
+Somewhat similar to `Map`. Creates a slice by "mapping" source values to
+outputs. Calls the given function N times, passing an index, starting with 0.
+*/
+func Times[A any](src int, fun func(int) A) []A {
+	if !(src > 0 && fun != nil) {
+		return nil
+	}
+
+	out := make([]A, src)
+	for ind := range out {
+		out[ind] = fun(ind)
+	}
+	return out
+}
+
+// Counts the number of elements for which the given function returns true.
+func Count[A any](src []A, fun func(A) bool) int {
+	var out int
+	if fun != nil {
+		for _, src := range src {
+			if fun(src) {
+				out++
+			}
+		}
+	}
+	return out
+}
+
+/*
+Folds the given slice by calling the given function for each element,
+additionally passing the "accumulator". Returns the resulting accumulator.
+*/
+func Fold[Acc, Val any](src []Val, acc Acc, fun func(Acc, Val) Acc) Acc {
+	if fun != nil {
+		for _, val := range src {
+			acc = fun(acc, val)
+		}
+	}
+	return acc
+}
+
+// Similar to `Fold` but accumulator automatically starts with zero value.
+func Foldz[Acc, Val any](src []Val, fun func(Acc, Val) Acc) Acc {
+	return Fold(src, Zero[Acc](), fun)
+}
+
+/*
+Similar to `Fold` but uses the first slice element as the accumulator, falling
+back on zero value. The given function is invoked only for 2 or more elements.
+*/
+func Fold1[A any](src []A, fun func(A, A) A) A {
+	if len(src) == 0 {
+		return Zero[A]()
+	}
+	return Fold(src[1:], src[0], fun)
+}
+
+// Returns only the elements for which the given function returned `true`.
+func Filter[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
+	var out Slice
+	if fun != nil {
+		for _, val := range src {
+			if fun(val) {
+				out = append(out, val)
+			}
+		}
+	}
+	return out
+}
+
+/*
+Inverse of `Filter`. Returns only the elements for which the given function
+returned `false`.
+*/
+func Reject[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
+	if fun == nil {
+		return src
+	}
+
+	var out Slice
+	for _, val := range src {
+		if !fun(val) {
+			out = append(out, val)
+		}
+	}
+	return out
+}
+
+// Returns a version of the given slice without any zero values.
+func Compact[Slice ~[]Elem, Elem any](src Slice) Slice {
+	if Every(src, IsNonZero[Elem]) {
+		return src
+	}
+	return Filter(src, IsNonZero[Elem])
+}
+
+/*
+Tests each element by calling the given function and returns the first element
+for which it returns `true`. If none match, returns `-1`.
+*/
+func FindIndex[A any](src []A, fun func(A) bool) int {
+	if fun != nil {
+		for i, val := range src {
+			if fun(val) {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+/*
+Returns the first element for which the given function returns `true`.
+If nothing is found, returns a zero value. The additional boolean indicates
+whether something was actually found.
+*/
+func Found[A any](src []A, fun func(A) bool) (A, bool) {
+	ind := FindIndex(src, fun)
+	if ind >= 0 {
+		return src[ind], true
+	}
+	return Zero[A](), false
+}
+
+/*
+Returns the first element for which the given function returns true.
+If nothing is found, returns a zero value.
+*/
+func Find[A any](src []A, fun func(A) bool) A {
+	return Get(src, FindIndex(src, fun))
+}
+
+/*
+Similar to `Found`, but instead of returning an element, returns the first
+product of the given function for which the returned boolean is true. If
+nothing is procured, returns zero value and false.
+*/
+func Procured[Src, Out any](src []Src, fun func(Src) (Out, bool)) (Out, bool) {
+	if fun != nil {
+		for _, src := range src {
+			val, ok := fun(src)
+			if ok {
+				return val, true
+			}
+		}
+	}
+	return Zero[Out](), false
+}
+
+/*
+Similar to `Find`, but instead of returning the first approved element,
+returns the first non-zero result of the given function. If nothing is
+procured, returns a zero value.
+*/
+func Procure[Src, Out any](src []Src, fun func(Src) Out) Out {
+	if fun != nil {
+		for _, src := range src {
+			val := fun(src)
+			if IsNonZero(val) {
+				return val
+			}
+		}
+	}
+	return Zero[Out]()
+}
+
+/*
+True if the given slice contains the given value. Should be used ONLY for very
+small inputs: no more than a few tens of elements. For larger data, consider
+using indexed data structures such as maps.
+*/
+func Has[A comparable](src []A, val A) bool {
+	return Some(src, func(elem A) bool { return elem == val })
+}
+
+/*
+True if the first slice has all elements from the second slice. In other words,
+true if A is a superset of B: A >= B. Should be used ONLY for very small
+inputs: no more than a few tens of elements.
+*/
+func HasAll[A comparable](src, exp []A) bool {
+	return Every(exp, func(val A) bool { return Has(src, val) })
+}
+
+/*
+True if the first slice has NO elements from the second slice. In other words,
+true if the sets A and B don't intersect. Should be used ONLY for very small
+inputs: no more than a few tens of elements.
+*/
+func HasNone[A comparable](src, exp []A) bool {
+	return None(exp, func(val A) bool { return Has(src, val) })
+}
+
+/*
+True if the given function returns true for any element of the given slice.
+False if the function is nil. False if the slice is empty.
+*/
+func Some[A any](src []A, fun func(A) bool) bool {
+	if fun == nil {
+		return false
+	}
+	for _, val := range src {
+		if fun(val) {
+			return true
+		}
+	}
+	return false
+}
+
+// Inverse of `Some`.
+func None[A any](src []A, fun func(A) bool) bool { return !Some(src, fun) }
+
+/*
+Utility for comparing slices pairwise. Returns true if the slices have the same
+length and the function returns true for at least one pair.
+*/
+func SomePair[A any](one, two []A, fun func(A, A) bool) bool {
+	if len(one) != len(two) || fun == nil {
+		return false
+	}
+	for i := range one {
+		if fun(one[i], two[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+/*
+True if the given function returns true for every element of the given slice.
+False if the function is nil. True if the slice is empty.
+*/
+func Every[A any](src []A, fun func(A) bool) bool {
+	if fun == nil {
+		return false
+	}
+	for _, val := range src {
+		if !fun(val) {
+			return false
+		}
+	}
+	return true
+}
+
+/*
+Utility for comparing slices pairwise. Returns true if the slices have the same
+length and the function returns true for every pair.
+*/
+func EveryPair[A any](one, two []A, fun func(A, A) bool) bool {
+	if len(one) != len(two) || fun == nil {
+		return false
+	}
+	for i := range one {
+		if !fun(one[i], two[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// Concatenates the inputs. If no inputs are given, the output is nil.
+func Concat[Slice ~[]Elem, Elem any](val ...Slice) Slice {
+	if len(val) == 0 {
+		return nil
+	}
+
+	buf := make(Slice, 0, Lens(val...))
+	for _, val := range val {
+		buf = append(buf, val...)
+	}
+	return buf
+}
+
+// Sorts a slice of comparable primitives. For non-primitives, see `Sort`.
+func SortPrim[A LesserPrim](val []A) { SortablePrim[A](val).Sort() }
+
+/*
+Sorts a slice of comparable primitives, mutating and returning that slice.
+For non-primitives, see `Sort`.
+*/
+func SortedPrim[Slice ~[]Elem, Elem LesserPrim](val Slice) Slice {
+	return Slice(SortablePrim[Elem](val).Sorted())
+}
+
+// Implements `sort.Interface`.
+type SortablePrim[A LesserPrim] []A
+
+func (self SortablePrim[_]) Len() int               { return len(self) }
+func (self SortablePrim[_]) Less(one, two int) bool { return self[one] < self[two] }
+func (self SortablePrim[_]) Swap(one, two int)      { self[one], self[two] = self[two], self[one] }
+func (self SortablePrim[_]) Sort()                  { sort.Stable(NoEscUnsafe(sort.Interface(self))) }
+
+func (self SortablePrim[A]) Sorted() SortablePrim[A] {
+	self.Sort()
+	return self
+}
+
+// Sorts a slice of comparable primitives. For primitives, see `SortPrim`.
+func Sort[A Lesser[A]](val []A) { Sortable[A](val).Sort() }
+
+/*
+Sorts a slice of comparable values, mutating and returning that slice.
+For primitives, see `SortedPrim`.
+*/
+func Sorted[Slice ~[]Elem, Elem Lesser[Elem]](val Slice) Slice {
+	return Slice(Sortable[Elem](val).Sorted())
+}
+
+// Implements `sort.Interface`.
+type Sortable[A Lesser[A]] []A
+
+func (self Sortable[_]) Len() int               { return len(self) }
+func (self Sortable[_]) Less(one, two int) bool { return self[one].Less(self[two]) }
+func (self Sortable[_]) Swap(one, two int)      { self[one], self[two] = self[two], self[one] }
+func (self Sortable[_]) Sort()                  { sort.Stable(NoEscUnsafe(sort.Interface(self))) }
+
+func (self Sortable[A]) Sorted() Sortable[A] {
+	self.Sort()
+	return self
+}
+
+// Reverses the given slice in-place, mutating it.
+func Reverse[A any](val []A) {
+	ind0 := 0
+	ind1 := len(val) - 1
+
+	for ind0 < ind1 {
+		val[ind0], val[ind1] = val[ind1], val[ind0]
+		ind0++
+		ind1--
+	}
+}
+
+// Reverses the given slice in-place, mutating it and returning that slice.
+func Reversed[Slice ~[]Elem, Elem any](val Slice) Slice {
+	Reverse(val)
+	return val
+}
+
+/*
+Returns a version of the given slice excluding any additionally supplied
+values.
+*/
+func Exclude[Slice ~[]Elem, Elem comparable](base Slice, sub ...Elem) Slice {
+	if len(base) == 0 {
+		return nil
+	}
+	if len(sub) == 0 {
+		return base
+	}
+
+	var buf Slice
+	for _, val := range base {
+		if !Has(sub, val) {
+			buf = append(buf, val)
+		}
+	}
+	return buf
+}
+
+/*
+Returns a version of the given slice excluding any additionally supplied
+values.
+*/
+func Subtract[Slice ~[]Elem, Elem comparable](base Slice, sub ...Slice) Slice {
+	if len(base) == 0 {
+		return nil
+	}
+	if len(sub) == 0 {
+		return base
+	}
+	return Reject(base, SetFrom(sub...).Has)
+}
+
+// Returns intersection of two slices: elements that occur in both.
+func Intersect[Slice ~[]Elem, Elem comparable](one, two Slice) Slice {
+	if len(one) == 0 || len(two) == 0 {
+		return nil
+	}
+	return Filter(one, SetOf(two...).Has)
+}

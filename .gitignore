@@ -1,0 +1,13 @@
+.DS_Store
+
+/*
+!/*ignore
+!/go.mod
+!/*.go
+!/*.md
+!/makefile
+!/unlicense
+!/gsql
+!/gtest
+
+stash_*

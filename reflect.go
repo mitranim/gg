@@ -9,6 +9,16 @@ import (
 )
 
 /*
+Returns pointer to an instance of a given type with nil value.
+*/
+func Inst[A any]() *A { return (*A)(nil) }
+
+/*
+Returns `Elem()` of `reflect.TypeOf` for a give type.
+*/
+func Elem[A any]() r.Type { return r.TypeOf(Inst[A]()).Elem() }
+
+/*
 Returns `reflect.Type` of the given type. Differences from `reflect.TypeOf`:
 
 	* Avoids spurious heap escape and copying.
@@ -18,7 +28,7 @@ Returns `reflect.Type` of the given type. Differences from `reflect.TypeOf`:
 	* When the given type is an interface, including the empty interface `any`,
 	  the output is a non-nil `reflect.Type` describing the given interface.
 */
-func Type[A any]() r.Type { return r.TypeOf((*A)(nil)).Elem() }
+func Type[A any]() r.Type { return Elem[A]() }
 
 /*
 Similar to `reflect.TypeOf`, with the following differences:
@@ -30,7 +40,7 @@ Similar to `reflect.TypeOf`, with the following differences:
 	* When the given type is an interface, including the empty interface `any`,
 	  the output is a non-nil `reflect.Type` describing the given interface.
 */
-func TypeOf[A any](A) r.Type { return r.TypeOf((*A)(nil)).Elem() }
+func TypeOf[A any](A) r.Type { return Elem[A]() }
 
 /*
 Nil-safe version of `reflect.Type.Kind`. If the input is nil, returns
@@ -56,7 +66,7 @@ Returns `reflect.Kind` of the given type. Never returns `reflect.Invalid`. If
 the type parameter is an interface, the output is `reflect.Interface`.
 */
 func Kind[A any]() r.Kind {
-	return r.TypeOf((*A)(nil)).Elem().Kind()
+	return Elem[A]().Kind()
 }
 
 /*
@@ -64,7 +74,7 @@ Returns `reflect.Kind` of the given type. Never returns `reflect.Invalid`. If
 the type parameter is an interface, the output is `reflect.Interface`.
 */
 func KindOf[A any](A) r.Kind {
-	return r.TypeOf((*A)(nil)).Elem().Kind()
+	return Elem[A]().Kind()
 }
 
 // Uses `reflect.Zero` to create a zero value of the given type.

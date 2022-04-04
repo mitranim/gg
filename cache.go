@@ -73,9 +73,9 @@ type Cache[
 	Map  map[Key]Ptr
 }
 
-func (self *Cache[Key, Val, Ptr]) Get(key Key) Val { return *self.GetPtr(key) }
+func (self *Cache[Key, Val, Ptr]) Get(key Key) Val { return *self.Ptr(key) }
 
-func (self *Cache[Key, Val, Ptr]) GetPtr(key Key) Ptr {
+func (self *Cache[Key, Val, Ptr]) Ptr(key Key) Ptr {
 	ptr := self.get(key)
 	if ptr != nil {
 		return ptr
@@ -113,9 +113,9 @@ type TypeCache[Val any, Ptr Initer1[Val, r.Type]] struct {
 	Map  map[r.Type]Ptr
 }
 
-func (self *TypeCache[Val, Ptr]) Get(key r.Type) Val { return *self.GetPtr(key) }
+func (self *TypeCache[Val, Ptr]) Get(key r.Type) Val { return *self.Ptr(key) }
 
-func (self *TypeCache[Val, Ptr]) GetPtr(key r.Type) Ptr {
+func (self *TypeCache[Val, Ptr]) Ptr(key r.Type) Ptr {
 	ptr := self.get(key)
 	if ptr != nil {
 		return ptr
@@ -161,6 +161,9 @@ func (self *Mem[A]) GetTimed() Timed[A] {
 	return self.Timed
 }
 
+// Returns the inner value, if any.
+func (self *Mem[A]) Get() A { return self.GetTimed().Val }
+
 /*
 Shortcut for types such as `MemHour` that embed `Mem` and implement `Dur`.
 Usage:
@@ -199,7 +202,7 @@ func (self *Mem[A]) Dedup(life time.Duration, fun func() A) A {
 	defer Locked(self).Unlock()
 
 	if fun != nil && self.Timed.IsExpired(life) {
-		self.Timed.SetVal(fun())
+		self.Timed.Set(fun())
 	}
 	return self.Timed.Val
 }

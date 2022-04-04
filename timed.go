@@ -7,7 +7,7 @@ Shortcut for creating a `Timed` with the given value, using the current
 timestamp.
 */
 func TimedVal[A any](val A) (out Timed[A]) {
-	out.SetVal(val)
+	out.Set(val)
 	return
 }
 
@@ -31,29 +31,21 @@ func (self Timed[_]) IsNonNull() bool { return !self.Inst.IsZero() }
 //go:noinline
 func (self *Timed[A]) Clear() { Clear(self) }
 
-/*
-Implement `Getter` for compatibility with 3rd party libraries such as `pgx`.
-If `.IsNull`, returns nil. Otherwise returns the underlying value, invoking
-its own `Getter` if possible.
-*/
-//go:noinline
-func (self Timed[A]) Get() any { return GetNull[A](self) }
-
-// Implement `ValGetter`, returning the underlying value as-is.
-func (self Timed[A]) GetVal() A { return self.Val }
+// Implement `Getter`, returning the underlying value as-is.
+func (self Timed[A]) Get() A { return self.Val }
 
 /*
-Implement `ValSetter`. Modifies the underlying value and sets the current
+Implement `Setter`. Modifies the underlying value and sets the current
 timestamp. The resulting state is considered non-null even if the value
 is "zero".
 */
-func (self *Timed[A]) SetVal(val A) {
+func (self *Timed[A]) Set(val A) {
 	self.Val = val
 	self.Inst = time.Now()
 }
 
-// Implement `PtrGetter`, returning a pointer to the underlying value.
-func (self *Timed[A]) GetPtr() *A {
+// Implement `Ptrer`, returning a pointer to the underlying value.
+func (self *Timed[A]) Ptr() *A {
 	if self == nil {
 		return nil
 	}

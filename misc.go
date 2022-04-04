@@ -24,10 +24,28 @@ For non-`comparable` types, use `IsNonZero`.
 */
 func IsNonZeroComp[A comparable](val A) bool { return !IsZeroComp(val) }
 
-// True if the input is a zero value of its type.
+/*
+If the input implements `Zeroable`, returns the result of calling that method.
+Otherwise returns true if the input is the zero value of its type.
+*/
 func IsZero[A any](val A) bool {
 	box := AnyNoEscUnsafe(val)
-	return box == nil || r.ValueOf(box).IsZero()
+	if box == nil {
+		return true
+	}
+
+	impl, _ := box.(Zeroable)
+	if impl != nil {
+		return impl.IsZero()
+	}
+
+	// For large value types such as fat structs or arrays, this is measurably
+	// faster than the reflect-based version.
+	if Type[A]().Comparable() {
+		return box == AnyNoEscUnsafe(Zero[A]())
+	}
+
+	return r.ValueOf(box).IsZero()
 }
 
 // True if the input is not a zero value of its type.
@@ -52,8 +70,22 @@ func Clear[A any](val *A) {
 	}
 }
 
-// Takes an arbitrary value and returns a non-nil pointer to it.
+/*
+Takes an arbitrary value and returns a non-nil pointer to a new memory region
+containing a shallow copy of that value.
+*/
 func Ptr[A any](val A) *A { return &val }
+
+/*
+If the pointer is non-nil, dereferences it. Otherwise returns zero value.
+TODO consider renaming to `PtrGet`.
+*/
+func Deref[A any](val *A) A {
+	if val != nil {
+		return *val
+	}
+	return Zero[A]()
+}
 
 // If the pointer is nil, does nothing. If non-nil, set the given value.
 func PtrSet[A any](tar *A, val A) {
@@ -88,14 +120,6 @@ func PtrInit[A any](val **A) *A {
 	return *val
 }
 
-// If the pointer is non-nil, dereferences it. Otherwise returns zero value.
-func Deref[A any](val *A) A {
-	if val != nil {
-		return *val
-	}
-	return Zero[A]()
-}
-
 // Does nothing.
 func Nop() {}
 
@@ -124,29 +148,6 @@ func Inc[A Num](val A) A { return val + 1 }
 func Dec[A Num](val A) A { return val - 1 }
 
 /*
-Shortcut for implementing `Getter` on `Nullable` types that wrap other types,
-such as `Opt`. Mostly for internal use.
-*/
-func GetNull[A any, B NullableValGetter[A]](val B) any {
-	if val.IsNull() {
-		return nil
-	}
-	return GetOpt(val.GetVal())
-}
-
-/*
-If the input implements `Getter`, unwraps it by calling `.Get`.
-Otherwise returns the input as-is. Mostly for internal use.
-*/
-func GetOpt(src any) any {
-	impl, _ := AnyNoEscUnsafe(src).(Getter)
-	if impl != nil {
-		return impl.Get()
-	}
-	return src
-}
-
-/*
 Shortcut for implementing `driver.Valuer` on `Nullable` types that wrap other
 types, such as `Opt`. Mostly for internal use.
 */
@@ -155,16 +156,11 @@ func ValueNull[A any, B NullableValGetter[A]](src B) (driver.Value, error) {
 		return nil, nil
 	}
 
-	val := src.GetVal()
+	val := src.Get()
 
-	valuer, _ := AnyNoEscUnsafe(val).(driver.Valuer)
-	if valuer != nil {
-		return valuer.Value()
-	}
-
-	getter, _ := AnyNoEscUnsafe(val).(Getter)
-	if getter != nil {
-		return getter.Get(), nil
+	impl, _ := AnyNoEscUnsafe(val).(driver.Valuer)
+	if impl != nil {
+		return impl.Value()
 	}
 
 	return val, nil

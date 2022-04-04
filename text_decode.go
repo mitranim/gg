@@ -113,19 +113,19 @@ func ParseClearCatch[Out any, Tar ClearerPtrGetter[Out], Src Text](src Src, tar 
 		tar.Clear()
 		return nil
 	}
-	return ParseCatch(src, tar.GetPtr())
+	return ParseCatch(src, tar.Ptr())
 }
 
 /*
 Shortcut for implementing `sql.Scanner` on types that wrap other types, such as
 `Opt`. Mostly for internal use.
 */
-func ScanCatch[Inner any, Outer PtrGetter[Inner]](src any, tar Outer) error {
+func ScanCatch[Inner any, Outer Ptrer[Inner]](src any, tar Outer) error {
 	if src == nil {
 		return nil
 	}
 
-	ptr := tar.GetPtr()
+	ptr := tar.Ptr()
 
 	impl, _ := AnyNoEscUnsafe(ptr).(Scanner)
 	if impl != nil {

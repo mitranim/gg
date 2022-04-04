@@ -68,7 +68,7 @@ Returns the value indexed on the given key and a boolean indicating if the value
 was actually present.
 */
 func (self Coll[Key, Val]) Got(key Key) (Val, bool) {
-	ptr := self.GetPtr(key)
+	ptr := self.Ptr(key)
 	return Deref(ptr), ptr != nil
 }
 
@@ -83,14 +83,14 @@ func (self Coll[Key, _]) Has(key Key) bool {
 
 // Returns the value indexed on the given key, or the zero value of that type.
 func (self Coll[Key, Val]) Get(key Key) Val {
-	return Deref(self.GetPtr(key))
+	return Deref(self.Ptr(key))
 }
 
 /*
 Find the value indexed on the given key and returns the pointer to its position
 in the slice. If the value is not found, returns nil.
 */
-func (self Coll[Key, Val]) GetPtr(key Key) *Val {
+func (self Coll[Key, Val]) Ptr(key Key) *Val {
 	ind, ok := MapGot(self.Index, key)
 	if !ok {
 		return nil

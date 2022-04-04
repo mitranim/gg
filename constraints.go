@@ -77,24 +77,19 @@ encoding/decoding contexts such as JSON and SQL.
 */
 type Nullable interface{ IsNull() bool }
 
-/*
-Implemented by various utility types. Enables compatibility with 3rd party
-libraries such as `pgx`.
-*/
-type Getter interface{ Get() any }
+// Implemented by utility types that wrap arbitrary types, such as `Opt`.
+type Getter[A any] interface{ Get() A }
 
 // Implemented by utility types that wrap arbitrary types, such as `Opt`.
-type ValGetter[A any] interface{ GetVal() A }
-
-// Implemented by utility types that wrap arbitrary types, such as `Opt`.
-type ValSetter[A any] interface{ SetVal(A) }
+type Setter[A any] interface{ Set(A) }
 
 /*
 Implemented by utility types that wrap arbitrary types, such as `Opt`. The
 returned pointer must reference the memory of the wrapper, instead of referring
-to new memory. Its mutation must affect the wrapper.
+to new memory. Its mutation must affect the wrapper. If the wrapper is nil,
+this should return nil.
 */
-type PtrGetter[A any] interface{ GetPtr() *A }
+type Ptrer[A any] interface{ Ptr() *A }
 
 /*
 Must clear the receiver. In collection types backed by slices and maps, this
@@ -114,13 +109,13 @@ type Scanner interface{ Scan(any) error }
 // Used by some utility functions.
 type ClearerPtrGetter[A any] interface {
 	Clearer
-	PtrGetter[A]
+	Ptrer[A]
 }
 
 // Used by some utility functions.
 type NullableValGetter[A any] interface {
 	Nullable
-	ValGetter[A]
+	Getter[A]
 }
 
 // Used by some utilities.
@@ -143,7 +138,6 @@ type Encoder interface {
 	fmt.Stringer
 	Appender
 	Nullable
-	Getter
 	driver.Valuer
 }
 
@@ -176,7 +170,7 @@ a lifetime for other values. Used by `Mem`.
 type Dur interface{ Duration() time.Duration }
 
 /*
-Very similar to `ValGetter`, but has different semantics in some contexts.
+Very similar to `Getter`, but has different semantics in some contexts.
 Used by `Mem`.
 */
 type Maker[A any] interface{ Make() A }
@@ -195,3 +189,10 @@ type Errer interface{ Err() error }
 
 // Used by various "iterator" types such as `sql.Rows`.
 type Nexter interface{ Next() bool }
+
+/*
+Implemented by some standard library types such as `time.Time` and
+`reflect.IsZero`. Our generic function `IsZero` automatically invokes this
+method on inputs that implement it.
+*/
+type Zeroable interface{ IsZero() bool }

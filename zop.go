@@ -31,22 +31,14 @@ func (self Zop[_]) IsNonNull() bool { return !IsZero(self.Val) }
 // Implement `Clearer`. Zeroes the receiver.
 func (self *Zop[_]) Clear() { Clear(&self.Val) }
 
-/*
-Implement `Getter` for compatibility with 3rd party libraries such as `pgx`.
-If `.IsNull`, returns nil. Otherwise returns the underlying value, invoking
-its own `Getter` if possible.
-*/
-//go:noinline
-func (self Zop[A]) Get() any { return GetNull[A](self) }
+// Implement `Getter`, returning the underlying value as-is.
+func (self Zop[A]) Get() A { return self.Val }
 
-// Implement `ValGetter`, returning the underlying value as-is.
-func (self Zop[A]) GetVal() A { return self.Val }
+// Implement `Setter`, modifying the underlying value.
+func (self *Zop[A]) Set(val A) { self.Val = val }
 
-// Implement `ValSetter`, modifying the underlying value.
-func (self *Zop[A]) SetVal(val A) { self.Val = val }
-
-// Implement `PtrGetter`, returning a pointer to the underlying value.
-func (self *Zop[A]) GetPtr() *A {
+// Implement `Ptrer`, returning a pointer to the underlying value.
+func (self *Zop[A]) Ptr() *A {
 	if self == nil {
 		return nil
 	}

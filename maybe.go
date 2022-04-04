@@ -23,11 +23,11 @@ func (self Maybe[A]) Ok() A {
 	return self.Val
 }
 
-// Implement `ValGetter`, returning the underlying value as-is.
-func (self Maybe[A]) GetVal() A { return self.Val }
+// Implement `Getter`, returning the underlying value as-is.
+func (self Maybe[A]) Get() A { return self.Val }
 
-// Implement `ValSetter`. Sets the underlying value and clears the error.
-func (self *Maybe[A]) SetVal(val A) {
+// Implement `Setter`. Sets the underlying value and clears the error.
+func (self *Maybe[A]) Set(val A) {
 	self.Val = val
 	self.Err = nil
 }

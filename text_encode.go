@@ -15,7 +15,7 @@ func StringNull[A any, B NullableValGetter[A]](val B) string {
 	if val.IsNull() {
 		return ``
 	}
-	return String(val.GetVal())
+	return String(val.Get())
 }
 
 /*
@@ -152,7 +152,7 @@ func AppendNull[A any, B NullableValGetter[A]](buf []byte, src B) []byte {
 	if src.IsNull() {
 		return buf
 	}
-	return Append(buf, src.GetVal())
+	return Append(buf, src.Get())
 }
 
 /*
@@ -284,7 +284,7 @@ func MarshalNullCatch[A any, B NullableValGetter[A]](val B) ([]byte, error) {
 	if val.IsNull() {
 		return nil, nil
 	}
-	return Marshal(val.GetVal())
+	return Marshal(val.Get())
 }
 
 /*

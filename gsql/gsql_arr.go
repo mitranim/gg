@@ -96,20 +96,13 @@ func (self *Arr[A]) Parse(src string) (err error) {
 //go:noinline
 func (self *Arr[A]) Clear() { gg.SliceTrunc(self) }
 
-/*
-Implement `Getter` for compatibility with 3rd party libraries such as `pgx`.
-If the slice is nil, returns nil. Otherwise returns the SQL-encoded string
-representation.
-*/
-func (self Arr[A]) Get() any {
-	if self.IsNull() {
-		return nil
-	}
-	return self.String()
-}
-
 // Implement `driver.Valuer`.
-func (self Arr[A]) Value() (driver.Value, error) { return self.Get(), nil }
+func (self Arr[A]) Value() (driver.Value, error) {
+	if self.IsNull() {
+		return nil, nil
+	}
+	return self.String(), nil
+}
 
 // Implement `sql.Scanner`.
 func (self *Arr[A]) Scan(src any) error {

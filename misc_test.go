@@ -4,6 +4,7 @@ import (
 	"context"
 	r "reflect"
 	"testing"
+	"time"
 
 	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
@@ -21,17 +22,69 @@ func TestIsZero(t *testing.T) {
 
 	gtest.True(gg.IsZero([]string(nil)))
 	gtest.True(!gg.IsZero([]string{}))
+
+	t.Run(`method`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.True(gg.IsZero[IsZeroAlwaysTrue](``))
+		gtest.True(gg.IsZero[IsZeroAlwaysTrue](`str`))
+
+		gtest.False(gg.IsZero[IsZeroAlwaysFalse](``))
+		gtest.False(gg.IsZero[IsZeroAlwaysFalse](`str`))
+	})
+
+	t.Run(`time`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.True(gg.IsZero(time.Time{}))
+		gtest.True(gg.IsZero(time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)))
+		gtest.False(gg.IsZero(time.Date(1, 1, 1, 0, 0, 0, 1, time.UTC)))
+	})
 }
 
-func Benchmark_reflect_IsZero(b *testing.B) {
+func Benchmark_is_zero_reflect_struct_zero(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		gg.Nop1(r.ValueOf(SomeModel{}).IsZero())
+		gg.Nop1(r.ValueOf(FatStruct{}).IsZero())
 	}
 }
 
-func BenchmarkIsZero(b *testing.B) {
+func Benchmark_is_zero_reflect_struct_non_zero(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		gg.Nop1(gg.IsZero(SomeModel{}))
+		gg.Nop1(r.ValueOf(FatStruct{Id: 10}).IsZero())
+	}
+}
+
+func Benchmark_is_zero_IsZero_struct_zero(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.IsZero(FatStruct{}))
+	}
+}
+
+func Benchmark_is_zero_IsZero_struct_non_zero(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.IsZero(FatStruct{Id: 10}))
+	}
+}
+
+func Benchmark_is_zero_IsZero_time_Time_zero(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.IsZero(time.Time{}))
+	}
+}
+
+func Benchmark_is_zero_IsZero_time_Time_non_zero(b *testing.B) {
+	inst := time.Now()
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.IsZero(inst))
+	}
+}
+
+func Benchmark_is_zero_method_time_Time(b *testing.B) {
+	inst := time.Now()
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(inst.IsZero())
 	}
 }
 

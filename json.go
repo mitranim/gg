@@ -53,7 +53,7 @@ func JsonBytesNullCatch[A any, B NullableValGetter[A]](val B) ([]byte, error) {
 	if val.IsNull() {
 		return ToBytes(`null`), nil
 	}
-	return JsonBytesCatch(val.GetVal())
+	return JsonBytesCatch(val.Get())
 }
 
 /*
@@ -128,5 +128,5 @@ func JsonParseClearCatch[
 		tar.Clear()
 		return nil
 	}
-	return JsonParseCatch(src, tar.GetPtr())
+	return JsonParseCatch(src, tar.Ptr())
 }

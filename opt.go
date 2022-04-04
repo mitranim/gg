@@ -35,28 +35,20 @@ func (self Opt[_]) IsNonNull() bool { return self.Ok }
 //go:noinline
 func (self *Opt[_]) Clear() { Clear(self) }
 
-/*
-Implement `Getter` for compatibility with 3rd party libraries such as `pgx`.
-If `.IsNull`, returns nil. Otherwise returns the underlying value, invoking
-its own `Getter` if possible.
-*/
-//go:noinline
-func (self Opt[A]) Get() any { return GetNull[A](self) }
-
-// Implement `ValGetter`, returning the underlying value as-is.
-func (self Opt[A]) GetVal() A { return self.Val }
+// Implement `Getter`, returning the underlying value as-is.
+func (self Opt[A]) Get() A { return self.Val }
 
 /*
-Implement `ValSetter`. Modifies the underlying value and sets `.Ok = true`.
+Implement `Setter`. Modifies the underlying value and sets `.Ok = true`.
 The resulting state is considered non-null even if the value is "zero".
 */
-func (self *Opt[A]) SetVal(val A) {
+func (self *Opt[A]) Set(val A) {
 	self.Val = val
 	self.Ok = true
 }
 
-// Implement `PtrGetter`, returning a pointer to the underlying value.
-func (self *Opt[A]) GetPtr() *A {
+// Implement `Ptrer`, returning a pointer to the underlying value.
+func (self *Opt[A]) Ptr() *A {
 	if self == nil {
 		return nil
 	}
@@ -115,21 +107,21 @@ func (self *Opt[A]) UnmarshalJSON(src []byte) error {
 /*
 Implement SQL `driver.Valuer`. If `.IsNull`, returns nil. If the underlying
 value implements `driver.Valuer`, delegates to its method. Otherwise returns
-the underlying value, invoking its own `Getter` if possible.
+the underlying value as-is.
 */
 //go:noinline
 func (self Opt[A]) Value() (driver.Value, error) { return ValueNull[A](self) }
 
 /*
 Implement SQL `Scanner`, decoding an arbitrary input into the underlying value.
-If the underlying type implements `Scanner`, its own implementation is used.
+If the underlying type implements `Scanner`, delegates to that implementation.
 Otherwise input must be nil or text-like (see `Text`). Text decoding uses the
 same logic as `.Parse`.
 */
 //go:noinline
 func (self *Opt[A]) Scan(src any) error {
 	self.Clear()
-	return self.with(ScanCatch[A](GetOpt(src), self))
+	return self.with(ScanCatch[A](src, self))
 }
 
 func (self *Opt[_]) with(err error) error {
@@ -145,7 +137,7 @@ non-"null" even if the value is zero.
 */
 func OptMap[A, B any](src Opt[A], fun func(A) B) (out Opt[B]) {
 	if src.IsNonNull() && fun != nil {
-		out.SetVal(fun(src.Val))
+		out.Set(fun(src.Val))
 	}
 	return
 }

@@ -121,12 +121,12 @@ func (self *typeMeta) addField(index []int, cols []string, field r.StructField) 
 	))
 }
 
-func nextScalar[Val any, Src Scanner](src Src) (out Val) {
+func scanNextScalar[Row any, Src ColumnerScanner](src Src) (out Row) {
 	gg.Try(src.Scan(gg.AnyNoEscUnsafe(&out)))
 	return
 }
 
-func nextStruct[Val any, Src ColumnerScanner](src Src, meta typeMeta) (out Val) {
+func scanNextStruct[Row any, Src ColumnerScanner](src Src, meta typeMeta) (out Row) {
 	tar := r.ValueOf(gg.AnyNoEscUnsafe(&out)).Elem()
 	scanStruct(src, meta, tar)
 	return
@@ -147,7 +147,7 @@ JSON, and unfortunate for our purposes.
 */
 func scanStruct[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value) {
 	typ := tar.Type()
-	cols := RowsCols(src)
+	cols := gg.Try1(src.Columns())
 
 	indir := gg.Map(cols, func(key string) r.Value {
 		return r.New(r.PointerTo(typ.FieldByIndex(meta.Get(key)).Type))
@@ -164,45 +164,48 @@ func scanStruct[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value) {
 }
 
 func scanValsAny[Src Rows](src Src, tar r.Value) {
-	defer RowsDone(src)
+	defer gg.Close(src)
 
 	elem := tar.Type().Elem()
 	meta := typeMetaCache.Get(elem)
 
 	for src.Next() {
-		tar.Set(r.Append(tar, nextValAny(src, meta, elem)))
+		tar.Set(r.Append(tar, scanNextAny(src, meta, elem)))
 	}
 
-	RowsOk(src)
+	gg.ErrOk(src)
 }
 
 func scanValAny[Src Rows](src Src, tar r.Value) {
-	defer RowsDone(src)
+	defer gg.Close(src)
+
+	if !src.Next() {
+		panic(gg.ToErrTraced(sql.ErrNoRows, 1))
+	}
+
+	typ := tar.Type()
+	tar.Set(scanNextAny(src, typeMetaCache.Get(typ), typ))
+	gg.ErrOk(src)
 
 	if src.Next() {
-		typ := tar.Type()
-		tar.Set(nextValAny(src, typeMetaCache.Get(typ), typ))
-		return
+		panic(gg.ToErrTraced(ErrMultipleRows, 1))
 	}
-
-	RowsOk(src)
-	panic(gg.ToErrTraced(sql.ErrNoRows, 1))
 }
 
-func nextValAny[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
+func scanNextAny[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
 	if meta.IsScalar() {
-		return nextScalarAny(src, typ)
+		return scanNextScalarAny(src, typ)
 	}
-	return nextStructAny(src, meta, typ)
+	return scanNextStructAny(src, meta, typ)
 }
 
-func nextScalarAny[Src Scanner](src Src, typ r.Type) r.Value {
+func scanNextScalarAny[Src ColumnerScanner](src Src, typ r.Type) r.Value {
 	tar := r.New(typ)
 	gg.Try(src.Scan(tar.Interface()))
 	return tar.Elem()
 }
 
-func nextStructAny[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
+func scanNextStructAny[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
 	tar := r.New(typ).Elem()
 	scanStruct(src, meta, tar)
 	return tar

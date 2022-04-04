@@ -3,7 +3,6 @@ package gg
 import (
 	"context"
 	"database/sql/driver"
-	"encoding/json"
 	r "reflect"
 )
 
@@ -240,67 +239,12 @@ func EqNonZero[A comparable](one, two A) bool {
 	return IsNonZeroComp(one) && one == two
 }
 
-// Shortcut for creating a `Maybe` with the given value.
-func MaybeVal[A any](val A) Maybe[A] { return Maybe[A]{val, nil} }
-
-// Shortcut for creating a `Maybe` with the given error.
-func MaybeErr[A any](err error) Maybe[A] { return Maybe[A]{Zero[A](), err} }
-
 /*
-Contains a value or an error.
+True if the given slices have the same data pointer, length, capacity.
+Does not compare individual elements.
 */
-type Maybe[A any] struct {
-	Val A     `json:"val,omitempty"`
-	Err error `json:"err,omitempty"`
-}
-
-/*
-Asserts that the error is nil, returning the resulting value. If the error is
-non-nil, panics via `Try`, idempotently adding a stack trace to the error.
-*/
-func (self Maybe[A]) Ok() A {
-	Try(self.Err)
-	return self.Val
-}
-
-// Implement `ValGetter`, returning the underlying value as-is.
-func (self Maybe[A]) GetVal() A { return self.Val }
-
-// Implement `ValSetter`. Sets the underlying value and clears the error.
-func (self *Maybe[A]) SetVal(val A) {
-	self.Val = val
-	self.Err = nil
-}
-
-// Returns the underlying error as-is.
-func (self Maybe[_]) GetErr() error { return self.Err }
-
-// Sets the error. If the error is non-nil, clears the value.
-func (self *Maybe[A]) SetErr(err error) {
-	if err != nil {
-		self.Val = Zero[A]()
-	}
-	self.Err = err
-}
-
-// True if error is non-nil.
-func (self Maybe[_]) HasErr() bool { return self.Err != nil }
-
-/*
-Implement `json.Marshaler`. If the underlying error is non-nil, returns that
-error. Otherwise uses `json.Marshal` to encode the underlying value.
-*/
-func (self Maybe[A]) MarshalJSON() ([]byte, error) {
-	if self.Err != nil {
-		return nil, self.Err
-	}
-	return json.Marshal(self.Val)
-}
-
-// Implement `json.Unmarshaler`, decoding into the underlying value.
-func (self *Maybe[A]) UnmarshalJSON(src []byte) error {
-	self.Err = nil
-	return json.Unmarshal(src, &self.Val)
+func SliceIs[A any](one, two []A) bool {
+	return CastUnsafe[r.SliceHeader](one) == CastUnsafe[r.SliceHeader](two)
 }
 
 // Returns the first non-zero value from among the inputs.
@@ -398,6 +342,11 @@ func Span[A Int](val A) []A { return Range(0, val) }
 // Combines two inputs via "+". Also see variadic `Add`.
 func Plus2[A Plusable](one, two A) A { return one + two }
 
+/*
+Shortcut for mutexes. Usage:
+
+	defer Locked(someLock).Unlock()
+*/
 func Locked[A interface{ Lock() }](val A) A {
 	val.Lock()
 	return val
@@ -422,4 +371,29 @@ func Fellback[A any](tar *A, fallback A) bool {
 		return true
 	}
 	return false
+}
+
+/*
+Snapshots the previous value, sets the next value, and returns a snapshot
+that can restore the previous value. Usage:
+
+	defer Swap(&somePtr, someVal).Done()
+*/
+func Swap[A any](ptr *A, next A) Snap[A] {
+	prev := *ptr
+	*ptr = next
+	return Snap[A]{ptr, prev}
+}
+
+// Short for "snapshot". Used by `Swap`.
+type Snap[A any] struct {
+	Ptr *A
+	Val A
+}
+
+// If the pointer is non-nil, writes the value to it. See `Swap`.
+func (self Snap[_]) Done() {
+	if self.Ptr != nil {
+		*self.Ptr = self.Val
+	}
 }

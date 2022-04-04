@@ -3,6 +3,7 @@ package gg
 import (
 	r "reflect"
 	"sync"
+	"time"
 )
 
 /*
@@ -136,4 +137,114 @@ func (self *TypeCache[Val, Ptr]) GetPtr(key r.Type) Ptr {
 func (self *TypeCache[Val, Ptr]) get(key r.Type) Ptr {
 	defer Locked(self.Lock.RLocker()).Unlock()
 	return self.Map[key]
+}
+
+/*
+Tool for deduplicating and caching expensive work.
+All methods are safe for concurrent use.
+*/
+type Mem[A any] struct {
+	sync.RWMutex
+	Timed[A]
+}
+
+// Clears the inner value and timestamp.
+func (self *Mem[A]) Clear() {
+	defer Locked(self).Unlock()
+	Clear(&self.Val)
+	Clear(&self.Inst)
+}
+
+// Returns the inner `Timed`.
+func (self *Mem[A]) GetTimed() Timed[A] {
+	defer Locked(self.RLocker()).Unlock()
+	return self.Timed
+}
+
+/*
+Shortcut for types such as `MemHour` that embed `Mem` and implement `Dur`.
+Usage:
+
+	type MemExample struct { MemHour[string] }
+
+	func (self *MemExample) Get() string {return self.DedupFrom(self)}
+	func (*MemExample) Make() string {return `some_value`}
+*/
+func (self *Mem[A]) DedupFrom(val DurMaker[A]) A {
+	return self.Dedup(val.Duration(), val.Make)
+}
+
+/*
+Either reuses the existing value, or calls the given function to regenerate it.
+The given duration is the allotted lifetime of the previous value, if any.
+
+In addition to reusing previous values, this method deduplicates concurrent
+work. When called concurrently by multiple goroutines, only 1 goroutine
+performs work, while the others simply wait for it.
+
+Usage:
+
+	type MemExample struct { Mem[string] }
+
+	func (self *MemExample) Get() string {
+		return self.Dedup(time.Hour, func() string {return `some_value`})
+	}
+*/
+func (self *Mem[A]) Dedup(life time.Duration, fun func() A) A {
+	val := self.GetTimed()
+	if !val.IsExpired(life) {
+		return val.Val
+	}
+
+	defer Locked(self).Unlock()
+
+	if fun != nil && self.Timed.IsExpired(life) {
+		self.Timed.SetVal(fun())
+	}
+	return self.Timed.Val
+}
+
+/*
+Implements `Dur` by returning `time.Second`. This type is zero-sized, and can be
+embedded in other types, like a mixin, at no additional cost.
+*/
+type DurSecond struct{}
+
+// Implement `Dur` by returning `time.Second`.
+func (DurSecond) Duration() time.Duration { return time.Second }
+
+/*
+Implements `Dur` by returning `time.Minute`. This type is zero-sized, and can be
+embedded in other types, like a mixin, at no additional cost.
+*/
+type DurMinute struct{}
+
+// Implement `Dur` by returning `time.Minute`.
+func (DurMinute) Duration() time.Duration { return time.Minute }
+
+/*
+Implements `Dur` by returning `time.Hour`. This type is zero-sized, and can be
+embedded in other types, like a mixin, at no additional cost.
+*/
+type DurHour struct{}
+
+// Implement `Dur` by returning `time.Hour`.
+func (DurHour) Duration() time.Duration { return time.Hour }
+
+// Should be embedded in other types. See `Mem.DedupFrom` for an example.
+type MemSecond[A any] struct {
+	DurSecond
+	Mem[A]
+}
+
+// Should be embedded in other types. See `Mem.DedupFrom` for an example.
+type MemMinute[A any] struct {
+	DurMinute
+	Mem[A]
+}
+
+// Should be embedded in other types. See `Mem.DedupFrom` for an example.
+type MemHour[A any] struct {
+	DurHour
+	Mem[A]
 }

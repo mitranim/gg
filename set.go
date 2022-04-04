@@ -4,7 +4,8 @@ import "encoding/json"
 
 /*
 Syntactic shortcut for making a set from a slice, with element type inference
-and capacity preallocation.
+and capacity preallocation. Always returns non-nil, even if the input is
+empty.
 */
 func SetOf[A comparable](val ...A) Set[A] {
 	return make(Set[A], len(val)).Reset(val...)
@@ -12,7 +13,8 @@ func SetOf[A comparable](val ...A) Set[A] {
 
 /*
 Syntactic shortcut for making a set from multiple slices, with element type
-inference and capacity preallocation.
+inference and capacity preallocation. Always returns non-nil, even if the input
+is empty.
 */
 func SetFrom[Slice ~[]Elem, Elem comparable](val ...Slice) Set[Elem] {
 	buf := make(Set[Elem], Lens(val...))
@@ -24,7 +26,7 @@ func SetFrom[Slice ~[]Elem, Elem comparable](val ...Slice) Set[Elem] {
 
 /*
 Creates a set by "mapping" the elements of a given slice via the provided
-function.
+function. Always returns non-nil, even if the input is empty.
 */
 func SetMapped[
 	Slice ~[]Elem,

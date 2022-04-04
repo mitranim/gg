@@ -231,3 +231,26 @@ func BenchmarkEqual(b *testing.B) {
 		gg.Nop1(gg.Equal(one, two))
 	}
 }
+
+func TestSliceIs(t *testing.T) {
+	t.Run(`nil`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.SliceIs([]byte(nil), []byte(nil))
+		gtest.SliceIs([]string(nil), []string(nil))
+	})
+
+	t.Run(`zerobase`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.SliceIs([]byte{}, []byte{})
+		gtest.SliceIs([]string{}, []string{})
+	})
+}
+
+func TestNotSliceIs(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.NotSliceIs([]byte(`str`), []byte(`str`))
+	gtest.NotSliceIs([]string{`str`}, []string{`str`})
+}

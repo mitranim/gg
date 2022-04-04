@@ -67,12 +67,12 @@ func TestErrs_Error(t *testing.T) {
 	)
 }
 
-func TestErrs_ErrOpt(t *testing.T) {
+func TestErrs_Err(t *testing.T) {
 	defer gtest.Catch(t)
 
 	testEmpty := func(src gg.Errs) {
 		t.Helper()
-		gtest.Zero(src.ErrOpt())
+		gtest.Zero(src.Err())
 	}
 
 	testEmpty(gg.Errs(nil))
@@ -81,16 +81,16 @@ func TestErrs_ErrOpt(t *testing.T) {
 
 	testOne := func(exp error) {
 		t.Helper()
-		gtest.Equal(gg.Errs{nil, exp, nil}.ErrOpt(), exp)
-		gtest.Equal(gg.Errs{exp, nil}.ErrOpt(), exp)
-		gtest.Equal(gg.Errs{nil, exp}.ErrOpt(), exp)
+		gtest.Equal(gg.Errs{nil, exp, nil}.Err(), exp)
+		gtest.Equal(gg.Errs{exp, nil}.Err(), exp)
+		gtest.Equal(gg.Errs{nil, exp}.Err(), exp)
 	}
 
 	testOne(testErr0)
 	testOne(testErr1)
 
 	errs := gg.Errs{nil, testErr0, nil, testErr1, nil}
-	gtest.Equal(errs.ErrOpt(), error(errs))
+	gtest.Equal(errs.Err(), error(errs))
 }
 
 func TestErrs_Unwrap(t *testing.T) {

@@ -23,13 +23,13 @@ type Zop[A any] struct {
 }
 
 // Implement `Nullable`. True if zero value of its type.
-func (self Zop[A]) IsNull() bool { return IsZero(self.Val) }
+func (self Zop[_]) IsNull() bool { return IsZero(self.Val) }
 
 // Inverse of `.IsNull`.
-func (self Zop[A]) IsNonNull() bool { return !IsZero(self.Val) }
+func (self Zop[_]) IsNonNull() bool { return !IsZero(self.Val) }
 
 // Implement `Clearer`. Zeroes the receiver.
-func (self *Zop[A]) Clear() { Clear(&self.Val) }
+func (self *Zop[_]) Clear() { Clear(&self.Val) }
 
 /*
 Implement `Getter` for compatibility with 3rd party libraries such as `pgx`.

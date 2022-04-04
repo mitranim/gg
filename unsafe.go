@@ -2,7 +2,10 @@ package gg
 
 import u "unsafe"
 
-// Memory representation of an arbitrary Go slice.
+/*
+Memory representation of an arbitrary Go slice. Same as `reflect.SliceHeader`
+but with `unsafe.Pointer` instead of `uintptr`.
+*/
 type SliceHeader struct {
 	Dat u.Pointer
 	Len int

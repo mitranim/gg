@@ -1,3 +1,6 @@
+/*
+Missing feature of the standard library: terse, expressive test assertions.
+*/
 package gtest
 
 import (
@@ -6,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/mitranim/gg"
+	"github.com/mitranim/gg/grepr"
 )
 
 /*
@@ -26,10 +30,6 @@ Implement `fmt.Stringer` by using full formatting on the inner error: multiline
 with a stack trace.
 */
 func (self Err) String() string {
-	// return self.Err.Stack()
-
-	// return self.Err.Stack() + gg.Newline
-
 	var buf gg.Buf
 	buf = self.Err.AppendStack(buf)
 	buf.AppendString(gg.Newline)
@@ -106,12 +106,14 @@ func msgEq(act, exp any) string {
 
 func msgEqInner(act, exp any) string {
 	return gg.JoinLinesOpt(
-		msgDet(`actual detailed:`, gg.GoString(act)),
-		msgDet(`expected detailed:`, gg.GoString(exp)),
+		msgDet(`actual detailed:`, goStringIndent(act)),
+		msgDet(`expected detailed:`, goStringIndent(exp)),
 		msgDet(`actual simple:`, gg.StringAny(act)),
 		msgDet(`expected simple:`, gg.StringAny(exp)),
 	)
 }
+
+func goStringIndent[A any](val A) string { return grepr.StringIndent(val, 1) }
 
 func msgDet(msg, det string) string {
 	if det == `` {
@@ -126,15 +128,18 @@ optional additional messages and the stack trace.
 */
 func NotEq[A any](act, nom A, opt ...any) {
 	if any(act) == any(nom) {
-		panic(ToErr(1, msgOpt(opt, msgNeq(act, nom))))
+		panic(ToErr(1, msgOpt(opt, msgNotEq(act, nom))))
 	}
 }
 
-func msgNeq[A any](act, nom A) string {
+func msgNotEq[A any](act, nom A) string {
+	return gg.JoinLinesOpt(`unexpected equality`, msgNotEqInner(act, nom))
+}
+
+func msgNotEqInner[A any](act, nom A) string {
 	return gg.JoinLinesOpt(
-		`unexpected equality`,
-		msgDet(`actual detailed:`, gg.GoString(act)),
-		msgDet(`nominal detailed:`, gg.GoString(nom)),
+		msgDet(`actual detailed:`, goStringIndent(act)),
+		msgDet(`nominal detailed:`, goStringIndent(nom)),
 		msgDet(`actual simple:`, gg.StringAny(act)),
 		msgDet(`nominal simple:`, gg.StringAny(nom)),
 	)
@@ -169,7 +174,39 @@ optional additional messages and the stack trace.
 */
 func NotEqual[A any](act, nom A, opt ...any) {
 	if gg.Equal(act, nom) {
-		panic(ToErr(1, msgOpt(opt, msgNeq(act, nom))))
+		panic(ToErr(1, msgOpt(opt, msgNotEq(act, nom))))
+	}
+}
+
+/*
+Asserts that the given slice headers (not their elements) are equal via
+`gg.SliceIs`. This means they have the same data pointer, length, capacity.
+Does NOT compare individual elements, unlike `Equal`. Otherwise fails the test,
+printing the optional additional messages and the stack trace.
+*/
+func SliceIs[A ~[]B, B any](act, exp A, opt ...any) {
+	if !gg.SliceIs(act, exp) {
+		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+			`unexpected difference in slice headers`,
+			msgDet(`actual header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](act))),
+			msgDet(`expected header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](exp))),
+		))))
+	}
+}
+
+/*
+Asserts that the given slice headers (not their elements) are distinct. This
+means at least one of the following fields is different: data pointer, length,
+capacity. Does NOT compare individual elements, unlike `NotEqual`. Otherwise
+fails the test, printing the optional additional messages and the stack trace.
+*/
+func NotSliceIs[A ~[]B, B any](act, nom A, opt ...any) {
+	if gg.SliceIs(act, nom) {
+		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+			`expected given slice headers to be distinct, but they were equal`,
+			msgDet(`actual header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](act))),
+			msgDet(`nominal header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](nom))),
+		))))
 	}
 }
 
@@ -201,7 +238,7 @@ func NotZero[A any](val A, opt ...any) {
 
 func msgSingle[A any](val A) string {
 	return gg.JoinLinesOpt(
-		msgDet(`detailed:`, gg.GoString(val)),
+		msgDet(`detailed:`, goStringIndent(val)),
 		msgDet(`simple:`, gg.StringAny(val)),
 	)
 }
@@ -329,10 +366,6 @@ func Error(test func(error) bool, err error, opt ...any) {
 	}
 }
 
-func msgErrNone(test func(error) bool) string {
-	return gg.JoinLinesOpt(`unexpected lack of error`, msgErrTest(test))
-}
-
 /*
 Asserts that the given error is non-nil, or fails the test, printing the
 optional additional messages and the stack trace.
@@ -403,22 +436,27 @@ func NotHas[A ~[]B, B comparable](src A, val B, opt ...any) {
 
 func msgSliceElem[A ~[]B, B comparable](src A, val B) string {
 	return gg.JoinLinesOpt(
-		msgDet(`slice detailed:`, gg.GoString(src)),
-		msgDet(`element detailed:`, gg.GoString(val)),
+		msgDet(`slice detailed:`, goStringIndent(src)),
+		msgDet(`element detailed:`, goStringIndent(val)),
 		msgDet(`slice simple:`, gg.StringAny(src)),
 		msgDet(`element simple:`, gg.StringAny(val)),
 	)
 }
 
+/*
+Asserts that the first slice contains all elements from the second slice. In
+other words, that the first slice is a strict superset of the second. Otherwise
+fails the test, printing the optional additional messages and the stack trace.
+*/
 func HasAll[A ~[]B, B comparable](src, exp A, opt ...any) {
 	missing := gg.Subtract(exp, src)
 
 	if len(missing) > 0 {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected outer slice to contain all elements from inner slice`,
-			msgDet(`outer detailed:`, gg.GoString(src)),
-			msgDet(`inner detailed:`, gg.GoString(exp)),
-			msgDet(`missing detailed:`, gg.GoString(missing)),
+			msgDet(`outer detailed:`, goStringIndent(src)),
+			msgDet(`inner detailed:`, goStringIndent(exp)),
+			msgDet(`missing detailed:`, goStringIndent(missing)),
 			msgDet(`outer simple:`, gg.StringAny(src)),
 			msgDet(`inner simple:`, gg.StringAny(exp)),
 			msgDet(`missing simple:`, gg.StringAny(missing)),
@@ -426,15 +464,20 @@ func HasAll[A ~[]B, B comparable](src, exp A, opt ...any) {
 	}
 }
 
+/*
+Asserts that the first slice does not contain any from the second slice. In
+other words, that the element sets are disjoint. Otherwise fails the test,
+printing the optional additional messages and the stack trace.
+*/
 func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {
 	inter := gg.Intersect(src, exp)
 
 	if len(inter) > 0 {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected left slice to contain no elements from right slice`,
-			msgDet(`left detailed:`, gg.GoString(src)),
-			msgDet(`right detailed:`, gg.GoString(exp)),
-			msgDet(`intersection detailed:`, gg.GoString(inter)),
+			msgDet(`left detailed:`, goStringIndent(src)),
+			msgDet(`right detailed:`, goStringIndent(exp)),
+			msgDet(`intersection detailed:`, goStringIndent(inter)),
 			msgDet(`left simple:`, gg.StringAny(src)),
 			msgDet(`right simple:`, gg.StringAny(exp)),
 			msgDet(`intersection simple:`, gg.StringAny(inter)),
@@ -442,6 +485,10 @@ func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {
 	}
 }
 
+/*
+Asserts that the given slice contains no duplicates, or fails the test, printing
+the optional additional messages and the stack trace.
+*/
 func Uniq[A ~[]B, B comparable](src A, opt ...any) {
 	dup, ok := foundDup(src)
 	if ok {
@@ -471,8 +518,8 @@ func TextHas[A, B gg.Text](src A, exp B, opt ...any) {
 	if !strings.Contains(gg.ToString(src), gg.ToString(exp)) {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
 			`text does not contain substring`,
-			msgDet(`full text:`, gg.GoString(gg.ToString(src))),
-			msgDet(`substring:`, gg.GoString(gg.ToString(exp))),
+			msgDet(`full text:`, goStringIndent(gg.ToString(src))),
+			msgDet(`substring:`, goStringIndent(gg.ToString(exp))),
 		))))
 	}
 }
@@ -485,7 +532,7 @@ func Empty[A ~[]B, B any](src A, opt ...any) {
 	if len(src) != 0 {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected non-empty slice`,
-			msgDet(`detailed:`, gg.GoString(src)),
+			msgDet(`detailed:`, goStringIndent(src)),
 			msgDet(`simple:`, gg.StringAny(src)),
 		))))
 	}
@@ -538,17 +585,6 @@ func TextLen[A gg.Text](src A, exp int, opt ...any) {
 }
 
 /*
-Writes the given value to the given pointer and uses `t.Cleanup` to revert it
-back after the test's end.
-*/
-func Swap[A any](t testing.TB, ptr *A, val A) A {
-	src := *ptr
-	*ptr = val
-	t.Cleanup(func() { *ptr = src })
-	return val
-}
-
-/*
 Asserts that `.String` of the input matches the expected string, or fails the
 test, printing the optional additional messages and the stack trace.
 */
@@ -556,12 +592,21 @@ func Str[A fmt.Stringer](src A, exp string, opt ...any) {
 	Eq(src.String(), exp, opt...)
 }
 
+/*
+Asserts `one < two`, or fails the test, printing the optional additional
+messages and the stack trace. For non-primitives that implement `gg.Lesser`,
+see `Less`. Also see `LessEqPrim`.
+*/
 func LessPrim[A gg.LesserPrim](one, two A, opt ...any) {
 	if !(one < two) {
 		panic(ToErr(1, msgOpt(opt, msgLess(one, two))))
 	}
 }
 
+/*
+Asserts `one < two`, or fails the test, printing the optional additional
+messages and the stack trace. For primitives, see `LessPrim`.
+*/
 func Less[A gg.Lesser[A]](one, two A, opt ...any) {
 	if !one.Less(two) {
 		panic(ToErr(1, msgOpt(opt, msgLess(one, two))))
@@ -572,12 +617,22 @@ func msgLess[A any](one, two A) string {
 	return gg.JoinLinesOpt(`expected A < B`, msgAB(one, two))
 }
 
+/*
+Asserts `one <= two`, or fails the test, printing the optional additional
+messages and the stack trace. For non-primitives that implement `gg.Lesser`,
+see `LessEq`. Also see `LessPrim`.
+*/
 func LessEqPrim[A gg.LesserPrim](one, two A, opt ...any) {
 	if !(one <= two) {
 		panic(ToErr(1, msgOpt(opt, msgLessEq(one, two))))
 	}
 }
 
+/*
+Asserts `one <= two`, or fails the test, printing the optional additional
+messages and the stack trace. For primitives, see `LessEqPrim`. Also see
+`Less`.
+*/
 func LessEq[A interface {
 	gg.Lesser[A]
 	comparable
@@ -593,13 +648,17 @@ func msgLessEq[A any](one, two A) string {
 
 func msgAB[A any](one, two A) string {
 	return gg.JoinLinesOpt(
-		msgDet(`A detailed:`, gg.GoString(one)),
-		msgDet(`B detailed:`, gg.GoString(two)),
+		msgDet(`A detailed:`, goStringIndent(one)),
+		msgDet(`B detailed:`, goStringIndent(two)),
 		msgDet(`A simple:`, gg.StringAny(one)),
 		msgDet(`B simple:`, gg.StringAny(two)),
 	)
 }
 
+/*
+Asserts that the given number is > 0, or fails the test, printing the optional
+additional messages and the stack trace.
+*/
 func Pos[A gg.Signed](src A, opt ...any) {
 	if !gg.IsPos(src) {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
@@ -609,6 +668,10 @@ func Pos[A gg.Signed](src A, opt ...any) {
 	}
 }
 
+/*
+Asserts that the given number is < 0, or fails the test, printing the optional
+additional messages and the stack trace.
+*/
 func Neg[A gg.Signed](src A, opt ...any) {
 	if !gg.IsNeg(src) {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(

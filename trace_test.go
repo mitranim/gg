@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/mitranim/gg"
-	"github.com/mitranim/gg/gtest"
 )
 
 func BenchmarkCaptureTrace(b *testing.B) {
@@ -14,7 +13,7 @@ func BenchmarkCaptureTrace(b *testing.B) {
 }
 
 func BenchmarkTraceAppend(b *testing.B) {
-	gtest.Swap(b, &gg.TraceRelPath, false)
+	defer gg.Swap(&gg.TraceRelPath, false).Done()
 
 	trace := gg.CaptureTrace(0)
 	buf := make([]byte, 0, 4096)
@@ -26,7 +25,7 @@ func BenchmarkTraceAppend(b *testing.B) {
 }
 
 func BenchmarkCaptureTrace_Append(b *testing.B) {
-	gtest.Swap(b, &gg.TraceRelPath, false)
+	defer gg.Swap(&gg.TraceRelPath, false).Done()
 
 	buf := make([]byte, 0, 4096)
 	b.ResetTimer()

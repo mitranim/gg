@@ -219,12 +219,11 @@ func (self Frame) Append(inout []byte) []byte {
 		return buf
 	}
 
-	buf.
-		AppendString(self.NameShort()).
-		AppendSpace().
-		AppendString(self.Path()).
-		AppendString(`:`).
-		AppendInt(self.Line)
+	buf.AppendString(self.NameShort())
+	buf.AppendSpace()
+	buf.AppendString(self.Path())
+	buf.AppendString(`:`)
+	buf.AppendInt(self.Line)
 	return buf
 }
 
@@ -234,13 +233,12 @@ func (self Frame) AppendIndent(inout []byte, lvl int) []byte {
 		return buf
 	}
 
-	buf.
-		AppendString(self.NameShort()).
-		AppendNewline().
-		AppendIndents(lvl).
-		AppendString(self.Path()).
-		AppendString(`:`).
-		AppendInt(self.Line)
+	buf.AppendString(self.NameShort())
+	buf.AppendNewline()
+	buf.AppendIndents(lvl)
+	buf.AppendString(self.Path())
+	buf.AppendString(`:`)
+	buf.AppendInt(self.Line)
 	return buf
 }
 
@@ -250,7 +248,8 @@ func (self Frame) AppendNewlineIndent(inout []byte, lvl int) []byte {
 		return buf
 	}
 
-	buf.AppendNewline().AppendIndents(lvl)
+	buf.AppendNewline()
+	buf.AppendIndents(lvl)
 	return self.AppendIndent(buf, lvl+1)
 }
 
@@ -262,14 +261,14 @@ func (self Frame) AppendRowIndent(inout []byte, lvl, wid int) []byte {
 
 	name := self.NameShort()
 
-	buf.AppendNewline().
-		AppendIndents(lvl).
-		AppendString(name).
-		AppendSpace().
-		AppendSpaces(wid - len(name)).
-		AppendString(self.Path()).
-		AppendString(`:`).
-		AppendInt(self.Line)
+	buf.AppendNewline()
+	buf.AppendIndents(lvl)
+	buf.AppendString(name)
+	buf.AppendSpace()
+	buf.AppendSpaces(wid - len(name))
+	buf.AppendString(self.Path())
+	buf.AppendString(`:`)
+	buf.AppendInt(self.Line)
 	return buf
 }
 

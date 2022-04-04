@@ -29,7 +29,8 @@ func errAppendInner(buf Buf, err error) Buf {
 
 func errAppendTraceIndent(buf Buf, trace Trace) Buf {
 	if trace.HasLen() {
-		buf.AppendNewline().AppendString(`trace:`)
+		buf.AppendNewline()
+		buf.AppendString(`trace:`)
 		buf = trace.AppendIndent(buf, 1)
 	}
 	return buf

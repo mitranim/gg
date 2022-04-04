@@ -56,202 +56,174 @@ func (self *Buf) Write(val []byte) (int, error) {
 }
 
 // Appends the given string. Mutates and returns the receiver.
-func (self *Buf) AppendString(val string) *Buf {
-	*self = append(*self, val...)
-	return self
-}
+func (self *Buf) AppendString(val string) { *self = append(*self, val...) }
 
 // Appends the given string N times. Mutates and returns the receiver.
-func (self *Buf) AppendStringN(val string, count int) *Buf {
+func (self *Buf) AppendStringN(val string, count int) {
 	if len(val) > 0 {
 		for count > 0 {
 			count--
 			self.AppendString(val)
 		}
 	}
-	return self
 }
 
 // Appends `Indent`. Mutates and returns the receiver.
-func (self *Buf) AppendIndent() *Buf {
-	return self.AppendString(Indent)
-}
+func (self *Buf) AppendIndent() { self.AppendString(Indent) }
 
 // Appends `Indent` N times. Mutates and returns the receiver.
-func (self *Buf) AppendIndents(lvl int) *Buf {
-	return self.AppendStringN(Indent, lvl)
-}
+func (self *Buf) AppendIndents(lvl int) { self.AppendStringN(Indent, lvl) }
 
 // Appends the given bytes. Mutates and returns the receiver.
-func (self *Buf) AppendBytes(val []byte) *Buf {
-	*self = append(*self, val...)
-	return self
-}
+func (self *Buf) AppendBytes(val []byte) { *self = append(*self, val...) }
 
 // Appends the given byte. Mutates and returns the receiver.
-func (self *Buf) AppendByte(val byte) *Buf {
-	*self = append(*self, val)
-	return self
-}
+func (self *Buf) AppendByte(val byte) { *self = append(*self, val) }
 
 // Appends the given rune. Mutates and returns the receiver.
-func (self *Buf) AppendRune(val rune) *Buf {
-	*self = utf8.AppendRune(*self, val)
-	return self
-}
+func (self *Buf) AppendRune(val rune) { *self = utf8.AppendRune(*self, val) }
 
 // Appends a single space. Mutates and returns the receiver.
-func (self *Buf) AppendSpace() *Buf { return self.AppendByte(' ') }
+func (self *Buf) AppendSpace() { self.AppendByte(' ') }
 
 // Appends a space N times. Mutates and returns the receiver.
-func (self *Buf) AppendSpaces(count int) *Buf {
-	return self.AppendByteN(' ', count)
-}
+func (self *Buf) AppendSpaces(count int) { self.AppendByteN(' ', count) }
 
 // Appends the given byte N times. Mutates and returns the receiver.
-func (self *Buf) AppendByteN(val byte, count int) *Buf {
-	for count > 0 {
-		count--
+func (self *Buf) AppendByteN(val byte, count int) {
+	for range Iter(count) {
 		self.AppendByte(val)
 	}
-	return self
 }
 
 // Appends `Newline`. Mutates and returns the receiver.
-func (self *Buf) AppendNewline() *Buf {
-	return self.AppendString(Newline)
-}
+func (self *Buf) AppendNewline() { self.AppendString(Newline) }
 
 // Appends `Newline` N times. Mutates and returns the receiver.
-func (self *Buf) AppendNewlines(count int) *Buf {
-	return self.AppendStringN(Newline, count)
+func (self *Buf) AppendNewlines(count int) { self.AppendStringN(Newline, count) }
+
+/*
+Appends text representation of the input, using "strconv". Mutates and returns
+the receiver.
+*/
+func (self *Buf) AppendUint(val int) {
+	*self = strconv.AppendUint(*self, uint64(val), 10)
 }
 
 /*
 Appends text representation of the input, using "strconv". Mutates and returns
 the receiver.
 */
-func (self *Buf) AppendInt(val int) *Buf {
+func (self *Buf) AppendUint64(val uint64) {
+	*self = strconv.AppendUint(*self, val, 10)
+}
+
+/*
+Appends text representation of the input, using "strconv". Mutates and returns
+the receiver.
+*/
+func (self *Buf) AppendInt(val int) {
 	*self = strconv.AppendInt(*self, int64(val), 10)
-	return self
 }
 
 /*
 Appends text representation of the input, using "strconv". Mutates and returns
 the receiver.
 */
-func (self *Buf) AppendInt64(val int64) *Buf {
+func (self *Buf) AppendInt64(val int64) {
 	*self = strconv.AppendInt(*self, val, 10)
-	return self
 }
 
 /*
 Appends text representation of the input, using "strconv". Mutates and returns
 the receiver.
 */
-func (self *Buf) AppendFloat32(val float32) *Buf {
+func (self *Buf) AppendFloat32(val float32) {
 	*self = strconv.AppendFloat(*self, float64(val), 'f', -1, 32)
-	return self
 }
 
 /*
 Appends text representation of the input, using "strconv". Mutates and returns
 the receiver.
 */
-func (self *Buf) AppendFloat64(val float64) *Buf {
+func (self *Buf) AppendFloat64(val float64) {
 	*self = strconv.AppendFloat(*self, val, 'f', -1, 64)
-	return self
 }
 
 /*
 Appends text representation of the input, using "strconv". Mutates and returns
 the receiver.
 */
-func (self *Buf) AppendBool(val bool) *Buf {
-	*self = strconv.AppendBool(*self, val)
-	return self
-}
+func (self *Buf) AppendBool(val bool) { *self = strconv.AppendBool(*self, val) }
 
 /*
 Appends the string representation of the given error. If the input is nil, this
 is a nop. Mutates and returns the receiver.
 */
-func (self *Buf) AppendError(val error) *Buf {
+func (self *Buf) AppendError(val error) {
 	if val == nil {
-		return self
+		return
 	}
 
 	impl, _ := val.(Appender)
 	if impl != nil {
 		*self = impl.Append(*self)
-		return self
+		return
 	}
 
-	return self.AppendString(val.Error())
+	self.AppendString(val.Error())
 }
 
 /*
 Appends the text representation of the input, using the `Append` function.
 Mutates and returns the receiver.
 */
-func (self *Buf) AppendAny(val any) *Buf {
-	*self = Append(*self, val)
-	return self
-}
+func (self *Buf) AppendAny(val any) { *self = Append(*self, val) }
 
 /*
 Appends the text representation of the input, using the `AppendGoString`
 function. Mutates and returns the receiver.
 */
-func (self *Buf) AppendGoString(val any) *Buf {
-	*self = AppendGoString(*self, val)
-	return self
-}
+func (self *Buf) AppendGoString(val any) { *self = AppendGoString(*self, val) }
 
 // Shortcut for appending a formatted string.
-func (self *Buf) Fprintf(pat string, val ...any) *Buf {
+func (self *Buf) Fprintf(pat string, val ...any) {
 	_, _ = fmt.Fprintf(self, pat, NoEscUnsafe(val)...)
-	return self
 }
 
 // Shortcut for appending a formatted string with an idempotent trailing newline.
-func (self *Buf) Fprintlnf(pat string, val ...any) *Buf {
+func (self *Buf) Fprintlnf(pat string, val ...any) {
 	str := fmt.Sprintf(pat, NoEscUnsafe(val)...)
 	self.AppendString(str)
 	if !HasNewlineSuffix(str) {
 		self.AppendNewline()
 	}
-	return self
 }
 
 // Same as `len(buf)`.
 func (self Buf) Len() int { return len(self) }
 
+// Replaces the buffer with the given slice.
+func (self *Buf) Reset(src []byte) { *self = src }
+
 /*
 Increases the buffer's length by N zero values.
 Mutates and returns the receiver.
 */
-func (self *Buf) GrowLen(size int) *Buf {
-	*self = GrowLen(*self, size)
-	return self
-}
+func (self *Buf) GrowLen(size int) { *self = GrowLen(*self, size) }
 
 /*
 Increases the buffer's capacity sufficiently to accommodate N additional
 elements. Mutates and returns the receiver.
 */
-func (self *Buf) GrowCap(size int) *Buf {
-	*self = GrowCap(*self, size)
-	return self
-}
+func (self *Buf) GrowCap(size int) { *self = GrowCap(*self, size) }
 
 /*
 Truncates the buffer's length, preserving the capacity.
 Does not modify the content. Mutates and returns the receiver.
 */
-func (self *Buf) Clear() *Buf {
+func (self *Buf) Clear() {
 	if self != nil && *self != nil {
 		*self = (*self)[:0]
 	}
-	return self
 }

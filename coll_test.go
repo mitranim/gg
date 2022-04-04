@@ -19,6 +19,8 @@ func TestColl(t *testing.T) {
 	}
 
 	t.Run(`Add`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
 		var coll SomeColl
 		coll.Add(SomeModel{`ee24ca`, `Mira`})
 		coll.Add(SomeModel{`a19b43`, `Kara`})
@@ -27,6 +29,8 @@ func TestColl(t *testing.T) {
 	})
 
 	t.Run(`MarshalJSON`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
 		gtest.Eq(gg.JsonString(SomeColl{}), `null`)
 
 		gtest.Eq(

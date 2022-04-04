@@ -3,6 +3,7 @@ package gg
 import (
 	"regexp"
 	"strings"
+	u "unsafe"
 )
 
 /*
@@ -50,9 +51,7 @@ Allocation-free conversion. Reinterprets an arbitrary string-like or bytes-like
 value as bytes.
 */
 func ToBytes[A Text](val A) []byte {
-	slice := CastUnsafe[SliceHeader](val)
-	slice.Cap = slice.Len
-	return CastUnsafe[[]byte](slice)
+	return u.Slice(CastUnsafe[*byte](val), len(val))
 }
 
 // Joins the given strings with newlines.
@@ -139,7 +138,7 @@ Regexp for splitting arbitrary text into words, Unicode-aware. Used by
 */
 var ReWord = Lazy1(
 	regexp.MustCompile,
-	`\p{Lu}[\p{Ll}\d]*|\p{Lu}[\p{Lu}\d]*|\p{Ll}[\p{Ll}\d]*`,
+	`\p{Lu}\p{Ll}+\d*|\p{Lu}+\d*|\p{Ll}+\d*`,
 )
 
 /*
@@ -162,27 +161,14 @@ func (self Words) Kebab() string  { return self.Join(`-`) }
 func (self Words) Solid() string  { return self.Join(``) }
 func (self Words) Comma() string  { return self.Join(`,`) }
 
-func (self Words) Lower() Words    { return self.MapMut(strings.ToLower) }
-func (self Words) Upper() Words    { return self.MapMut(strings.ToUpper) }
-func (self Words) Title() Words    { return self.MapMut(strings.Title) }
+func (self Words) Lower() Words    { return MapMut(self, strings.ToLower) }
+func (self Words) Upper() Words    { return MapMut(self, strings.ToUpper) }
+func (self Words) Title() Words    { return MapMut(self, strings.Title) }
 func (self Words) Sentence() Words { return self.Lower().MapHead(strings.Title) }
 func (self Words) Camel() Words    { return self.Title().MapHead(strings.ToLower) }
 
 // Same as `strings.Join`.
 func (self Words) Join(val string) string { return strings.Join(self, val) }
-
-/*
-Mutates the receiver by replacing each element with the result of calling the
-given function on that element.
-*/
-func (self Words) MapMut(fun func(string) string) Words {
-	if fun != nil {
-		for ind := range self {
-			self[ind] = fun(self[ind])
-		}
-	}
-	return self
-}
 
 /*
 Mutates the receiver by replacing the first element with the result of calling

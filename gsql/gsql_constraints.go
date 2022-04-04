@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"io"
+
+	"github.com/mitranim/gg"
 )
 
 // Implemented by stdlib types such as `sql.DB`.
@@ -33,19 +35,13 @@ type DbTx interface {
 // Interface of `sql.Rows`. Used by various scanning tools.
 type Rows interface {
 	io.Closer
-	Errer
-	Nexter
+	gg.Errer
+	gg.Nexter
 	ColumnerScanner
 }
 
-type (
-	Columner interface{ Columns() ([]string, error) }
-	Errer    interface{ Err() error }
-	Scanner  interface{ Scan(...any) error }
-	Nexter   interface{ Next() bool }
-)
-
+// Sub-interface of `Rows` used by `ScanNext`.
 type ColumnerScanner interface {
-	Columner
-	Scanner
+	Columns() ([]string, error)
+	Scan(...any) error
 }

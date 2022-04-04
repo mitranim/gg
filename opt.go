@@ -26,14 +26,14 @@ type Opt[A any] struct {
 }
 
 // Implement `Nullable`. True if not `.Ok`.
-func (self Opt[A]) IsNull() bool { return !self.Ok }
+func (self Opt[_]) IsNull() bool { return !self.Ok }
 
 // Inverse of `.IsNull`.
-func (self Opt[A]) IsNonNull() bool { return self.Ok }
+func (self Opt[_]) IsNonNull() bool { return self.Ok }
 
 // Implement `Clearer`. Zeroes the receiver.
 //go:noinline
-func (self *Opt[A]) Clear() { Clear(self) }
+func (self *Opt[_]) Clear() { Clear(self) }
 
 /*
 Implement `Getter` for compatibility with 3rd party libraries such as `pgx`.
@@ -48,7 +48,7 @@ func (self Opt[A]) GetVal() A { return self.Val }
 
 /*
 Implement `ValSetter`. Modifies the underlying value and sets `.Ok = true`.
-The result is considered non-null even if the value is "zero".
+The resulting state is considered non-null even if the value is "zero".
 */
 func (self *Opt[A]) SetVal(val A) {
 	self.Val = val

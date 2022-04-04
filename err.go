@@ -37,7 +37,11 @@ func (self Err) Is(err error) bool {
 	return errors.Is(self.Cause, err)
 }
 
-func (self Err) ErrOpt() error {
+/*
+Implement `Errer`. If the receiver is a zero value, returns nil. Otherwise casts
+the receiver to an error.
+*/
+func (self Err) Err() error {
 	if IsZero(self) {
 		return nil
 	}
@@ -116,7 +120,10 @@ func (self Err) AppendStack(inout []byte) []byte {
 	if Deref(self.Trace).HasLen() {
 		buf = errAppendTraceIndent(buf, Deref(self.Trace))
 		if cause != nil {
-			buf.AppendNewline().AppendNewline().AppendString(`cause:`).AppendNewline()
+			buf.AppendNewline()
+			buf.AppendNewline()
+			buf.AppendString(`cause:`)
+			buf.AppendNewline()
 		}
 	} else if cause != nil {
 		buf.AppendString(`: `)
@@ -204,7 +211,7 @@ func (self Err) IsTraced() bool {
 
 /*
 Combines multiple errors. Used by `Conc`. Avoid casting this to `error`. Instead
-call the method `Errs.ErrOpt`, which will correctly return a nil interface when
+call the method `Errs.Err`, which will correctly return a nil interface when
 all errors are nil.
 */
 type Errs []error
@@ -230,13 +237,13 @@ func (self Errs) As(out any) bool {
 }
 
 // If there are any non-nil errors, panic with a stack trace.
-func (self Errs) Try() { Try(self.ErrOpt()) }
+func (self Errs) Try() { Try(self.Err()) }
 
 /*
-If there are any non-nil errors, returns a non-nil error, unwrapping if
-possible. Otherwise returns nil.
+Implement `Errer`. If there are any non-nil errors, returns a non-nil error,
+unwrapping if possible. Otherwise returns nil.
 */
-func (self Errs) ErrOpt() error {
+func (self Errs) Err() error {
 	switch self.LenNonNil() {
 	case 0:
 		return nil
@@ -467,3 +474,10 @@ given output type. Used internally in various conversions.
 func ErrParse[A Text](err error, src A, typ r.Type) error {
 	return Wrapf(err, `unable to decode %q into type %v`, src, typ)
 }
+
+/*
+Shortcut for flushing errors out of error containers such as `context.Context`
+or `sql.Rows`. If the inner error is non-nil, panics, idempotently adding a
+stacktrace. Otherwise does nothing.
+*/
+func ErrOk[A Errer](val A) { Try(ErrTraced(val.Err(), 1)) }

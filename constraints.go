@@ -3,6 +3,7 @@ package gg
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 )
 
 // Short for "signed integer".
@@ -167,3 +168,30 @@ type Initer1[A, B any] interface {
 	*A
 	Init(B)
 }
+
+/*
+Interface for values which are convertible to `time.Duration` or can specify
+a lifetime for other values. Used by `Mem`.
+*/
+type Dur interface{ Duration() time.Duration }
+
+/*
+Very similar to `ValGetter`, but has different semantics in some contexts.
+Used by `Mem`.
+*/
+type Maker[A any] interface{ Make() A }
+
+// Used by `Mem`.
+type DurMaker[A any] interface {
+	Dur
+	Maker[A]
+}
+
+/*
+Implemented by various types such as `context.Context`, `sql.Rows`, and our own
+`Errs`.
+*/
+type Errer interface{ Err() error }
+
+// Used by various "iterator" types such as `sql.Rows`.
+type Nexter interface{ Next() bool }

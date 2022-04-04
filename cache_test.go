@@ -36,3 +36,35 @@ func BenchmarkLazy(b *testing.B) {
 		gg.Nop1(once())
 	}
 }
+
+type MemTest struct {
+	gg.DurMinute
+	gg.Mem[[]string]
+}
+
+func (self *MemTest) Get() []string { return self.DedupFrom(self) }
+func (*MemTest) Make() []string     { return []string{`str`} }
+
+func TestMem(t *testing.T) {
+	defer gtest.Catch(t)
+
+	var mem MemTest
+
+	prev := mem.Get()
+	gtest.Equal(prev, []string{`str`})
+	gtest.SliceIs(prev, mem.Get())
+	gtest.SliceIs(prev, mem.Get())
+
+	gtest.NotZero(mem.Timed.Inst)
+	mem.Clear()
+	gtest.Zero(mem.Timed)
+
+	next := mem.Get()
+	gtest.Equal(next, []string{`str`})
+	gtest.SliceIs(next, mem.Get())
+	gtest.SliceIs(next, mem.Get())
+
+	gtest.Equal(prev, next)
+	gtest.NotSliceIs(prev, next)
+	gtest.NotZero(mem.Timed.Inst)
+}

@@ -386,6 +386,19 @@ func Map[A, B any](src []A, fun func(A) B) []B {
 	return out
 }
 
+/*
+Similar to `Map`, but instead of creating a new slice, mutates the old one in
+place by calling the given function on each element.
+*/
+func MapMut[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) Elem) Slice {
+	if fun != nil {
+		for i := range src {
+			src[i] = fun(src[i])
+		}
+	}
+	return src
+}
+
 // Similar to `Map` but excludes any zero values produced by the given function.
 func MapCompact[A, B any](src []A, fun func(A) B) []B {
 	if fun == nil {
@@ -398,6 +411,27 @@ func MapCompact[A, B any](src []A, fun func(A) B) []B {
 		if !IsZero(val) {
 			out = append(out, val)
 		}
+	}
+	return out
+}
+
+/*
+Takes a slice and "indexes" it by mapping each element to a key-value pair,
+returning the resulting map.
+*/
+func Index[
+	Elem any, Key comparable, Val any,
+](
+	src []Elem, fun func(Elem) (Key, Val),
+) map[Key]Val {
+	if fun == nil {
+		return nil
+	}
+
+	out := make(map[Key]Val, len(src))
+	for _, src := range src {
+		key, val := fun(src)
+		out[key] = val
 	}
 	return out
 }
@@ -444,7 +478,10 @@ func Fold[Acc, Val any](src []Val, acc Acc, fun func(Acc, Val) Acc) Acc {
 	return acc
 }
 
-// Similar to `Fold` but accumulator automatically starts with zero value.
+/*
+Short for "fold zero". Similar to `Fold` but the accumulator automatically
+starts as the zero value of its type.
+*/
 func Foldz[Acc, Val any](src []Val, fun func(Acc, Val) Acc) Acc {
 	return Fold(src, Zero[Acc](), fun)
 }

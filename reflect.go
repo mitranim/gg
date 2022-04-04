@@ -30,7 +30,7 @@ Similar to `reflect.TypeOf`, with the following differences:
 	* When the given type is an interface, including the empty interface `any`,
 	  the output is a non-nil `reflect.Type` describing the given interface.
 */
-func TypeOf[A any](A) r.Type { return r.TypeOf((*A)(nil)).Elem() }
+func TypeOf[A any](A) r.Type { return Type[A]() }
 
 /*
 Nil-safe version of `reflect.Type.Kind`. If the input is nil, returns
@@ -55,17 +55,16 @@ func KindOfAny(val any) r.Kind {
 Returns `reflect.Kind` of the given type. Never returns `reflect.Invalid`. If
 the type parameter is an interface, the output is `reflect.Interface`.
 */
-func Kind[A any]() r.Kind {
-	return r.TypeOf((*A)(nil)).Elem().Kind()
-}
+func Kind[A any]() r.Kind { return Type[A]().Kind() }
 
 /*
 Returns `reflect.Kind` of the given type. Never returns `reflect.Invalid`. If
 the type parameter is an interface, the output is `reflect.Interface`.
 */
-func KindOf[A any](A) r.Kind {
-	return r.TypeOf((*A)(nil)).Elem().Kind()
-}
+func KindOf[A any](A) r.Kind { return Type[A]().Kind() }
+
+// Returns `reflect.Type.Size` of the given type.
+func Size[A any]() uintptr { return Type[A]().Size() }
 
 // Uses `reflect.Zero` to create a zero value of the given type.
 func ZeroValue[A any]() r.Value { return r.Zero(Type[A]()) }
@@ -201,6 +200,17 @@ func (self *StructFields) Init(src r.Type) {
 	*self = Times(src.NumField(), src.Field)
 }
 
+var StructPublicFieldCache = TypeCacheOf[StructPublicFields]()
+
+type StructPublicFields []r.StructField
+
+func (self *StructPublicFields) Init(src r.Type) {
+	*self = Filter(
+		[]r.StructField(StructFieldCache.Get(src)),
+		IsFieldPublic,
+	)
+}
+
 /*
 Takes a struct field tag and returns its identifier part, following the
 "encoding/json" conventions. Ident "-" is converted to "". Usage:
@@ -241,6 +251,12 @@ conventions as the `encoding/json` package.
 func FieldJsonName(val r.StructField) string {
 	return TagIdent(val.Tag.Get(`json`))
 }
+
+/*
+Self-explanatory. For some reason this is not provided in usable form by
+the "reflect" package.
+*/
+func IsFieldPublic(val r.StructField) bool { return val.PkgPath == `` }
 
 /*
 Returns the element type of the provided type, automatically dereferencing

@@ -215,6 +215,43 @@ func BenchmarkMap(b *testing.B) {
 	}
 }
 
+func TestMap2(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Equal(
+		gg.Map2([]int(nil), []int(nil), gg.Plus2[int]),
+		[]int(nil),
+	)
+
+	gtest.Equal(
+		gg.Map2([]int{}, []int(nil), gg.Plus2[int]),
+		[]int(nil),
+	)
+
+	gtest.Equal(
+		gg.Map2([]int(nil), []int{}, gg.Plus2[int]),
+		[]int(nil),
+	)
+
+	gtest.Equal(
+		gg.Map2([]int{}, []int{}, gg.Plus2[int]),
+		[]int{},
+	)
+
+	gtest.PanicStr(`length mismatch`, func() {
+		gg.Map2([]int{}, []int{10}, gg.Plus2[int])
+	})
+
+	gtest.PanicStr(`length mismatch`, func() {
+		gg.Map2([]int{10}, []int{}, gg.Plus2[int])
+	})
+
+	gtest.Equal(
+		gg.Map2([]int{10, 20, 30}, []int{40, 50, 60}, gg.Plus2[int]),
+		[]int{50, 70, 90},
+	)
+}
+
 func TestPrimSorted(t *testing.T) {
 	defer gtest.Catch(t)
 

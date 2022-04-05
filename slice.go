@@ -8,7 +8,9 @@ import (
 func SliceOf[A any](val ...A) []A { return val }
 
 // Returns the underlying data pointer of the given slice.
-func SliceDat[A any](src []A) *A { return CastUnsafe[*A](src) }
+func SliceDat[Slice ~[]Elem, Elem any](src Slice) *Elem {
+	return CastUnsafe[*Elem](src)
+}
 
 // True if slice length is 0. The slice may or may not be nil.
 func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) == 0 }
@@ -22,6 +24,19 @@ func Len[Slice ~[]Elem, Elem any](val Slice) int { return len(val) }
 // Same as `cap(val)` but can be passed to higher-order functions.
 func Cap[Slice ~[]Elem, Elem any](val Slice) int { return cap(val) }
 
+// Amount of unused capacity in the given slice.
+func CapUnused[Slice ~[]Elem, Elem any](src Slice) int {
+	return cap(src) - len(src)
+}
+
+/*
+Amount of missing capacity that needs to be allocated to append the given amount
+of additional elements.
+*/
+func CapMissing[Slice ~[]Elem, Elem any](src Slice, size int) int {
+	return MaxPrim2(0, size-CapUnused(src))
+}
+
 // Counts the total length of the given slices.
 func Lens[Slice ~[]Elem, Elem any](val ...Slice) int { return Sum(val, Len[Slice]) }
 
@@ -31,24 +46,46 @@ func GrowLen[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 }
 
 /*
-Missing feature of the language / standard library. Grows the slice to ensure at
-least this much additional capacity (not total capacity), returning a modified
-version of the slice. The returned slice always has the same length as the
-original, but its capacity and backing array may have changed. This doesn't
-ensure EXACTLY the given additional capacity. It follows the usual hidden Go
-rules for slice growth, and may allocate significantly more than asked. Similar
-to `(*bytes.Buffer).Grow` but without wrapping, unwrapping, or spurious escapes
-to the heap.
-
-TODO variant that grows capacity to the given TOTAL amount.
+Missing feature of the language / standard library. Ensures at least this much
+unused capacity (not total capacity). If there is already enough capacity,
+returns the slice as-is. Otherwise allocates a new slice, doubling the capacity
+as many times as needed until it accommodates enough elements. Use this when
+further growth is expected. When further growth is not expected, use
+`GrowCapExact` instead. Similar to `(*bytes.Buffer).Grow` but works for all
+slice types and avoids any wrapping, unwrapping, or spurious escapes to the
+heap.
 */
 func GrowCap[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
-	len, cap := len(src), cap(src)
-	if cap-len >= size {
+	missing := CapMissing(src, size)
+	if !(missing > 0) {
 		return src
 	}
 
-	out := make(Slice, len, 2*cap+size)
+	prev := MaxPrim2(0, cap(src))
+	next := Or(prev, 1)
+	for next < prev+size {
+		next *= 2
+	}
+
+	out := make(Slice, len(src), next)
+	copy(out, src)
+	return out
+}
+
+/*
+Missing feature of the language / standard library. Ensures at least this much
+unused capacity (not total capacity). If there is already enough capacity,
+returns the slice as-is. Otherwise allocates a new slice with EXACTLY enough
+additional capacity. Use this when further growth is not expected. When further
+growth is expected, use `GrowCap` instead.
+*/
+func GrowCapExact[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
+	missing := CapMissing(src, size)
+	if !(missing > 0) {
+		return src
+	}
+
+	out := make(Slice, len(src), cap(src)+missing)
 	copy(out, src)
 	return out
 }
@@ -146,25 +183,25 @@ func AppendPtrZero[Slice ~[]Elem, Elem any](tar *Slice) *Elem {
 Returns the first element of the given slice. If the slice is empty, returns the
 zero value.
 */
-func Head[A any](val []A) A { return Get(val, 0) }
+func Head[Slice ~[]Elem, Elem any](val Slice) Elem { return Get(val, 0) }
 
 /*
 Returns a pointer to the first element of the given slice. If the slice is
 empty, the pointer is nil.
 */
-func HeadPtr[A any](val []A) *A { return GetPtr(val, 0) }
+func HeadPtr[Slice ~[]Elem, Elem any](val Slice) *Elem { return GetPtr(val, 0) }
 
 /*
 Returns the last element of the given slice. If the slice is empty, returns the
 zero value.
 */
-func Last[A any](val []A) A { return Get(val, len(val)-1) }
+func Last[Slice ~[]Elem, Elem any](val Slice) Elem { return Get(val, len(val)-1) }
 
 /*
 Returns a pointer to the last element of the given slice. If the slice is empty,
 the pointer is nil.
 */
-func LastPtr[A any](val []A) *A { return GetPtr(val, len(val)-1) }
+func LastPtr[Slice ~[]Elem, Elem any](val Slice) *Elem { return GetPtr(val, len(val)-1) }
 
 /*
 Returns the initial part of the given slice: all except the last value.
@@ -228,23 +265,23 @@ func Clone[Slice ~[]Elem, Elem any](src Slice) Slice {
 	return out
 }
 
-/*
-Calls the given function for each element's pointer in the given slice.
-The pointer is always non-nil.
-*/
-func EachPtr[A any](val []A, fun func(*A)) {
+// Calls the given function for each element of the given slice.
+func Each[Slice ~[]Elem, Elem any](val Slice, fun func(Elem)) {
 	if fun != nil {
-		for i := range val {
-			fun(&val[i])
+		for _, val := range val {
+			fun(val)
 		}
 	}
 }
 
-// Calls the given function for each element of the given slice.
-func Each[A any](val []A, fun func(A)) {
+/*
+Calls the given function for each element's pointer in the given slice.
+The pointer is always non-nil.
+*/
+func EachPtr[Slice ~[]Elem, Elem any](val Slice, fun func(*Elem)) {
 	if fun != nil {
-		for _, val := range val {
-			fun(val)
+		for ind := range val {
+			fun(&val[ind])
 		}
 	}
 }
@@ -254,16 +291,11 @@ Similar to `Each` but iterates two slices pairwise. If slice lengths don't
 match, panics.
 */
 func Each2[A, B any](one []A, two []B, fun func(A, B)) {
-	if len(one) != len(two) {
-		panic(Errf(
-			`unable to iterate pairwise: length mismatch: %v and %v`,
-			len(one), len(two),
-		))
-	}
+	validateLenMatch(len(one), len(two))
 
 	if fun != nil {
-		for i := range one {
-			fun(one[i], two[i])
+		for ind := range one {
+			fun(one[ind], two[ind])
 		}
 	}
 }
@@ -387,13 +419,47 @@ func Map[A, B any](src []A, fun func(A) B) []B {
 }
 
 /*
+Similar to `Map` but iterates two slices pairwise, passing each element pair to
+the mapping function. If slice lengths don't match, panics.
+*/
+func Map2[A, B, C any](one []A, two []B, fun func(A, B) C) []C {
+	validateLenMatch(len(one), len(two))
+
+	if one == nil || two == nil {
+		return nil
+	}
+
+	out := make([]C, 0, len(one))
+	for ind := range one {
+		out = append(out, fun(one[ind], two[ind]))
+	}
+	return out
+}
+
+/*
+Similar to `Map` but instead of creating a new slice, appends to an existing
+slice.
+*/
+func MapAppend[Tar, Src ~[]Elem, Elem any](tar *Tar, src Src, fun func(Elem) Elem) {
+	if tar == nil || fun == nil {
+		return
+	}
+
+	buf := GrowCap(*tar, len(src))
+	for _, val := range src {
+		buf = append(buf, fun(val))
+	}
+	*tar = buf
+}
+
+/*
 Similar to `Map`, but instead of creating a new slice, mutates the old one in
 place by calling the given function on each element.
 */
 func MapMut[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) Elem) Slice {
 	if fun != nil {
-		for i := range src {
-			src[i] = fun(src[i])
+		for ind := range src {
+			src[ind] = fun(src[ind])
 		}
 	}
 	return src
@@ -420,9 +486,12 @@ Takes a slice and "indexes" it by mapping each element to a key-value pair,
 returning the resulting map.
 */
 func Index[
-	Elem any, Key comparable, Val any,
+	Slice ~[]Elem,
+	Elem any,
+	Key comparable,
+	Val any,
 ](
-	src []Elem, fun func(Elem) (Key, Val),
+	src Slice, fun func(Elem) (Key, Val),
 ) map[Key]Val {
 	if fun == nil {
 		return nil
@@ -441,15 +510,31 @@ Somewhat similar to `Map`. Creates a slice by "mapping" source values to
 outputs. Calls the given function N times, passing an index, starting with 0.
 */
 func Times[A any](src int, fun func(int) A) []A {
-	if !(src > 0 && fun != nil) {
+	if !(src > 0) || fun == nil {
 		return nil
 	}
 
-	out := make([]A, src)
-	for ind := range out {
-		out[ind] = fun(ind)
+	buf := make([]A, src)
+	for ind := range buf {
+		buf[ind] = fun(ind)
 	}
-	return out
+	return buf
+}
+
+/*
+Similar to `Times` but instead of creating a new slice, appends to an existing
+slice.
+*/
+func TimesAppend[Slice ~[]Elem, Elem any](tar *Slice, src int, fun func(int) Elem) {
+	if tar == nil || fun == nil || !(src > 0) {
+		return
+	}
+
+	buf := GrowCap(*tar, src)
+	for ind := range Iter(src) {
+		buf = append(buf, fun(ind))
+	}
+	*tar = buf
 }
 
 // Counts the number of elements for which the given function returns true.
@@ -498,16 +583,25 @@ func Fold1[A any](src []A, fun func(A, A) A) A {
 }
 
 // Returns only the elements for which the given function returned `true`.
-func Filter[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
-	var out Slice
-	if fun != nil {
-		for _, val := range src {
-			if fun(val) {
-				out = append(out, val)
-			}
+func Filter[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) (out Slice) {
+	FilterAppend(&out, src, fun)
+	return
+}
+
+/*
+Similar to `Filter` but instead of creating a new slice, appends to an existing
+slice.
+*/
+func FilterAppend[Tar, Src ~[]Elem, Elem any](tar *Tar, src Src, fun func(Elem) bool) {
+	if tar == nil || fun == nil {
+		return
+	}
+
+	for _, val := range src {
+		if fun(val) {
+			*tar = append(*tar, val)
 		}
 	}
-	return out
 }
 
 /*
@@ -540,11 +634,11 @@ func Compact[Slice ~[]Elem, Elem any](src Slice) Slice {
 Tests each element by calling the given function and returns the first element
 for which it returns `true`. If none match, returns `-1`.
 */
-func FindIndex[A any](src []A, fun func(A) bool) int {
+func FindIndex[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) int {
 	if fun != nil {
-		for i, val := range src {
+		for ind, val := range src {
 			if fun(val) {
-				return i
+				return ind
 			}
 		}
 	}
@@ -556,19 +650,19 @@ Returns the first element for which the given function returns `true`.
 If nothing is found, returns a zero value. The additional boolean indicates
 whether something was actually found.
 */
-func Found[A any](src []A, fun func(A) bool) (A, bool) {
+func Found[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) (Elem, bool) {
 	ind := FindIndex(src, fun)
 	if ind >= 0 {
 		return src[ind], true
 	}
-	return Zero[A](), false
+	return Zero[Elem](), false
 }
 
 /*
 Returns the first element for which the given function returns true.
 If nothing is found, returns a zero value.
 */
-func Find[A any](src []A, fun func(A) bool) A {
+func Find[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Elem {
 	return Get(src, FindIndex(src, fun))
 }
 
@@ -660,8 +754,8 @@ func SomePair[A any](one, two []A, fun func(A, A) bool) bool {
 	if len(one) != len(two) || fun == nil {
 		return false
 	}
-	for i := range one {
-		if fun(one[i], two[i]) {
+	for ind := range one {
+		if fun(one[ind], two[ind]) {
 			return true
 		}
 	}
@@ -692,8 +786,8 @@ func EveryPair[A any](one, two []A, fun func(A, A) bool) bool {
 	if len(one) != len(two) || fun == nil {
 		return false
 	}
-	for i := range one {
-		if !fun(one[i], two[i]) {
+	for ind := range one {
+		if !fun(one[ind], two[ind]) {
 			return false
 		}
 	}

@@ -13,18 +13,6 @@ var (
 )
 
 /*
-True if the given value is a zero value of its type.
-For non-`comparable` types, use `IsZero`.
-*/
-func IsZeroComp[A comparable](val A) bool { return val == Zero[A]() }
-
-/*
-True if the input is not a zero value of its type.
-For non-`comparable` types, use `IsNonZero`.
-*/
-func IsNonZeroComp[A comparable](val A) bool { return !IsZeroComp(val) }
-
-/*
 If the input implements `Zeroable`, returns the result of calling that method.
 Otherwise returns true if the input is the zero value of its type.
 */
@@ -48,11 +36,11 @@ func IsZero[A any](val A) bool {
 	return r.ValueOf(box).IsZero()
 }
 
-// True if the input is not a zero value of its type.
+// True if the input is not a zero of its type.
 func IsNonZero[A any](val A) bool { return !IsZero(val) }
 
 // Returns a zero value of the given type.
-func Zero[A any]() (val A) { return }
+func Zero[A any]() (_ A) { return }
 
 // Generic variant of `Nullable.IsNull`.
 func IsNull[A Nullable](val A) bool { return val.IsNull() }
@@ -91,6 +79,16 @@ func Deref[A any](val *A) A {
 func PtrSet[A any](tar *A, val A) {
 	if tar != nil {
 		*tar = val
+	}
+}
+
+/*
+Takes two pointers and copies the value from source to target if both pointers
+are non-nil. If either is nil, does nothing.
+*/
+func PtrSetOpt[A any](tar, src *A) {
+	if tar != nil && src != nil {
+		*tar = *src
 	}
 }
 
@@ -232,7 +230,7 @@ True if both inputs are not zero values of their type, and are equal to each
 other via `==`.
 */
 func EqNonZero[A comparable](one, two A) bool {
-	return IsNonZeroComp(one) && one == two
+	return one != Zero[A]() && one == two
 }
 
 /*
@@ -312,7 +310,7 @@ Short for "iterator". Returns a slice of the given length that can be iterated
 by using a `range` loop. Usage:
 
 	for range Iter(size) { ... }
-	for i := range Iter(size) { ... }
+	for ind := range Iter(size) { ... }
 
 Because `struct{}` is zero-sized, `[]struct{}` is backed by "zerobase" (see Go
 source → "runtime/malloc.go") and does not allocate. The example loops should

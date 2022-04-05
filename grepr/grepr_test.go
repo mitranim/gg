@@ -209,3 +209,13 @@ func BenchmarkString_cyclic(b *testing.B) {
 		gg.Nop1(grepr.String(&cyclic0))
 	}
 }
+
+func BenchmarkCanBackquote(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(grepr.CanBackquote(`
+one
+two
+three
+`))
+	}
+}

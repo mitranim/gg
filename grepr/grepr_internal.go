@@ -4,6 +4,7 @@ import (
 	"fmt"
 	r "reflect"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/mitranim/gg"
 )
@@ -134,7 +135,7 @@ func fmtUintHex[A uint64 | uintptr](buf *Fmt, src A) {
 }
 
 func fmtString(buf *Fmt, src string) {
-	if strconv.CanBackquote(src) {
+	if buf.IsMulti() && CanBackquote(src) {
 		buf.AppendByte('`')
 		buf.AppendString(src)
 		buf.AppendByte('`')
@@ -325,7 +326,6 @@ func fmtPointer(buf *Fmt, src r.Value) {
 	buf.AppendByte(')')
 }
 
-// FIXME skip private fields
 func fmtStruct(buf *Fmt, src r.Value) {
 	if fmtedGoString(buf, src) {
 		return
@@ -370,7 +370,6 @@ func fmtStructSingleAnon(buf *Fmt, src r.Value) {
 
 	buf.AppendByte('{')
 
-	// FIXME must be public.
 	if !skipField(buf, src) {
 		fmtAny(buf, src)
 	}
@@ -413,7 +412,6 @@ func fmtStructMultiAnon(buf *Fmt, src r.Value) {
 
 	buf.AppendByte('{')
 
-	// FIXME must be public.
 	if !skipField(buf, src) {
 		defer incLvl(buf).Done()
 		fmtAny(buf, src)
@@ -544,4 +542,13 @@ func incLvl(buf *Fmt) gg.Snap[int] {
 
 func skipField(buf *Fmt, src r.Value) bool {
 	return buf.SkipZeroFields() && src.IsZero()
+}
+
+func isNonBackquotable(char rune) bool {
+	const bom = '\ufeff'
+
+	return char == utf8.RuneError ||
+		char == '`' ||
+		char == bom ||
+		(char < ' ' && !(char == '\t' || char == '\n' || char == '\r'))
 }

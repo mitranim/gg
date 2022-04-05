@@ -45,3 +45,12 @@ func hasPrefixDigit(val string) bool {
 	char := StrHead(val)
 	return char >= '0' && char <= '9'
 }
+
+func validateLenMatch(one, two int) {
+	if one != two {
+		panic(Errf(
+			`unable to iterate pairwise: length mismatch: %v and %v`,
+			one, two,
+		))
+	}
+}

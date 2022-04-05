@@ -73,3 +73,13 @@ func StringIndent(src any, lvl int) string {
 	buf.Any(src)
 	return buf.String()
 }
+
+// Corrected version of `strconv.CanBackquote` that allows newlines.
+func CanBackquote[A gg.Text](src A) bool {
+	for _, char := range gg.ToString(src) {
+		if isNonBackquotable(char) {
+			return false
+		}
+	}
+	return true
+}

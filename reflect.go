@@ -197,7 +197,7 @@ var StructFieldCache = TypeCacheOf[StructFields]()
 type StructFields []r.StructField
 
 func (self *StructFields) Init(src r.Type) {
-	*self = Times(src.NumField(), src.Field)
+	TimesAppend(self, src.NumField(), src.Field)
 }
 
 var StructPublicFieldCache = TypeCacheOf[StructPublicFields]()
@@ -205,10 +205,7 @@ var StructPublicFieldCache = TypeCacheOf[StructPublicFields]()
 type StructPublicFields []r.StructField
 
 func (self *StructPublicFields) Init(src r.Type) {
-	*self = Filter(
-		[]r.StructField(StructFieldCache.Get(src)),
-		IsFieldPublic,
-	)
+	FilterAppend(self, StructFieldCache.Get(src), IsFieldPublic)
 }
 
 /*

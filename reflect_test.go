@@ -177,3 +177,259 @@ func BenchmarkStructFieldCache(b *testing.B) {
 		gg.Nop1(gg.StructFieldCache.Get(key))
 	}
 }
+
+func TestIsIndirect(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.False(gg.IsIndirect(gg.Type[bool]()))
+	gtest.False(gg.IsIndirect(gg.Type[int]()))
+	gtest.False(gg.IsIndirect(gg.Type[string]()))
+	gtest.False(gg.IsIndirect(gg.Type[[0]bool]()))
+	gtest.False(gg.IsIndirect(gg.Type[[1]bool]()))
+	gtest.False(gg.IsIndirect(gg.Type[[0]*string]()))
+	gtest.False(gg.IsIndirect(gg.Type[StructDirect]()))
+	gtest.False(gg.IsIndirect(gg.Type[func()]()))
+	gtest.False(gg.IsIndirect(gg.Type[func() bool]()))
+	gtest.False(gg.IsIndirect(gg.Type[func() *string]()))
+	gtest.False(gg.IsIndirect(gg.Type[chan bool]()))
+	gtest.False(gg.IsIndirect(gg.Type[chan *string]()))
+
+	gtest.True(gg.IsIndirect(gg.Type[any]()))
+	gtest.True(gg.IsIndirect(gg.Type[fmt.Stringer]()))
+	gtest.True(gg.IsIndirect(gg.Type[[1]*string]()))
+	gtest.True(gg.IsIndirect(gg.Type[[]byte]()))
+	gtest.True(gg.IsIndirect(gg.Type[[]string]()))
+	gtest.True(gg.IsIndirect(gg.Type[[]*string]()))
+	gtest.True(gg.IsIndirect(gg.Type[*bool]()))
+	gtest.True(gg.IsIndirect(gg.Type[*StructDirect]()))
+	gtest.True(gg.IsIndirect(gg.Type[StructIndirect]()))
+	gtest.True(gg.IsIndirect(gg.Type[*StructIndirect]()))
+	gtest.True(gg.IsIndirect(gg.Type[map[bool]bool]()))
+}
+
+func TestCloneDeep(t *testing.T) {
+	defer gtest.Catch(t)
+
+	t.Run(`direct`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		testCloneDeepSame(true)
+		testCloneDeepSame(10)
+		testCloneDeepSame(`str`)
+		testCloneDeepSame([0]string{})
+		testCloneDeepSame([2]string{`one`, `two`})
+		testCloneDeepSame([0]*string{})
+
+		// Private fields are ignored.
+		testCloneDeepSame(StructDirect{
+			Public0: 10,
+			Public1: `one`,
+			private: gg.Ptr(`two`),
+		})
+	})
+
+	t.Run(`pointer`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Eq(gg.CloneDeep((*string)(nil)), (*string)(nil))
+
+		{
+			src := gg.Ptr(`one`)
+			out := gg.CloneDeep(src)
+
+			gtest.NotEq(out, src)
+
+			*src = `two`
+			gtest.Equal(src, gg.Ptr(`two`))
+			gtest.Equal(out, gg.Ptr(`one`))
+		}
+
+		{
+			src := gg.Ptr(gg.Ptr(`one`))
+			out := gg.CloneDeep(src)
+
+			gtest.NotEq(out, src)
+			gtest.NotEq(*out, *src)
+
+			**src = `two`
+			gtest.Equal(src, gg.Ptr(gg.Ptr(`two`)))
+			gtest.Equal(out, gg.Ptr(gg.Ptr(`one`)))
+		}
+	})
+
+	t.Run(`slice`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		testCloneDeepSameSlice([]string(nil))
+		testCloneDeepSameSlice([]string{})
+
+		// Slices with zero length but non-zero capacity must still be cloned.
+		testCloneDeepDifferentSlice([]string{`one`, `two`}[:0])
+		testCloneDeepDifferentSlice([]*string{gg.Ptr(`one`), gg.Ptr(`two`)}[:0])
+
+		{
+			src := []string{`one`, `two`}
+			out := gg.CloneDeep(src)
+
+			testCloneDeepDifferentSlice(src)
+
+			src[0] = `three`
+			gtest.Equal(src, []string{`three`, `two`})
+			gtest.Equal(out, []string{`one`, `two`})
+		}
+
+		{
+			src := []*string{gg.Ptr(`one`), gg.Ptr(`two`)}
+			out := gg.CloneDeep(src)
+
+			testCloneDeepDifferentSlice(src)
+
+			*src[0] = `three`
+			gtest.Equal(src, []*string{gg.Ptr(`three`), gg.Ptr(`two`)})
+			gtest.Equal(out, []*string{gg.Ptr(`one`), gg.Ptr(`two`)})
+		}
+	})
+
+	t.Run(`slice_of_struct_pointers`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		one := SomeModel{Id: `10`}
+		two := SomeModel{Id: `20`}
+		src := []*SomeModel{&one, &two}
+		out := gg.CloneDeep(src)
+
+		gtest.Equal(out, src)
+
+		one.Id = `30`
+		two.Id = `40`
+		src = append(src, &SomeModel{Id: `50`})
+
+		gtest.Equal(
+			src,
+			[]*SomeModel{
+				&SomeModel{Id: `30`},
+				&SomeModel{Id: `40`},
+				&SomeModel{Id: `50`},
+			},
+		)
+
+		gtest.Equal(
+			out,
+			[]*SomeModel{
+				&SomeModel{Id: `10`},
+				&SomeModel{Id: `20`},
+			},
+		)
+	})
+
+	t.Run(`inner_interface`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		type Type struct{ Val fmt.Stringer }
+
+		srcInner := gg.ErrStr(`one`)
+		src := Type{&srcInner}
+		out := gg.CloneDeep(src)
+
+		gtest.Equal(src, Type{gg.Ptr(gg.ErrStr(`one`))})
+		gtest.Equal(out, Type{gg.Ptr(gg.ErrStr(`one`))})
+
+		srcInner = `two`
+
+		gtest.Equal(src, Type{gg.Ptr(gg.ErrStr(`two`))})
+		gtest.Equal(out, Type{gg.Ptr(gg.ErrStr(`one`))})
+	})
+}
+
+func testCloneDeepSame[A comparable](src A) {
+	gtest.Eq(gg.CloneDeep(src), src)
+}
+
+func testCloneDeepSameSlice[A any](src []A) {
+	gtest.Equal(gg.CloneDeep(src), src)
+
+	gtest.Eq(gg.SliceDat(gg.Clone(src)), gg.SliceDat(src))
+	gtest.Eq(gg.SliceDat(gg.CloneDeep(src)), gg.SliceDat(src))
+
+	gtest.SliceIs(gg.Clone(src), src)
+	gtest.SliceIs(gg.CloneDeep(src), src)
+}
+
+/*
+Note: this doesn't verify the deep cloning of slice elements, which must be
+checked separately.
+*/
+func testCloneDeepDifferentSlice[A any](src []A) {
+	gtest.Equal(gg.CloneDeep(src), src)
+	gtest.Equal(gg.CloneDeep(src), gg.Clone(src))
+
+	gtest.NotEq(gg.SliceDat(gg.Clone(src)), gg.SliceDat(src))
+	gtest.NotEq(gg.SliceDat(gg.CloneDeep(src)), gg.SliceDat(src))
+
+	gtest.NotSliceIs(gg.Clone(src), src)
+	gtest.NotSliceIs(gg.CloneDeep(src), src)
+}
+
+func Benchmark_clone_direct_CloneDeep(b *testing.B) {
+	src := [8]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+	gtest.Equal(gg.CloneDeep(src), src)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.CloneDeep(src))
+	}
+}
+
+func Benchmark_clone_direct_native(b *testing.B) {
+	src := [8]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(esc(src))
+	}
+}
+
+func Benchmark_clone_slice_CloneDeep(b *testing.B) {
+	src := []SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+	gtest.Equal(gg.CloneDeep(src), src)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.CloneDeep(src))
+	}
+}
+
+func Benchmark_clone_slice_Clone(b *testing.B) {
+	src := []SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+	gtest.Equal(gg.Clone(src), src)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.Clone(src))
+	}
+}
+
+func Benchmark_clone_map_CloneDeep(b *testing.B) {
+	src := gg.Index(
+		[]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}},
+		gg.ValidPk[SomeKey, SomeModel],
+	)
+	gtest.Equal(gg.CloneDeep(src), src)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.CloneDeep(src))
+	}
+}
+
+func Benchmark_clone_map_MapClone(b *testing.B) {
+	src := gg.Index(
+		[]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}},
+		gg.ValidPk[SomeKey, SomeModel],
+	)
+	gtest.Equal(gg.MapClone(src), src)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.MapClone(src))
+	}
+}

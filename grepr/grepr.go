@@ -7,6 +7,7 @@ the same name.
 package grepr
 
 import (
+	"fmt"
 	r "reflect"
 	u "unsafe"
 
@@ -72,6 +73,14 @@ func StringIndent(src any, lvl int) string {
 	buf.Lvl += lvl
 	buf.Any(src)
 	return buf.String()
+}
+
+/*
+Shortcut for printing a given value as Go code, prefixed with a description.
+Very handy for debug-printing.
+*/
+func Prn(desc string, src any) {
+	fmt.Println(desc, String(src))
 }
 
 // Corrected version of `strconv.CanBackquote` that allows newlines.

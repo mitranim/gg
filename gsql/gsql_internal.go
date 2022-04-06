@@ -206,7 +206,7 @@ func scanNextScalarAny[Src ColumnerScanner](src Src, typ r.Type) r.Value {
 }
 
 func scanNextStructAny[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
-	tar := r.New(typ).Elem()
+	tar := gg.NewElem(typ)
 	scanStruct(src, meta, tar)
 	return tar
 }

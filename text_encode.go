@@ -51,6 +51,22 @@ string, allowing only INTENTIONALLY stringable values. Rules:
 func StringCatch[A any](val A) (string, error) {
 	box := AnyNoEscUnsafe(val)
 
+	stringer, _ := box.(fmt.Stringer)
+	if stringer != nil {
+		return stringer.String(), nil
+	}
+
+	appender, _ := box.(Appender)
+	if appender != nil {
+		return ToString(appender.Append(nil)), nil
+	}
+
+	marshaler, _ := box.(encoding.TextMarshaler)
+	if marshaler != nil {
+		val, err := marshaler.MarshalText()
+		return ToString(val), err
+	}
+
 	switch val := box.(type) {
 	case nil:
 		return ``, nil
@@ -92,23 +108,7 @@ func StringCatch[A any](val A) (string, error) {
 		return strconv.FormatFloat(float64(val), 'f', -1, 64), nil
 
 	default:
-		stringer, _ := val.(fmt.Stringer)
-		if stringer != nil {
-			return stringer.String(), nil
-		}
-
-		appender, _ := val.(Appender)
-		if appender != nil {
-			return ToString(appender.Append(nil)), nil
-		}
-
-		marshaler, _ := val.(encoding.TextMarshaler)
-		if marshaler != nil {
-			val, err := marshaler.MarshalText()
-			return ToString(val), err
-		}
-
-		return ValueStringCatch(r.ValueOf(val))
+		return ValueStringCatch(r.ValueOf(box))
 	}
 }
 

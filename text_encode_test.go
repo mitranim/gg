@@ -13,6 +13,10 @@ import (
 func TestString(t *testing.T) {
 	defer gtest.Catch(t)
 
+	gtest.PanicStr(`unable to convert value { } of type gg_test.SomeModel to type string`, func() {
+		gg.String(SomeModel{})
+	})
+
 	gtest.Eq(gg.String(any(nil)), ``)
 
 	gtest.Eq(gg.String(false), `false`)
@@ -36,8 +40,32 @@ func TestString(t *testing.T) {
 	gtest.Eq(gg.String(&url.URL{Path: `/one`}), `/one`)
 }
 
-func BenchmarkString(b *testing.B) {
+func BenchmarkString_string(b *testing.B) {
 	val := `str`
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.String(val))
+	}
+}
+
+func BenchmarkString_bool(b *testing.B) {
+	val := true
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.String(val))
+	}
+}
+
+func BenchmarkString_int(b *testing.B) {
+	val := 123
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.String(val))
+	}
+}
+
+func BenchmarkString_stringer(b *testing.B) {
+	val := &url.URL{Path: `/one`}
 
 	for i := 0; i < b.N; i++ {
 		gg.Nop1(gg.String(val))
@@ -56,7 +84,7 @@ func TestAppend(t *testing.T) {
 	gtest.Equal(gg.Append(Bui(`str`), 10), Bui(`str10`))
 }
 
-func Benchmark_fmt_Sprint(b *testing.B) {
+func Benchmark_string_any_fmt_Sprint(b *testing.B) {
 	var val SomeModel
 
 	for i := 0; i < b.N; i++ {
@@ -64,7 +92,7 @@ func Benchmark_fmt_Sprint(b *testing.B) {
 	}
 }
 
-func BenchmarkStringAny(b *testing.B) {
+func Benchmark_string_any_StringAny(b *testing.B) {
 	var val SomeModel
 
 	for i := 0; i < b.N; i++ {

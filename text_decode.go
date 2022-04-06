@@ -32,19 +32,17 @@ func ParseCatch[Out any, Src Text](src Src, out *Out) error {
 		return nil
 	}
 
-	box := AnyNoEscUnsafe(out)
-
-	parser, _ := box.(Parser)
+	parser, _ := AnyNoEscUnsafe(out).(Parser)
 	if parser != nil {
-		return parser.Parse(string(src))
+		return parser.Parse(ToString(src))
 	}
 
-	unmarshaler, _ := box.(encoding.TextUnmarshaler)
+	unmarshaler, _ := AnyNoEscUnsafe(out).(encoding.TextUnmarshaler)
 	if unmarshaler != nil {
 		return unmarshaler.UnmarshalText(ToBytes(src))
 	}
 
-	return ParseValueCatch(src, r.ValueOf(box).Elem())
+	return ParseValueCatch(src, r.ValueOf(AnyNoEscUnsafe(out)).Elem())
 }
 
 /*
@@ -52,7 +50,6 @@ Reflection-based component of `ParseCatch`.
 Mostly for internal use.
 */
 func ParseValueCatch[A Text](src A, out r.Value) error {
-	out = NoEscUnsafe(out)
 	typ := out.Type()
 	kind := typ.Kind()
 
@@ -79,28 +76,31 @@ func ParseValueCatch[A Text](src A, out r.Value) error {
 		out.SetString(string(src))
 		return nil
 
+	case r.Pointer:
+		if out.IsNil() {
+			out.Set(r.New(typ.Elem()))
+		}
+
+		ptr := out.Interface()
+
+		parser, _ := ptr.(Parser)
+		if parser != nil {
+			return parser.Parse(ToString(src))
+		}
+
+		unmarshaler, _ := ptr.(encoding.TextUnmarshaler)
+		if unmarshaler != nil {
+			return unmarshaler.UnmarshalText(ToBytes(src))
+		}
+
+		return ParseValueCatch[A](src, out.Elem())
+
 	default:
 		if IsTypeBytes(typ) {
 			out.SetBytes([]byte(src))
 			return nil
 		}
-		return Errf(`unable to convert string into %v: unsupported kind %v`, typ, kind)
-	}
-}
-
-// Note: `strconv.ParseBool` is too permissive for our taste.
-func parseBool(src string, out r.Value) error {
-	switch src {
-	case `true`:
-		out.SetBool(true)
-		return nil
-
-	case `false`:
-		out.SetBool(false)
-		return nil
-
-	default:
-		return ErrParse(ErrInvalidInput, src, Type[bool]())
+		return Errf(`unable to convert string to %v: unsupported kind %v`, typ, kind)
 	}
 }
 

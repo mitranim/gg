@@ -10,7 +10,7 @@ var (
 	TraceTable     = true
 	TraceSkipLang  = true
 	TraceShortName = true
-	TraceRelPath   = false // Disabled by default due to cost.
+	TraceBaseDir   = `` // Set to `Cwd()` for better traces.
 )
 
 // Free cast of the given ptr slice to `Trace`.
@@ -308,8 +308,8 @@ func (self *Frame) NameShort() string {
 }
 
 func (self *Frame) Path() string {
-	if TraceRelPath {
-		return RelOpt(Cwd(), self.File)
+	if TraceBaseDir != `` {
+		return relOpt(TraceBaseDir, self.File)
 	}
 	return self.File
 }

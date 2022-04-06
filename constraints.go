@@ -196,3 +196,9 @@ Implemented by some standard library types such as `time.Time` and
 method on inputs that implement it.
 */
 type Zeroable interface{ IsZero() bool }
+
+/*
+Implemented by some types such as `time.Time`, and invoked automatically by our
+function `Equal`.
+*/
+type Equaler[A any] interface{ Equal(A) bool }

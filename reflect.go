@@ -189,7 +189,7 @@ func ValueToStringCatch(val r.Value) (string, error) {
 	if ok {
 		return out, nil
 	}
-	return out, ErrConv(val, Type[string]())
+	return out, ErrConv(val.Interface(), Type[string]())
 }
 
 var StructFieldCache = TypeCacheOf[StructFields]()
@@ -280,3 +280,103 @@ func ValueDeref(val r.Value) r.Value {
 	}
 	return val
 }
+
+/*
+True if the given type may contain any indirections (pointers). For any "direct"
+type, assigning a value to another variable via `A := B` makes a complete copy.
+For any "indirect" type, reassignment is insufficient to make a copy.
+
+Special exceptions:
+
+	* Strings are considered to be non-indirect, despite containing a pointer.
+	  Generally in Go, strings are considered to be immutable and reassignment is
+	  considered to be a copy.
+
+	* Chans are considered to be non-indirect.
+
+	* Funcs are considered to be non-indirect.
+
+	* For structs, only public fields are checked.
+*/
+func IsIndirect(typ r.Type) bool {
+	switch TypeKind(typ) {
+	case r.Array:
+		return typ.Len() > 0 && IsIndirect(typ.Elem())
+	case r.Slice:
+		return true
+	case r.Interface:
+		return true
+	case r.Map:
+		return true
+	case r.Pointer:
+		return true
+	case r.Struct:
+		return Some(StructPublicFieldCache.Get(typ), IsFieldIndirect)
+	default:
+		return false
+	}
+}
+
+// Shortcut for testing if the field's type is `IsIndirect`.
+func IsFieldIndirect(val r.StructField) bool { return IsIndirect(val.Type) }
+
+/*
+Returns a deep clone of the given value. Doesn't clone chans and funcs,
+preserving them as-is. If the given value is "direct" (see `IsIndirect`), this
+function doesn't allocate and simply returns the input as-is.
+*/
+func CloneDeep[A any](src A) A {
+	ValueClone(r.ValueOf(AnyNoEscUnsafe(&src)).Elem())
+	return src
+}
+
+/*
+Mutates the input in-place, replacing the underlying data with a deep clone if
+necessary. The given value must be settable.
+*/
+func ValueClone(src r.Value) {
+	switch src.Kind() {
+	case r.Array:
+		cloneArray(src)
+	case r.Slice:
+		cloneSlice(src)
+	case r.Interface:
+		cloneInterface(src)
+	case r.Map:
+		cloneMap(src)
+	case r.Pointer:
+		clonePointer(src)
+	case r.Struct:
+		cloneStruct(src)
+	}
+}
+
+// Similar to `CloneDeep` but takes and returns `reflect.Value`.
+func ValueCloned(src r.Value) r.Value {
+	switch src.Kind() {
+	case r.Array:
+		return clonedArray(src)
+	case r.Slice:
+		return clonedSlice(src)
+	case r.Interface:
+		return clonedInterface(src)
+	case r.Map:
+		return clonedMap(src)
+	case r.Pointer:
+		return clonedPointer(src)
+	case r.Struct:
+		return clonedStruct(src)
+	default:
+		return src
+	}
+}
+
+// Idempotent set. Calls `reflect.Value.Set` only if the inputs are distinct.
+func ValueSet(tar, src r.Value) {
+	if tar != src {
+		tar.Set(src)
+	}
+}
+
+// Shortcut for `reflect.New(typ).Elem()`.
+func NewElem(typ r.Type) r.Value { return r.New(typ).Elem() }

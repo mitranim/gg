@@ -2,6 +2,7 @@ package gg_test
 
 import (
 	"context"
+	"fmt"
 	r "reflect"
 	"testing"
 	"time"
@@ -159,6 +160,59 @@ func BenchmarkDeref_hit(b *testing.B) {
 	}
 }
 
+func TestPtrSet(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.NoPanic(func() {
+		gg.PtrSet((*string)(nil), ``)
+		gg.PtrSet((*string)(nil), `str`)
+	})
+
+	var tar string
+
+	gg.PtrSet(&tar, `one`)
+	gtest.Eq(tar, `one`)
+
+	gg.PtrSet(&tar, `two`)
+	gtest.Eq(tar, `two`)
+}
+
+func TestPtrSetOpt(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.NoPanic(func() {
+		gg.PtrSetOpt((*string)(nil), (*string)(nil))
+		gg.PtrSetOpt(new(string), (*string)(nil))
+		gg.PtrSetOpt((*string)(nil), new(string))
+	})
+
+	var tar string
+	gg.PtrSetOpt(&tar, gg.Ptr(`one`))
+	gtest.Eq(tar, `one`)
+
+	gg.PtrSetOpt(&tar, gg.Ptr(`two`))
+	gtest.Eq(tar, `two`)
+}
+
+func TestPtrInited(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.NotZero(gg.PtrInited((*string)(nil)))
+
+	src := new(string)
+	gtest.Eq(gg.PtrInited(src), src)
+}
+
+func PtrInit(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.PtrInit((**string)(nil)))
+
+	var tar *string
+	gtest.Eq(gg.PtrInit(&tar), tar)
+	gtest.NotZero(tar)
+}
+
 func TestMinPrim2(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -183,6 +237,134 @@ func TestMaxPrim2(t *testing.T) {
 	gtest.Eq(gg.MaxPrim2(10, 0), 10)
 	gtest.Eq(gg.MaxPrim2(-10, 0), 0)
 	gtest.Eq(gg.MaxPrim2(0, -10), 0)
+}
+
+func TestMin2(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Eq(gg.Min2(ComparerOf(10), ComparerOf(20)), ComparerOf(10))
+	gtest.Eq(gg.Min2(ComparerOf(20), ComparerOf(10)), ComparerOf(10))
+	gtest.Eq(gg.Min2(ComparerOf(-10), ComparerOf(10)), ComparerOf(-10))
+	gtest.Eq(gg.Min2(ComparerOf(10), ComparerOf(-10)), ComparerOf(-10))
+	gtest.Eq(gg.Min2(ComparerOf(0), ComparerOf(10)), ComparerOf(0))
+	gtest.Eq(gg.Min2(ComparerOf(10), ComparerOf(0)), ComparerOf(0))
+	gtest.Eq(gg.Min2(ComparerOf(-10), ComparerOf(0)), ComparerOf(-10))
+	gtest.Eq(gg.Min2(ComparerOf(0), ComparerOf(-10)), ComparerOf(-10))
+}
+
+func TestMax2(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Eq(gg.Max2(ComparerOf(10), ComparerOf(20)), ComparerOf(20))
+	gtest.Eq(gg.Max2(ComparerOf(20), ComparerOf(10)), ComparerOf(20))
+	gtest.Eq(gg.Max2(ComparerOf(-10), ComparerOf(10)), ComparerOf(10))
+	gtest.Eq(gg.Max2(ComparerOf(10), ComparerOf(-10)), ComparerOf(10))
+	gtest.Eq(gg.Max2(ComparerOf(0), ComparerOf(10)), ComparerOf(10))
+	gtest.Eq(gg.Max2(ComparerOf(10), ComparerOf(0)), ComparerOf(10))
+	gtest.Eq(gg.Max2(ComparerOf(-10), ComparerOf(0)), ComparerOf(0))
+	gtest.Eq(gg.Max2(ComparerOf(0), ComparerOf(-10)), ComparerOf(0))
+}
+
+func BenchmarkMaxPrim2(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.MaxPrim2(10, 20))
+	}
+}
+
+func BenchmarkMax2(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.Max2(ComparerOf(10), ComparerOf(20)))
+	}
+}
+
+func TestAnyIs(t *testing.T) {
+	t.Run(`nil`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.False(gg.AnyIs[any](nil))
+		gtest.False(gg.AnyIs[int](nil))
+		gtest.False(gg.AnyIs[string](nil))
+		gtest.False(gg.AnyIs[*string](nil))
+		gtest.False(gg.AnyIs[fmt.Stringer](nil))
+	})
+
+	t.Run(`mismatch`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.False(gg.AnyIs[int](`str`))
+		gtest.False(gg.AnyIs[string](10))
+		gtest.False(gg.AnyIs[*string](`str`))
+		gtest.False(gg.AnyIs[fmt.Stringer](`str`))
+	})
+
+	t.Run(`match`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.True(gg.AnyIs[any](`str`))
+		gtest.True(gg.AnyIs[int](10))
+		gtest.True(gg.AnyIs[string](`str`))
+		gtest.True(gg.AnyIs[*string]((*string)(nil)))
+		gtest.True(gg.AnyIs[*string](gg.Ptr(`str`)))
+		gtest.True(gg.AnyIs[fmt.Stringer](gg.ErrStr(`str`)))
+	})
+}
+
+func TestAnyTo(t *testing.T) {
+	t.Run(`nil`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Zero(gg.AnyTo[any](nil))
+		gtest.Zero(gg.AnyTo[int](nil))
+		gtest.Zero(gg.AnyTo[string](nil))
+		gtest.Zero(gg.AnyTo[*string](nil))
+		gtest.Zero(gg.AnyTo[fmt.Stringer](nil))
+	})
+
+	t.Run(`mismatch`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Zero(gg.AnyTo[int](`str`))
+		gtest.Zero(gg.AnyTo[string](10))
+		gtest.Zero(gg.AnyTo[*string](`str`))
+		gtest.Zero(gg.AnyTo[fmt.Stringer](`str`))
+	})
+
+	t.Run(`match`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Equal(gg.AnyTo[any](`str`), `str`)
+		gtest.Eq(gg.AnyTo[int](10), 10)
+		gtest.Eq(gg.AnyTo[string](`str`), `str`)
+		gtest.Equal(gg.AnyTo[*string](gg.Ptr(`str`)), gg.Ptr(`str`))
+
+		gtest.Equal(
+			gg.AnyTo[fmt.Stringer](gg.ErrStr(`str`)),
+			fmt.Stringer(gg.ErrStr(`str`)),
+		)
+	})
+}
+func BenchmarkAnyTo_concrete_miss(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.AnyTo[gg.ErrStr](0))
+	}
+}
+
+func BenchmarkAnyTo_iface_miss(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.AnyTo[fmt.Stringer](0))
+	}
+}
+
+func BenchmarkAnyTo_concrete_hit(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.AnyTo[gg.ErrStr](gg.ErrStr(``)))
+	}
+}
+
+func BenchmarkAnyTo_iface_hit(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.AnyTo[fmt.Stringer](gg.ErrStr(``)))
+	}
 }
 
 func TestCtxSet(t *testing.T) {
@@ -255,6 +437,13 @@ func TestSpan(t *testing.T) {
 	gtest.Equal(gg.Span(3), []int{0, 1, 2})
 }
 
+func TestPlus2(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Eq(gg.Plus2(10, 20), 30)
+	gtest.Eq(gg.Plus2(`10`, `20`), `1020`)
+}
+
 func Benchmark_eq(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		gg.Nop1(i == i*2)
@@ -267,7 +456,25 @@ func BenchmarkEq(b *testing.B) {
 	}
 }
 
-func Benchmark_reflect_DeepEqual(b *testing.B) {
+func Benchmark_reflect_DeepEqual_int(b *testing.B) {
+	one := 123
+	two := 123
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(r.DeepEqual(one, two))
+	}
+}
+
+func BenchmarkEqual_int(b *testing.B) {
+	one := 123
+	two := 123
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.Equal(one, two))
+	}
+}
+
+func Benchmark_reflect_DeepEqual_bytes(b *testing.B) {
 	one := []byte(`one`)
 	two := []byte(`two`)
 
@@ -276,9 +483,27 @@ func Benchmark_reflect_DeepEqual(b *testing.B) {
 	}
 }
 
-func BenchmarkEqual(b *testing.B) {
+func BenchmarkEqual_bytes(b *testing.B) {
 	one := []byte(`one`)
 	two := []byte(`two`)
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.Equal(one, two))
+	}
+}
+
+func Benchmark_reflect_DeepEqual_time_Time(b *testing.B) {
+	one := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
+	two := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(r.DeepEqual(one, two))
+	}
+}
+
+func BenchmarkEqual_time_Time(b *testing.B) {
+	one := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
+	two := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
 
 	for i := 0; i < b.N; i++ {
 		gg.Nop1(gg.Equal(one, two))

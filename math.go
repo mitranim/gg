@@ -2,17 +2,19 @@ package gg
 
 import "math"
 
+// Same as input + 1.
+func Inc[A Num](val A) A { return val + 1 }
+
+// Same as input - 1.
+func Dec[A Num](val A) A { return val - 1 }
+
 /*
 Short for "power". Missing feature of the standard "math" package. Raises the
 input, which may be an arbitrary number, to the given power. Current
 limitations: power must be a natural number; no overflow check.
 */
 func Pow[A Num](base A, pow int) A {
-	if pow == 0 {
-		return 1
-	}
-
-	out := base
+	var out A = 1
 	for range Iter(pow) {
 		out *= base
 	}

@@ -1,6 +1,7 @@
 package gg_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -48,6 +49,8 @@ func TestToString(t *testing.T) {
 	test(`abc`)
 
 	t.Run(`mutation`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
 		src := []byte(`abc`)
 		tar := gg.ToString(src)
 		gtest.Eq(tar, `abc`)
@@ -173,6 +176,22 @@ func TestWords(t *testing.T) {
 	gtest.Eq(src().Camel().Snake(), `one_Two_Three`)
 	gtest.Eq(src().Camel().Kebab(), `one-Two-Three`)
 	gtest.Eq(src().Camel().Solid(), `oneTwoThree`)
+}
+
+func BenchmarkReWord_init(b *testing.B) {
+	src := gg.ReWord().String()
+
+	for i := 0; i < b.N; i++ {
+		regexp.MustCompile(src)
+	}
+}
+
+func BenchmarkReWord_reuse(b *testing.B) {
+	gg.Nop1(gg.ReWord())
+
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.ReWord())
+	}
 }
 
 func Benchmark_strings_Join(b *testing.B) {

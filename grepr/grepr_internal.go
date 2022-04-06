@@ -10,6 +10,10 @@ import (
 )
 
 func fmtAny(buf *Fmt, src r.Value) {
+	if fmtedNil(buf, src) || fmtedGoString(buf, src) {
+		return
+	}
+
 	switch src.Kind() {
 	case r.Invalid:
 		fmtNil(buf)
@@ -96,7 +100,7 @@ func fmtVisited(buf *Fmt, src r.Value) {
 }
 
 func fmtedNil(buf *Fmt, src r.Value) bool {
-	if isValueNil(src) {
+	if !src.IsValid() || isValueNil(src) {
 		fmtNil(buf)
 		return true
 	}
@@ -145,7 +149,7 @@ func fmtString(buf *Fmt, src string) {
 }
 
 func fmtSlice(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) || fmtedGoString(buf, src) {
+	if fmtedNil(buf, src) {
 		return
 	}
 
@@ -160,10 +164,6 @@ func fmtSlice(buf *Fmt, src r.Value) {
 }
 
 func fmtArray(buf *Fmt, src r.Value) {
-	if fmtedGoString(buf, src) {
-		return
-	}
-
 	prev := setElideType(buf, true)
 	defer prev.Done()
 
@@ -233,14 +233,14 @@ func fmtFunc(buf *Fmt, src r.Value) {
 }
 
 func fmtIface(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) || fmtedGoString(buf, src) {
+	if fmtedNil(buf, src) {
 		return
 	}
 	fmtAny(buf, src.Elem())
 }
 
 func fmtMap(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) || fmtedGoString(buf, src) {
+	if fmtedNil(buf, src) {
 		return
 	}
 
@@ -327,10 +327,6 @@ func fmtPointer(buf *Fmt, src r.Value) {
 }
 
 func fmtStruct(buf *Fmt, src r.Value) {
-	if fmtedGoString(buf, src) {
-		return
-	}
-
 	prev := setElideType(buf, false)
 	defer prev.Done()
 
@@ -474,7 +470,7 @@ func fmtStructMultiNamedLines(buf *Fmt, src r.Value, fields []r.StructField) {
 }
 
 func fmtUnfmtable(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) || fmtedGoString(buf, src) {
+	if fmtedNil(buf, src) {
 		return
 	}
 

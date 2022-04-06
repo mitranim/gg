@@ -445,10 +445,11 @@ func msgSliceElem[A ~[]B, B comparable](src A, val B) string {
 
 /*
 Asserts that the first slice contains all elements from the second slice. In
-other words, that the first slice is a strict superset of the second. Otherwise
-fails the test, printing the optional additional messages and the stack trace.
+other words, asserts that the first slice is a strict superset of the second.
+Otherwise fails the test, printing the optional additional messages and the
+stack trace.
 */
-func HasAll[A ~[]B, B comparable](src, exp A, opt ...any) {
+func HasEvery[A ~[]B, B comparable](src, exp A, opt ...any) {
 	missing := gg.Subtract(exp, src)
 
 	if len(missing) > 0 {
@@ -465,9 +466,26 @@ func HasAll[A ~[]B, B comparable](src, exp A, opt ...any) {
 }
 
 /*
+Asserts that the first slice contains some elements from the second slice. In
+other words, asserts that the element sets have an intersection. Otherwise
+fails the test, printing the optional additional messages and the stack trace.
+*/
+func HasSome[A ~[]B, B comparable](src, exp A, opt ...any) {
+	if !gg.HasSome(src, exp) {
+		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+			`unexpected lack of shared elements in two slices`,
+			msgDet(`left detailed:`, goStringIndent(src)),
+			msgDet(`right detailed:`, goStringIndent(exp)),
+			msgDet(`left simple:`, gg.StringAny(src)),
+			msgDet(`right simple:`, gg.StringAny(exp)),
+		))))
+	}
+}
+
+/*
 Asserts that the first slice does not contain any from the second slice. In
-other words, that the element sets are disjoint. Otherwise fails the test,
-printing the optional additional messages and the stack trace.
+other words, asserts that the element sets are disjoint. Otherwise fails the
+test, printing the optional additional messages and the stack trace.
 */
 func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {
 	inter := gg.Intersect(src, exp)

@@ -25,7 +25,7 @@ func concCatch(val []func()) []error {
 
 	for _, val := range val {
 		if val == nil {
-			AppendTo(&out, nil)
+			AppendVals(&out, nil)
 		} else {
 			gro.Add(1)
 			go concCatchRun(&gro, val, AppendPtrZero(&out))

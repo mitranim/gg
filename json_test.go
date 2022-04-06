@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mitranim/gg"
+	"github.com/mitranim/gg/gtest"
 )
 
 func Benchmark_json_Marshal(b *testing.B) {
@@ -59,4 +60,18 @@ func BenchmarkJsonParse(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		gg.JsonParse(`123`, &val)
 	}
+}
+
+func TestJsonParseTo(t *testing.T) {
+	gtest.Catch(t)
+
+	gtest.Eq(
+		gg.JsonParseTo[SomeModel](`{"id":"10"}`),
+		SomeModel{Id: `10`},
+	)
+
+	gtest.Eq(
+		gg.JsonParseTo[SomeModel]([]byte(`{"id":"10"}`)),
+		SomeModel{Id: `10`},
+	)
 }

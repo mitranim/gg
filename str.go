@@ -155,17 +155,41 @@ Tool for converting between typographic cases such as `camelCase` and
 */
 type Words []string
 
+// Combines the words via " ".
 func (self Words) Spaced() string { return self.Join(` `) }
-func (self Words) Snake() string  { return self.Join(`_`) }
-func (self Words) Kebab() string  { return self.Join(`-`) }
-func (self Words) Solid() string  { return self.Join(``) }
-func (self Words) Comma() string  { return self.Join(`,`) }
 
-func (self Words) Lower() Words    { return MapMut(self, strings.ToLower) }
-func (self Words) Upper() Words    { return MapMut(self, strings.ToUpper) }
-func (self Words) Title() Words    { return MapMut(self, strings.Title) }
+// Combines the words via "_".
+func (self Words) Snake() string { return self.Join(`_`) }
+
+// Combines the words via "-".
+func (self Words) Kebab() string { return self.Join(`-`) }
+
+// Combines the words via "".
+func (self Words) Solid() string { return self.Join(``) }
+
+// Combines the words via ",".
+func (self Words) Comma() string { return self.Join(`,`) }
+
+// Converts each word to lowercase. Mutates and returns the receiver.
+func (self Words) Lower() Words { return MapMut(self, strings.ToLower) }
+
+// Converts each word to UPPERCASE. Mutates and returns the receiver.
+func (self Words) Upper() Words { return MapMut(self, strings.ToUpper) }
+
+// Converts each word to Titlecase. Mutates and returns the receiver.
+func (self Words) Title() Words { return MapMut(self, strings.Title) }
+
+/*
+Converts the first word to Titlecase and each other word to lowercase. Mutates
+and returns the receiver.
+*/
 func (self Words) Sentence() Words { return self.Lower().MapHead(strings.Title) }
-func (self Words) Camel() Words    { return self.Title().MapHead(strings.ToLower) }
+
+/*
+Converts the first word to lowercase and each other word to Titlecase. Mutates
+and returns the receiver.
+*/
+func (self Words) Camel() Words { return self.Title().MapHead(strings.ToLower) }
 
 // Same as `strings.Join`.
 func (self Words) Join(val string) string { return strings.Join(self, val) }

@@ -2,6 +2,7 @@ package grepr_test
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -9,6 +10,11 @@ import (
 	"github.com/mitranim/gg/grepr"
 	"github.com/mitranim/gg/gtest"
 )
+
+func init() {
+	gg.Try(os.Chdir(`..`))
+	gg.TraceBaseDir = gg.Cwd()
+}
 
 type Struct0 struct{}
 
@@ -53,8 +59,6 @@ var testOuter = Outer{
 	Embed:     testEmbed,
 	Inner:     &testInner,
 }
-
-func init() { gg.TraceRelPath = true }
 
 func testRepr[A any](src A, exp string) {
 	gtest.Eq(grepr.String(src), exp)

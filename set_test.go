@@ -17,7 +17,13 @@ func TestSetOf(t *testing.T) {
 	gtest.Equal(gg.SetOf(10, 20, 30, 10, 20), IntSet{10: void, 20: void, 30: void})
 }
 
-func BenchmarkSetOf(b *testing.B) {
+func BenchmarkSetOf_empty(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		gg.Nop1(gg.SetOf[int]())
+	}
+}
+
+func BenchmarkSetOf_non_empty(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		gg.Nop1(gg.SetOf(10, 20, 30, 40, 50, 60, 70, 80, 90))
 	}

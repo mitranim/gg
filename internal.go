@@ -1,6 +1,7 @@
 package gg
 
 import (
+	"path/filepath"
 	r "reflect"
 	"strings"
 	u "unsafe"
@@ -53,4 +54,35 @@ func validateLenMatch(one, two int) {
 			one, two,
 		))
 	}
+}
+
+// Note: `strconv.ParseBool` is too permissive for our taste.
+func parseBool(src string, out r.Value) error {
+	switch src {
+	case `true`:
+		out.SetBool(true)
+		return nil
+
+	case `false`:
+		out.SetBool(false)
+		return nil
+
+	default:
+		return ErrParse(ErrInvalidInput, src, Type[bool]())
+	}
+}
+
+/*
+Somewhat similar to `filepath.Rel`, but doesn't support `..`, performs
+significantly better, and returns the path as-is when it doesn't start
+with the given base.
+*/
+func relOpt(base, src string) string {
+	if strings.HasPrefix(src, base) {
+		rem := src[len(base):]
+		if len(rem) > 0 && rem[0] == filepath.Separator {
+			return rem[1:]
+		}
+	}
+	return src
 }

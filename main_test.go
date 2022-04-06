@@ -2,11 +2,26 @@ package gg_test
 
 import "github.com/mitranim/gg"
 
-func init() { gg.TraceRelPath = true }
+func init() { gg.TraceBaseDir = gg.Cwd() }
 
 var void struct{}
 
+// Adapted from `reflect.ValueOf`.
+func esc(val any) any {
+	if trap.false {
+		trap.val = val
+	}
+	return val
+}
+
+var trap struct {
+	false bool
+	val   any
+}
+
 type IntSet = gg.Set[int]
+
+type IntMap = map[int]int
 
 type SomeKey string
 
@@ -16,6 +31,18 @@ type SomeModel struct {
 }
 
 func (self SomeModel) Pk() SomeKey { return self.Id }
+
+type StructDirect struct {
+	Public0 int
+	Public1 string
+	private *string
+}
+
+type StructIndirect struct {
+	Public0 int
+	Public1 *string
+	private *string
+}
 
 type SomeColl = gg.Coll[SomeKey, SomeModel]
 
@@ -32,15 +59,34 @@ type FatStruct struct {
 	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, Name string
 }
 
-// Adapted from `reflect.ValueOf`.
-func esc(val any) any {
-	if trap.false {
-		trap.val = val
-	}
-	return val
+func ComparerOf[A gg.LesserPrim](val A) Comparer[A] { return Comparer[A]{val} }
+
+type Comparer[A gg.LesserPrim] [1]A
+
+func (self Comparer[A]) Less(val Comparer[A]) bool { return self[0] < val[0] }
+
+func (self Comparer[A]) Get() A { return self[0] }
+
+func ToPair[A gg.Num](val A) (A, A) { return val - 1, val + 1 }
+
+func True1[A any](A) bool { return true }
+
+func False1[A any](A) bool { return false }
+
+func Id1True[A any](val A) (A, bool) { return val, true }
+
+func Id1False[A any](val A) (A, bool) { return val, false }
+
+type ParserStr string
+
+func (self *ParserStr) Parse(val string) error {
+	*self = ParserStr(val)
+	return nil
 }
 
-var trap struct {
-	false bool
-	val   any
+type UnmarshalerBytes []byte
+
+func (self *UnmarshalerBytes) UnmarshalText(val []byte) error {
+	*self = val
+	return nil
 }

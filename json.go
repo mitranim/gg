@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // Uses `json.Marshal` to encode the given value as JSON, panicking on error.
@@ -102,6 +103,21 @@ func JsonDecodeFile[A any](path string, out *A) {
 	if out != nil {
 		JsonDecodeClose(Try1(os.Open(path)), NoEscUnsafe(out))
 	}
+}
+
+/*
+Shortcut for writing the JSON encoding of the given value to a file at the given
+path. Intermediary directories are created automatically. Any existing file is
+truncated.
+*/
+func JsonEncodeFile[A any](path string, src A) {
+	MkdirAll(filepath.Dir(path))
+
+	file := Try1(os.Create(path))
+	defer file.Close()
+
+	Try(json.NewEncoder(file).Encode(src))
+	Try(file.Close())
 }
 
 /*

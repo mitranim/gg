@@ -26,7 +26,7 @@ type Coll[
 	Key comparable,
 	Val Pked[Key],
 ] struct {
-	Slice []Val
+	Slice []Val `role:"ref"`
 	Index map[Key]int
 }
 
@@ -37,7 +37,9 @@ indexing automatically.
 */
 func (self *Coll[Key, Val]) Calc() {
 	if !self.isIndexed() {
-		index := MapClear(self.initIndex())
+		index := self.initIndex()
+		MapClear(index)
+
 		for ind, val := range self.Slice {
 			index[ValidPk[Key](val)] = ind
 		}
@@ -57,7 +59,7 @@ func (self *Coll[Key, Val]) Add(val ...Val) *Coll[Key, Val] {
 		index := self.initIndex()
 		key := ValidPk[Key](val)
 
-		AppendTo(&self.Slice, val)
+		AppendVals(&self.Slice, val)
 		index[key] = len(self.Slice) - 1
 	}
 	return self

@@ -10,10 +10,10 @@ import (
 Shortcut for casting into `Arr`. Workaround for lack of type inference in type
 literals and casts.
 */
-func ToArr[A any](val []A) Arr[A] { return Arr[A](val) }
+func ToArr[A any](val []A) Arr[A] { return val }
 
 // Shortcut for creating `Arr` from the arguments.
-func ArrOf[A any](val ...A) Arr[A] { return Arr[A](val) }
+func ArrOf[A any](val ...A) Arr[A] { return val }
 
 /*
 Short for "array". A slice type that supports SQL array encoding and decoding,
@@ -87,7 +87,7 @@ func (self *Arr[A]) Parse(src string) (err error) {
 	src = src[1 : len(src)-1]
 
 	for len(src) > 0 {
-		gg.AppendTo(self, gg.ParseTo[A](popSqlArrSegment(&src)))
+		gg.AppendVals(self, gg.ParseTo[A](popSqlArrSegment(&src)))
 	}
 	return nil
 }

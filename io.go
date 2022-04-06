@@ -3,8 +3,8 @@ package gg
 import (
 	"bytes"
 	"io"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -92,21 +92,17 @@ func ForkReadCloser(src io.ReadCloser) (_, _ io.ReadCloser) {
 // Shortcut for `os.Getwd` that panics on error.
 func Cwd() string { return Try1(os.Getwd()) }
 
-/*
-"Optional" variant of `filepath.Rel`. If the given path can't be made relative,
-it's returned as-is.
-*/
-func RelOpt(base, src string) string {
-	out, err := filepath.Rel(base, src)
-	if err == nil && len(out) < len(src) {
-		return out
-	}
-	return src
-}
-
 // If the given closer is non-nil, closes it, ignoring the error.
 func Close(val io.Closer) {
 	if val != nil {
 		_ = val.Close()
 	}
 }
+
+// Shortcut for `os.MkdirAll` with `os.ModePerm`.
+func MkdirAll(path string) {
+	Try(os.MkdirAll(path, os.ModePerm))
+}
+
+// Shortcut for `os.Stat` that panics on error.
+func Stat(path string) fs.FileInfo { return Try1(os.Stat(path)) }

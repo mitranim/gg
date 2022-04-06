@@ -139,12 +139,6 @@ func Id2[A, B any](val0 A, val1 B) (A, B) { return val0, val1 }
 // Identity function. Returns input as-is.
 func Id3[A, B, C any](val0 A, val1 B, val2 C) (A, B, C) { return val0, val1, val2 }
 
-// Same as input + 1.
-func Inc[A Num](val A) A { return val + 1 }
-
-// Same as input - 1.
-func Dec[A Num](val A) A { return val - 1 }
-
 /*
 Shortcut for implementing `driver.Valuer` on `Nullable` types that wrap other
 types, such as `Opt`. Mostly for internal use.
@@ -218,10 +212,16 @@ func IsNeg[A Signed](val A) bool { return val < 0 }
 func Eq[A comparable](one, two A) bool { return one == two }
 
 /*
-Short for "equal". Same as `reflect.DeepEqual` but with better type safety and
-performance.
+Short for "equal". For types that implement `Equaler`, this simply calls their
+equality method. Otherwise falls back on `reflect.DeepEqual`. Compared to
+`reflect.DeepEqual`, this has better type safety and performance, even when
+calling it in fallback mode.
 */
 func Equal[A any](one, two A) bool {
+	impl, _ := AnyNoEscUnsafe(one).(Equaler[A])
+	if impl != nil {
+		return impl.Equal(two)
+	}
 	return r.DeepEqual(AnyNoEscUnsafe(one), AnyNoEscUnsafe(two))
 }
 
@@ -251,15 +251,6 @@ from among the inputs.
 func NullOr[A Nullable](val ...A) A { return Find(val, IsNonNull[A]) }
 
 /*
-Non-asserting interface conversion. Safely converts the given `any` into the
-given type, returning zero value on failure.
-*/
-func AnyTo[A any](src any) A {
-	val, _ := AnyNoEscUnsafe(src).(A)
-	return val
-}
-
-/*
 Returns true if the given `any` can be usefully converted into a value of the
 given type. If the result is true, `src.(A)` doesn't panic. If the output is
 false, `src.(A)` panics.
@@ -267,6 +258,15 @@ false, `src.(A)` panics.
 func AnyIs[A any](src any) bool {
 	_, ok := AnyNoEscUnsafe(src).(A)
 	return ok
+}
+
+/*
+Non-asserting interface conversion. Safely converts the given `any` into the
+given type, returning zero value on failure.
+*/
+func AnyTo[A any](src any) A {
+	val, _ := AnyNoEscUnsafe(src).(A)
+	return val
 }
 
 /*
@@ -333,18 +333,11 @@ func Range[A Int](min, max A) []A {
 // Shortcut for creating a range from 0 to N.
 func Span[A Int](val A) []A { return Range(0, val) }
 
-// Combines two inputs via "+". Also see variadic `Add`.
+// Combines two inputs via "+". Also see variadic `Plus`.
 func Plus2[A Plusable](one, two A) A { return one + two }
 
-/*
-Shortcut for mutexes. Usage:
-
-	defer Locked(someLock).Unlock()
-*/
-func Locked[A interface{ Lock() }](val A) A {
-	val.Lock()
-	return val
-}
+// Same as `one - two`.
+func Minus2[A Num](one, two A) A { return one - two }
 
 /*
 Takes a pointer and a fallback value which must be non-zero. If the pointer
@@ -391,3 +384,32 @@ func (self Snap[_]) Done() {
 		*self.Ptr = self.Val
 	}
 }
+
+// Shortcut for making a pseudo-tuple with two elements.
+func Tuple2[A, B any](valA A, valB B) Tup2[A, B] {
+	return Tup2[A, B]{valA, valB}
+}
+
+// Represents a pseudo-tuple with two elements.
+type Tup2[A, B any] struct {
+	A A
+	B B
+}
+
+// Converts the pseudo-tuple to a proper Go tuple.
+func (self Tup2[A, B]) Get() (A, B) { return self.A, self.B }
+
+// Shortcut for making a pseudo-tuple with three elements.
+func Tuple3[A, B, C any](valA A, valB B, valC C) Tup3[A, B, C] {
+	return Tup3[A, B, C]{valA, valB, valC}
+}
+
+// Represents a pseudo-tuple with three elements.
+type Tup3[A, B, C any] struct {
+	A A
+	B B
+	C C
+}
+
+// Converts the pseudo-tuple to a proper Go tuple.
+func (self Tup3[A, B, C]) Get() (A, B, C) { return self.A, self.B, self.C }

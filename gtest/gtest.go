@@ -49,7 +49,7 @@ Must be deferred. Usage:
 */
 func Catch(t testing.TB) {
 	t.Helper()
-	val := gg.ToErrTraced(recover(), 1)
+	val := gg.AnyErrTraced(recover())
 	if val != nil {
 		t.Fatalf(`%+v`, val)
 	}

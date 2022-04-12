@@ -50,7 +50,9 @@ Implement `json.Marshaler`. If `.IsNull`, returns a representation of JSON null.
 Otherwise uses `json.Marshal` to encode the underlying value.
 */
 //go:noinline
-func (self Zop[A]) MarshalJSON() ([]byte, error) { return JsonBytesNullCatch[A](self) }
+func (self Zop[A]) MarshalJSON() ([]byte, error) {
+	return JsonBytesNullCatch[A](self)
+}
 
 /*
 Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
@@ -58,7 +60,13 @@ clears the receiver via `.Clear`. Otherwise uses `json.Unmarshaler` to decode
 into the underlying value.
 */
 //go:noinline
-func (self *Zop[A]) UnmarshalJSON(src []byte) error { return JsonParseClearCatch[A](src, self) }
+func (self *Zop[A]) UnmarshalJSON(src []byte) error {
+	if isJsonEmpty(src) {
+		self.Clear()
+		return nil
+	}
+	return JsonParseCatch(src, &self.Val)
+}
 
 /*
 FP-style "mapping". If the original value is zero, or if the function is nil,

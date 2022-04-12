@@ -53,7 +53,7 @@ func Rec(out *error) {
 		return
 	}
 
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if err != nil {
 		*out = err
 	}
@@ -81,7 +81,7 @@ test. Does NOT check errors that are returned normally, without a panic.
 Idempotently adds a stack trace.
 */
 func RecOnly(ptr *error, test func(error) bool) {
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if err == nil {
 		return
 	}
@@ -99,7 +99,7 @@ Must be deferred. Recovery for background goroutines which are not allowed to
 crash. Calls the provided function ONLY if the error is non-nil.
 */
 func RecWith(fun func(error)) {
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if err != nil && fun != nil {
 		fun(err)
 	}
@@ -186,7 +186,7 @@ Must be deferred. Catches panics; ignores errors that satisfy the provided
 test; re-panics on other non-nil errors. Idempotently adds a stack trace.
 */
 func SkipOnly(test func(error) bool) {
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if err != nil && test != nil && test(err) {
 		return
 	}
@@ -223,14 +223,14 @@ simply ensures that there's a stack trace, then re-panics.
 Caution: due to idiosyncrasies of `recover()`, this works ONLY when deferred
 directly. Anything other than `defer gg.Traced()` will NOT work.
 */
-func Traced() { Try(ToErrTraced(recover(), 1)) }
+func Traced() { Try(AnyErrTraced(recover())) }
 
 /*
 Must be deferred. Runs the function only if there's no panic. Idempotently adds
 a stack trace.
 */
 func Ok(fun func()) {
-	Try(ToErrTraced(recover(), 1))
+	Try(AnyErrTraced(recover()))
 	if fun != nil {
 		fun()
 	}
@@ -241,7 +241,7 @@ Must be deferred. Runs the function ONLY if there's an ongoing panic, and then
 re-panics. Idempotently adds a stack trace.
 */
 func Fail(fun func(error)) {
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if err != nil && fun != nil {
 		fun(err)
 	}
@@ -253,7 +253,7 @@ Must be deferred. Always runs the given function, passing either the current
 panic or nil. If the error is non-nil, re-panics.
 */
 func Finally(fun func(error)) {
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if fun != nil {
 		fun(err)
 	}
@@ -266,7 +266,7 @@ panic, transforms the error by calling the provided function, and then
 re-panics via `Try`. Idempotently adds a stack trace.
 */
 func Trans(fun func(error) error) {
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if err != nil && fun != nil {
 		err = fun(err)
 	}
@@ -299,7 +299,7 @@ Must be deferred. Wraps non-nil panics, prepending the error message, ONLY if
 they satisfy the provided test. Idempotently adds a stack trace.
 */
 func DetailOnlyf(test func(error) bool, pat string, val ...any) {
-	err := ToErrTraced(recover(), 1)
+	err := AnyErrTraced(recover())
 	if err != nil && test != nil && test(err) {
 		err = Wrapf(err, pat, val...)
 	}

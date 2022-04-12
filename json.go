@@ -130,19 +130,3 @@ func JsonDecodeClose[A any](src io.ReadCloser, out *A) {
 		Try(json.NewDecoder(NoEscUnsafe(src)).Decode(AnyNoEscUnsafe(out)))
 	}
 }
-
-/*
-Shortcut for implementing JSON decoding of types that wrap other types, such as
-`Opt`. Mostly for internal use.
-*/
-func JsonParseClearCatch[
-	Out any,
-	Tar ClearerPtrGetter[Out],
-	Src Text,
-](src Src, tar Tar) error {
-	if isJsonEmpty(src) {
-		tar.Clear()
-		return nil
-	}
-	return JsonParseCatch(src, tar.Ptr())
-}

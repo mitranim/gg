@@ -68,7 +68,11 @@ into the underlying value, and sets the current timestamp on success.
 */
 //go:noinline
 func (self *Timed[A]) UnmarshalJSON(src []byte) error {
-	return self.with(JsonParseClearCatch[A](src, self))
+	if isJsonEmpty(src) {
+		self.Clear()
+		return nil
+	}
+	return self.with(JsonParseCatch(src, &self.Val))
 }
 
 // True if the timestamp is unset, or if timestamp + duration > now.

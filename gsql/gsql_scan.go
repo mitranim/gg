@@ -33,14 +33,14 @@ func ScanVal[Row any, Src Rows](src Src) Row {
 	defer gg.Close(src)
 
 	if !src.Next() {
-		panic(gg.ToErrTraced(sql.ErrNoRows, 1))
+		panic(gg.AnyErrTraced(sql.ErrNoRows))
 	}
 
 	out := ScanNext[Row](src)
 	gg.ErrOk(src)
 
 	if src.Next() {
-		panic(gg.ToErrTraced(ErrMultipleRows, 1))
+		panic(gg.AnyErrTraced(ErrMultipleRows))
 	}
 	return out
 }

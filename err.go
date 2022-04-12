@@ -448,6 +448,9 @@ func ToErrTraced(val any, skip int) error {
 	return ErrTraced(ToErrAny(val), skip+1)
 }
 
+// Same as `ToErrTraced(val, 1)`.
+func AnyErrTraced(val any) error { return ToErrTraced(val, 2) }
+
 // If the error is nil, returns ``. Otherwise uses `.Error`.
 func ErrString(val error) string {
 	if val != nil {

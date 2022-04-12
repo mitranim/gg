@@ -9,8 +9,14 @@ panic. Usage:
 	defer DbTxDone(conn)
 */
 func DbTxDone[A DbTx](val A) {
-	err := gg.ToErrTraced(recover(), 1)
+	DbTxDoneWith(val, gg.AnyErrTraced(recover()))
+}
 
+/*
+Commit if there was no error, rollback if there was an error.
+Used internally by `DbTxDone`.
+*/
+func DbTxDoneWith[A DbTx](val A, err error) {
 	if err != nil {
 		_ = val.Rollback()
 		panic(err)

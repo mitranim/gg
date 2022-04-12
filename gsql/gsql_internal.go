@@ -180,7 +180,7 @@ func scanValAny[Src Rows](src Src, tar r.Value) {
 	defer gg.Close(src)
 
 	if !src.Next() {
-		panic(gg.ToErrTraced(sql.ErrNoRows, 1))
+		panic(gg.AnyErrTraced(sql.ErrNoRows))
 	}
 
 	typ := tar.Type()
@@ -188,7 +188,7 @@ func scanValAny[Src Rows](src Src, tar r.Value) {
 	gg.ErrOk(src)
 
 	if src.Next() {
-		panic(gg.ToErrTraced(ErrMultipleRows, 1))
+		panic(gg.AnyErrTraced(ErrMultipleRows))
 	}
 }
 

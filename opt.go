@@ -82,6 +82,10 @@ func (self Opt[A]) MarshalText() ([]byte, error) { return MarshalNullCatch[A](se
 // Implement `encoding.TextUnmarshaler`, using the same logic as `.Parse`.
 //go:noinline
 func (self *Opt[A]) UnmarshalText(src []byte) error {
+	if len(src) == 0 {
+		self.Clear()
+		return nil
+	}
 	return self.with(ParseClearCatch[A](src, self))
 }
 
@@ -101,7 +105,11 @@ into the underlying value.
 */
 //go:noinline
 func (self *Opt[A]) UnmarshalJSON(src []byte) error {
-	return self.with(JsonParseClearCatch[A](src, self))
+	if isJsonEmpty(src) {
+		self.Clear()
+		return nil
+	}
+	return self.with(JsonParseCatch(src, &self.Val))
 }
 
 /*
@@ -120,7 +128,10 @@ same logic as `.Parse`.
 */
 //go:noinline
 func (self *Opt[A]) Scan(src any) error {
-	self.Clear()
+	if src == nil {
+		self.Clear()
+		return nil
+	}
 	return self.with(ScanCatch[A](src, self))
 }
 

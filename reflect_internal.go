@@ -2,6 +2,8 @@ package gg
 
 import r "reflect"
 
+const expectedStructNesting = 8
+
 func cloneArray(src r.Value) {
 	if src.Cap() == 0 || !IsIndirect(src.Type().Elem()) {
 		return

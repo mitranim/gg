@@ -4,6 +4,7 @@ import (
 	"fmt"
 	r "reflect"
 	"testing"
+	u "unsafe"
 
 	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
@@ -432,4 +433,86 @@ func Benchmark_clone_map_MapClone(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		gg.Nop1(gg.MapClone(src))
 	}
+}
+
+func TestStructDeepPublicFieldCache(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.StructDeepPublicFieldCache.Get(gg.Type[struct{}]()))
+
+	gtest.Equal(
+		gg.StructDeepPublicFieldCache.Get(gg.Type[StructDirect]()),
+		gg.StructDeepPublicFields{
+			{
+				Name:   `Public0`,
+				Type:   gg.Type[int](),
+				Offset: 0,
+				Index:  []int{0},
+			},
+			{
+				Name:   `Public1`,
+				Type:   gg.Type[string](),
+				Offset: u.Offsetof(StructDirect{}.Public1),
+				Index:  []int{1},
+			},
+		},
+	)
+
+	gtest.Equal(
+		gg.StructDeepPublicFieldCache.Get(gg.Type[Outer]()),
+		gg.StructDeepPublicFields{
+			{
+				Name:  `OuterId`,
+				Type:  gg.Type[int](),
+				Index: []int{0}},
+			{
+				Name:   `OuterName`,
+				Type:   gg.Type[string](),
+				Offset: u.Offsetof(Outer{}.OuterName),
+				Index:  []int{1}},
+			{
+				Name:   `EmbedId`,
+				Type:   gg.Type[int](),
+				Offset: u.Offsetof(Outer{}.Embed) + u.Offsetof(Embed{}.EmbedId),
+				Index:  []int{2, 0}},
+			{
+				Name:   `EmbedName`,
+				Type:   gg.Type[string](),
+				Offset: u.Offsetof(Outer{}.Embed) + u.Offsetof(Embed{}.EmbedName),
+				Index:  []int{2, 1}},
+			{
+				Name:   `Inner`,
+				Type:   gg.Type[*Inner](),
+				Offset: u.Offsetof(Outer{}.Inner),
+				Index:  []int{3}},
+		},
+	)
+}
+
+func TestJsonNameToDbNameCache(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.JsonNameToDbNameCache.Get(gg.Type[struct{}]()))
+
+	gtest.Equal(
+		gg.JsonNameToDbNameCache.Get(gg.Type[SomeJsonDbMapper]()),
+		gg.JsonNameToDbName{
+			`someName`:  `some_name`,
+			`someValue`: `some_value`,
+		},
+	)
+}
+
+func TestDbNameToJsonNameCache(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.DbNameToJsonNameCache.Get(gg.Type[struct{}]()))
+
+	gtest.Equal(
+		gg.DbNameToJsonNameCache.Get(gg.Type[SomeJsonDbMapper]()),
+		gg.DbNameToJsonName{
+			`some_name`:  `someName`,
+			`some_value`: `someValue`,
+		},
+	)
 }

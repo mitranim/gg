@@ -104,9 +104,25 @@ func (self Set[A]) Reset(val ...A) Set[A] {
 	return self
 }
 
-// Converts the map to a slice of its values. The order is random.
+// Converts the map to a slice of its values. Order is random.
 //go:noinline
 func (self Set[A]) Slice() []A { return MapKeys(self) }
+
+/*
+Returns the subset of values for which the given function returns true.
+Order is random. If function is nil, output is nil.
+*/
+func (self Set[A]) Filter(fun func(A) bool) []A {
+	var out []A
+	if fun != nil {
+		for val := range self {
+			if fun(val) {
+				out = append(out, val)
+			}
+		}
+	}
+	return out
+}
 
 // JSON-encodes as a list. Order is random.
 func (self Set[A]) MarshalJSON() ([]byte, error) {

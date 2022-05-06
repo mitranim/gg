@@ -25,9 +25,11 @@ type Struct2 struct {
 	B int
 }
 
-type Inner struct {
-	InnerId   *int
-	InnerName *string
+type Outer struct {
+	OuterId   int
+	OuterName string
+	Embed
+	Inner *Inner
 }
 
 type Embed struct {
@@ -35,11 +37,9 @@ type Embed struct {
 	EmbedName string
 }
 
-type Outer struct {
-	OuterId   int
-	OuterName string
-	Embed
-	Inner *Inner
+type Inner struct {
+	InnerId   *int
+	InnerName *string
 }
 
 type Cyclic struct {
@@ -113,6 +113,23 @@ grepr_test.Outer{
 }
 `),
 	)
+
+	testRepr(any(10), `10`)
+
+	testRepr(any(`str`), "`str`")
+
+	testRepr([]any{10, 20}, `[]interface {}{
+    10,
+    20,
+}`)
+
+	testRepr([]any{Struct1{10}, Struct2{20, 30}}, `[]interface {}{
+    grepr_test.Struct1{10},
+    grepr_test.Struct2{
+        A: 20,
+        B: 30,
+    },
+}`)
 }
 
 func ExampleString() {

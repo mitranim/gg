@@ -44,6 +44,30 @@ type StructIndirect struct {
 	private *string
 }
 
+type Outer struct {
+	OuterId   int
+	OuterName string
+	Embed
+	Inner *Inner
+}
+
+type Embed struct {
+	EmbedId   int
+	EmbedName string
+}
+
+type Inner struct {
+	InnerId   *int
+	InnerName *string
+}
+
+type SomeJsonDbMapper struct {
+	SomeName  string `json:"someName" db:"some_name"`
+	SomeValue string `json:"someValue" db:"some_value"`
+	SomeJson  string `json:"someJson"`
+	SomeDb    string `db:"some_db"`
+}
+
 type SomeColl = gg.Coll[SomeKey, SomeModel]
 
 type IsZeroAlwaysTrue string

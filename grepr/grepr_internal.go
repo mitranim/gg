@@ -14,6 +14,11 @@ func fmtAny(buf *Fmt, src r.Value) {
 		return
 	}
 
+	if src.Type() == gg.Type[r.Type]() {
+		fmtType(buf, src)
+		return
+	}
+
 	switch src.Kind() {
 	case r.Invalid:
 		fmtNil(buf)
@@ -93,7 +98,7 @@ func fmtedVisited(buf *Fmt, src r.Value) bool {
 
 func fmtVisited(buf *Fmt, src r.Value) {
 	buf.AppendString(`/* visited */ (`)
-	fmtTypeName(buf, src)
+	fmtTypeName(buf, src.Type())
 	buf.AppendString(`)(`)
 	fmtUintHex(buf, src.Pointer())
 	buf.AppendString(`)`)
@@ -110,8 +115,11 @@ func fmtedNil(buf *Fmt, src r.Value) bool {
 func fmtNil(buf *Fmt) { buf.AppendString(`nil`) }
 
 /*
-TODO consider custom interface such as `.AppendGoString`, possibly with
+TODO: consider custom interface such as `.AppendGoString`, possibly with
 indentation support.
+
+TODO: if, rather than implementing `.GoString` directly, the input inherits the
+method from an embedded type, we should do nothing and return false.
 */
 func fmtedGoString(buf *Fmt, src r.Value) bool {
 	if src.CanConvert(gg.Type[fmt.GoStringer]()) {
@@ -155,7 +163,7 @@ func fmtSlice(buf *Fmt, src r.Value) {
 
 	if gg.IsValueBytes(src) {
 		// TODO: elide type name when elidable AND when not printing as a string.
-		fmtTypeName(buf, src)
+		fmtTypeName(buf, src.Type())
 		fmtBytesInner(buf, src.Bytes())
 		return
 	}
@@ -164,11 +172,11 @@ func fmtSlice(buf *Fmt, src r.Value) {
 }
 
 func fmtArray(buf *Fmt, src r.Value) {
-	prev := setElideType(buf, true)
+	prev := setElideType(buf, isNonInterface(src.Type().Elem()))
 	defer prev.Done()
 
 	if !prev.Val {
-		fmtTypeName(buf, src)
+		fmtTypeName(buf, src.Type())
 	}
 
 	if src.Len() == 0 {
@@ -244,11 +252,11 @@ func fmtMap(buf *Fmt, src r.Value) {
 		return
 	}
 
-	prev := setElideType(buf, true)
+	prev := setElideType(buf, isNonInterface(src.Type().Elem()))
 	defer prev.Done()
 
 	if !prev.Val {
-		fmtTypeName(buf, src)
+		fmtTypeName(buf, src.Type())
 	}
 
 	if src.Len() == 0 {
@@ -331,7 +339,7 @@ func fmtStruct(buf *Fmt, src r.Value) {
 	defer prev.Done()
 
 	if !prev.Val {
-		fmtTypeName(buf, src)
+		fmtTypeName(buf, src.Type())
 	}
 
 	if src.NumField() == 0 {
@@ -354,7 +362,7 @@ func fmtStructField(buf *Fmt, src r.Value, field r.StructField) {
 }
 
 func fmtStructSingle(buf *Fmt, src r.Value) {
-	if src.NumField() == 1 {
+	if isStructUnit(src) {
 		fmtStructSingleAnon(buf, src)
 		return
 	}
@@ -396,7 +404,7 @@ func fmtStructSingleNamed(buf *Fmt, src r.Value) {
 }
 
 func fmtStructMulti(buf *Fmt, src r.Value) {
-	if src.NumField() == 1 {
+	if isStructUnit(src) {
 		fmtStructMultiAnon(buf, src)
 		return
 	}
@@ -474,18 +482,17 @@ func fmtUnfmtable(buf *Fmt, src r.Value) {
 		return
 	}
 
-	fmtTypeName(buf, src)
+	fmtTypeName(buf, src.Type())
 	buf.AppendByte('(')
 	fmtUintHex(buf, src.Pointer())
 	buf.AppendByte(')')
 }
 
-func fmtTypeName(buf *Fmt, src r.Value) {
-	typ := src.Type()
+func fmtTypeName(buf *Fmt, typ r.Type) {
 	if typ == gg.Type[[]byte]() {
 		buf.AppendString(`[]byte`)
 	} else {
-		buf.AppendString(typeName(src.Type()))
+		buf.AppendString(typeName(typ))
 	}
 }
 
@@ -499,10 +506,20 @@ func fmtTypeArg(buf *Fmt, typ r.Type) {
 	buf.AppendByte(']')
 }
 
+func fmtType(buf *Fmt, src r.Value) {
+	buf.AppendString(`gg.Type[`)
+	fmtTypeName(buf, src.Interface().(r.Type))
+	buf.AppendString(`]()`)
+}
+
 func fmtIndent(buf *Fmt) {
 	buf.AppendStringN(buf.Indent, buf.Lvl)
 }
 
+/*
+TODO: consider eliding the name of the "current" package. Is that possible?
+We can inspect the stacktrace, but we might be unable to define "current".
+*/
 func typeName(typ r.Type) string { return typ.String() }
 
 func canAmpersand(kind r.Kind) bool {
@@ -547,4 +564,10 @@ func isNonBackquotable(char rune) bool {
 		char == '`' ||
 		char == bom ||
 		(char < ' ' && !(char == '\t' || char == '\n' || char == '\r'))
+}
+
+func isStructUnit(val r.Value) bool { return val.NumField() == 1 }
+
+func isNonInterface(typ r.Type) bool {
+	return gg.TypeKind(typ) != r.Interface
 }

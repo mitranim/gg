@@ -532,3 +532,23 @@ func TestNotSliceIs(t *testing.T) {
 	gtest.NotSliceIs([]byte(`str`), []byte(`str`))
 	gtest.NotSliceIs([]string{`str`}, []string{`str`})
 }
+
+func TestSnapSlice(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.SnapSlice((*[]int)(nil)))
+
+	tar := []int{10, 20}
+	snap := gg.SnapSlice(&tar)
+
+	gtest.Equal(snap, gg.SliceSnap[int]{&tar, 2})
+	gtest.Eq(cap(tar), 2)
+
+	tar = []int{10, 20, 30, 40}
+	gtest.Equal(tar, []int{10, 20, 30, 40})
+	gtest.Eq(cap(tar), 4)
+
+	snap.Done()
+	gtest.Equal(tar, []int{10, 20})
+	gtest.Eq(cap(tar), 4)
+}

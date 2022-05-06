@@ -285,6 +285,18 @@ func Transing(trans func(error) error, fun func()) {
 }
 
 /*
+Must be deferred. Similar to `Trans`, but transforms only non-nil errors that
+satisfy the given predicate. Idempotently adds a stack trace.
+*/
+func TransOnly(test func(error) bool, trans func(error) error) {
+	err := AnyErrTraced(recover())
+	if err != nil && test != nil && trans != nil && test(err) {
+		err = trans(err)
+	}
+	Try(err)
+}
+
+/*
 Must be deferred. Wraps non-nil panics, prepending the error message and
 idempotently adding a stack trace. Usage:
 

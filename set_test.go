@@ -76,9 +76,19 @@ func TestSet(t *testing.T) {
 	t.Run(`Slice`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.Equal(IntSet(nil).Slice(), []int(nil))
+		gtest.Zero(IntSet(nil).Slice())
 		gtest.Equal(IntSet{}.Slice(), []int{})
 		gtest.Equal(IntSet{10: void}.Slice(), []int{10})
+	})
+
+	// TODO test multiple values (issue: ordering).
+	t.Run(`Filter`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Zero(IntSet(nil).Filter(gg.IsPos[int]))
+		gtest.Zero(IntSet{}.Filter(gg.IsPos[int]))
+		gtest.Zero(IntSet{-10: void}.Filter(gg.IsPos[int]))
+		gtest.Equal(IntSet{10: void}.Filter(gg.IsPos[int]), []int{10})
 	})
 
 	// TODO test multiple values (issue: ordering).

@@ -209,6 +209,82 @@ func (self *StructPublicFields) Init(src r.Type) {
 }
 
 /*
+For any given struct type, returns a slice of its fields including fields of
+embedded structs. Structs embedded by value (not by pointer) are considered
+parts of the enclosing struct, rather than fields in their own right, and their
+fields are included into this function's output. This is NOT equivalent to the
+fields you would get by iterating over `reflect.Type.NumField`. Not only
+because it includes the fields of value-embedded structs, but also because it
+adjusts `reflect.StructField.Index` and `reflect.StructField.Offset`
+specifically for the given ancestor type. In particular,
+`reflect.StructField.Offset` of deeply-nested fields is exactly equivalent to
+the output of `unsafe.Offsetof` for the same parent type and field, which is
+NOT what you would normally get from the "reflect" package.
+
+For comparison. Normally when using `reflect.Type.FieldByIndex`, the returned
+fields have both their offset and their index relative to their most immediate
+parent, rather than the given ancestor. But it's also inconsistent. When using
+`reflect.Type.FieldByName`, the returned fields have their index relative to
+the ancestor, but their offset is still relative to their most immediate
+parent.
+
+This implementation fixes ALL of that. It gives you fields where offsets AND
+indexes are all relative to the ancestor.
+
+Caches and reuses the resulting slice for all future calls for any given type.
+The resulting slice, its elements, or any inner slices, must not be mutated.
+*/
+var StructDeepPublicFieldCache = TypeCacheOf[StructDeepPublicFields]()
+
+// Used by `StructDeepPublicFieldCache`.
+type StructDeepPublicFields []r.StructField
+
+// Implement an interface used by `TypeCache`.
+func (self *StructDeepPublicFields) Init(src r.Type) {
+	if TypeKind(src) != r.Struct {
+		panic(Errf(`expected struct type, got type %v of kind %v`, src, TypeKind(src)))
+	}
+	path := make([]int, 0, expectedStructNesting)
+	self.append(&path, r.StructField{Type: src, Anonymous: true})
+}
+
+func (self *StructDeepPublicFields) append(path *[]int, field r.StructField) {
+	defer SnapSlice(path).Done()
+	AppendVals(path, field.Index...)
+
+	if IsFieldEmbed(field) {
+		for _, inner := range StructPublicFieldCache.Get(field.Type) {
+			inner.Offset += field.Offset
+			self.append(path, inner)
+		}
+		return
+	}
+
+	field.Index = Clone(*path)
+	AppendVals(self, field)
+}
+
+var JsonNameToDbNameCache = TypeCacheOf[JsonNameToDbName]()
+
+type JsonNameToDbName map[string]string
+
+func (self *JsonNameToDbName) Init(src r.Type) {
+	for _, field := range StructDeepPublicFieldCache.Get(src) {
+		MapSetOpt(MapPtrInit(self), FieldJsonName(field), FieldDbName(field))
+	}
+}
+
+var DbNameToJsonNameCache = TypeCacheOf[DbNameToJsonName]()
+
+type DbNameToJsonName map[string]string
+
+func (self *DbNameToJsonName) Init(src r.Type) {
+	for _, field := range StructDeepPublicFieldCache.Get(src) {
+		MapSetOpt(MapPtrInit(self), FieldDbName(field), FieldJsonName(field))
+	}
+}
+
+/*
 Takes a struct field tag and returns its identifier part, following the
 "encoding/json" conventions. Ident "-" is converted to "". Usage:
 
@@ -254,6 +330,14 @@ Self-explanatory. For some reason this is not provided in usable form by
 the "reflect" package.
 */
 func IsFieldPublic(val r.StructField) bool { return val.PkgPath == `` }
+
+/*
+True if the given field represents an embedded non-pointer struct type.
+False if not embedded or embedded by pointer.
+*/
+func IsFieldEmbed(val r.StructField) bool {
+	return val.Anonymous && TypeKind(val.Type) == r.Struct
+}
 
 /*
 Returns the element type of the provided type, automatically dereferencing

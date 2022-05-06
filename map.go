@@ -127,6 +127,19 @@ func MapSet[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key, val Val
 // Self as global `MapSet`.
 func (self Dict[Key, Val]) Set(key Key, val Val) { MapSet(self, key, val) }
 
+/*
+Same as `MapSet`, but key and value should be be non-zero.
+If either is zero, this ignores the inputs and does nothing.
+*/
+func MapSetOpt[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key, val Val) {
+	if IsNonZero(key) && IsNonZero(val) {
+		MapSet(tar, key, val)
+	}
+}
+
+// Self as global `MapSetOpt`.
+func (self Dict[Key, Val]) SetOpt(key Key, val Val) { MapSetOpt(self, key, val) }
+
 // Same as `delete(tar, key)`, expressed as a generic function.
 func MapDel[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) {
 	delete(tar, key)

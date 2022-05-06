@@ -124,6 +124,24 @@ func TestMapSet(t *testing.T) {
 	gtest.Equal(tar, IntMap{10: 30})
 }
 
+func TestMapSetOpt(t *testing.T) {
+	defer gtest.Catch(t)
+
+	tar := IntMap{}
+
+	gg.MapSetOpt(tar, 0, 20)
+	gtest.Equal(tar, IntMap{})
+
+	gg.MapSetOpt(tar, 10, 0)
+	gtest.Equal(tar, IntMap{})
+
+	gg.MapSetOpt(tar, 10, 20)
+	gtest.Equal(tar, IntMap{10: 20})
+
+	gg.MapSetOpt(tar, 10, 30)
+	gtest.Equal(tar, IntMap{10: 30})
+}
+
 func TestMapClear(t *testing.T) {
 	defer gtest.Catch(t)
 

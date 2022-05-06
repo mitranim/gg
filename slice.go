@@ -3,10 +3,10 @@ package gg
 import "sort"
 
 /*
-Shortcut for making a `Slice` out of the given values.
+Shortcut for making a slice out of the given values.
 Workaround for the lack of type inference in type literals.
 */
-func SliceOf[A any](val ...A) Slice[A] { return val }
+func SliceOf[A any](val ...A) []A { return val }
 
 /*
 Shortcut for converting an arbitrary slice to `Slice`. Workaround for the
@@ -52,8 +52,14 @@ func (self Slice[_]) HasLen() bool { return HasLen(self) }
 // Same as `len(val)` but can be passed to higher-order functions.
 func Len[Slice ~[]Elem, Elem any](val Slice) int { return len(val) }
 
-// Same as global `Lan`.
+// Same as global `Len`.
 func (self Slice[_]) Len() int { return len(self) }
+
+// Same as `len(Deref(val))` but can be passed to higher-order functions.
+func PtrLen[Slice ~[]Elem, Elem any](val *Slice) int { return len(Deref(val)) }
+
+// Same as global `PtrLen`.
+func (self *Slice[_]) PtrLen() int { return PtrLen(self) }
 
 // Same as `cap(val)` but can be passed to higher-order functions.
 func Cap[Slice ~[]Elem, Elem any](val Slice) int { return cap(val) }

@@ -385,6 +385,35 @@ func (self Snap[_]) Done() {
 	}
 }
 
+/*
+Snapshots the length of the given slice and returns a snapshot that can restore
+the previous length. Usage:
+
+	defer SnapSlice(&somePtr).Done()
+*/
+func SnapSlice[Slice ~[]Elem, Elem any](ptr *Slice) SliceSnap[Elem] {
+	return SliceSnap[Elem]{CastUnsafe[*[]Elem](ptr), PtrLen(ptr)}
+}
+
+/*
+Analogous to `Snap`, but instead of storing a value, stores a length.
+When done, reverts the referenced slice to the given length.
+*/
+type SliceSnap[A any] struct {
+	Ptr *[]A
+	Len int
+}
+
+/*
+Analogous to `Snap.Done`. Reverts the referenced slice to `self.Len` while
+keeping the capacity.
+*/
+func (self SliceSnap[_]) Done() {
+	if self.Ptr != nil {
+		*self.Ptr = (*self.Ptr)[:self.Len]
+	}
+}
+
 // Shortcut for making a pseudo-tuple with two elements.
 func Tuple2[A, B any](valA A, valB B) Tup2[A, B] {
 	return Tup2[A, B]{valA, valB}

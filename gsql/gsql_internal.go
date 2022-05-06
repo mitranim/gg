@@ -141,14 +141,13 @@ Would be nice to use an implementation similar to this:
 		return tar.FieldByIndex(meta.Get(key)).Addr().Interface()
 	})...))
 
-...But the SQL driver doesn't allow to decode "null" into non-nullable
+...But the SQL driver doesn't allow to decode SQL "null" into non-nullable
 destinations such as `string` fields. This behavior is inconsistent with
 JSON, and unfortunate for our purposes.
 */
 func scanStruct[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value) {
 	typ := tar.Type()
 	cols := gg.Try1(src.Columns())
-
 	indir := gg.Map(cols, func(key string) r.Value {
 		return r.New(r.PointerTo(typ.FieldByIndex(meta.Get(key)).Type))
 	})

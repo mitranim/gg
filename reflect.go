@@ -270,7 +270,7 @@ type JsonNameToDbName map[string]string
 
 func (self *JsonNameToDbName) Init(src r.Type) {
 	for _, field := range StructDeepPublicFieldCache.Get(src) {
-		MapSetOpt(MapPtrInit(self), FieldJsonName(field), FieldDbName(field))
+		MapSetOpt(MapInit(self), FieldJsonName(field), FieldDbName(field))
 	}
 }
 
@@ -280,7 +280,7 @@ type DbNameToJsonName map[string]string
 
 func (self *DbNameToJsonName) Init(src r.Type) {
 	for _, field := range StructDeepPublicFieldCache.Get(src) {
-		MapSetOpt(MapPtrInit(self), FieldDbName(field), FieldJsonName(field))
+		MapSetOpt(MapInit(self), FieldDbName(field), FieldJsonName(field))
 	}
 }
 

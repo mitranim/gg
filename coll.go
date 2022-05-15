@@ -115,7 +115,7 @@ func (self *Coll[_, _]) UnmarshalJSON(src []byte) error {
 }
 
 func (self *Coll[Key, _]) initIndex() map[Key]int {
-	return MapPtrInit(&self.Index)
+	return MapInit(&self.Index)
 }
 
 func (self *Coll[_, _]) isIndexed() bool {

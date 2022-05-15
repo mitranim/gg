@@ -72,7 +72,7 @@ func (self typeMeta) IsScalar() bool { return self == nil }
 func (self *typeMeta) Init(typ r.Type) { self.addAny(nil, nil, typ) }
 
 //go:noinline
-func (self *typeMeta) initMap() typeMeta { return gg.MapPtrInit(self) }
+func (self *typeMeta) initMap() typeMeta { return gg.MapInit(self) }
 
 func (self *typeMeta) addAny(index []int, cols []string, typ r.Type) {
 	field, ok := typeReferenceField(typ)

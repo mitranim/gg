@@ -442,3 +442,15 @@ type Tup3[A, B, C any] struct {
 
 // Converts the pseudo-tuple to a proper Go tuple.
 func (self Tup3[A, B, C]) Get() (A, B, C) { return self.A, self.B, self.C }
+
+/*
+Makes a zero value of the given type, passes it to the given mutator function by
+pointer, and returns the modified value. If the function is nil, the result is
+a zero value.
+*/
+func With[A any](fun func(*A)) (out A) {
+	if fun != nil {
+		fun(&out)
+	}
+	return
+}

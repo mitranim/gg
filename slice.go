@@ -35,24 +35,28 @@ func SliceDat[Slice ~[]Elem, Elem any](src Slice) *Elem {
 }
 
 // Same as global `SliceDat`.
+//go:noinline
 func (self Slice[A]) Dat() *A { return SliceDat(self) }
 
 // True if slice length is 0. The slice may or may not be nil.
 func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) == 0 }
 
 // Same as global `IsEmpty`.
+//go:noinline
 func (self Slice[_]) IsEmpty() bool { return IsEmpty(self) }
 
 // True if slice length is above 0.
 func HasLen[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) > 0 }
 
 // Same as global `HasLen`.
+//go:noinline
 func (self Slice[_]) HasLen() bool { return HasLen(self) }
 
 // Same as `len(val)` but can be passed to higher-order functions.
 func Len[Slice ~[]Elem, Elem any](val Slice) int { return len(val) }
 
 // Same as global `Len`.
+//go:noinline
 func (self Slice[_]) Len() int { return len(self) }
 
 // Same as `len(Deref(val))` but can be passed to higher-order functions.
@@ -65,12 +69,14 @@ func (self *Slice[_]) PtrLen() int { return PtrLen(self) }
 func Cap[Slice ~[]Elem, Elem any](val Slice) int { return cap(val) }
 
 // Same as global `Cap`.
+//go:noinline
 func (self Slice[_]) Cap() int { return cap(self) }
 
 // Amount of unused capacity in the given slice.
 func CapUnused[Slice ~[]Elem, Elem any](src Slice) int { return cap(src) - len(src) }
 
 // Same as global `CapUnused`.
+//go:noinline
 func (self Slice[_]) CapUnused() int { return CapUnused(self) }
 
 /*
@@ -82,6 +88,7 @@ func CapMissing[Slice ~[]Elem, Elem any](src Slice, size int) int {
 }
 
 // Same as global `CapMissing`.
+//go:noinline
 func (self Slice[_]) CapMissing(size int) int { return CapMissing(self, size) }
 
 // Counts the total length of the given slices.
@@ -93,6 +100,7 @@ func GrowLen[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 }
 
 // Same as global `GrowLen`.
+//go:noinline
 func (self Slice[A]) GrowLen(size int) Slice[A] { return GrowLen(self, size) }
 
 /*
@@ -123,6 +131,7 @@ func GrowCap[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 }
 
 // Same as global `GrowCap`.
+//go:noinline
 func (self Slice[A]) GrowCap(size int) Slice[A] { return GrowCap(self, size) }
 
 /*
@@ -144,6 +153,7 @@ func GrowCapExact[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 }
 
 // Same as global `GrowCapExact`.
+//go:noinline
 func (self Slice[A]) GrowCapExact(size int) Slice[A] { return GrowCapExact(self, size) }
 
 // Zeroes each element of the given slice.
@@ -155,6 +165,7 @@ func SliceZero[A any](val []A) {
 }
 
 // Same as global `SliceZero`.
+//go:noinline
 func (self Slice[_]) Zero() { SliceZero(self) }
 
 /*
@@ -182,6 +193,7 @@ func Got[A any](src []A, ind int) (A, bool) {
 }
 
 // Same as global `Got`.
+//go:noinline
 func (self Slice[A]) Got(ind int) (A, bool) { return Got(self, ind) }
 
 /*
@@ -194,6 +206,7 @@ func Get[A any](src []A, ind int) A {
 }
 
 // Same as global `Get`.
+//go:noinline
 func (self Slice[A]) Get(ind int) A { return Get(self, ind) }
 
 /*
@@ -208,12 +221,14 @@ func GetPtr[A any](src []A, ind int) *A {
 }
 
 // Same as global `GetPtr`.
+//go:noinline
 func (self Slice[A]) GetPtr(ind int) *A { return GetPtr(self, ind) }
 
 /*
 Sets a value at an index, same as by using the built-in square bracket syntax.
 Useful as a shortcut for inline bound functions.
 */
+//go:noinline
 func (self Slice[A]) Set(ind int, val A) { self[ind] = val }
 
 /*
@@ -231,6 +246,7 @@ func Clone[Slice ~[]Elem, Elem any](src Slice) Slice {
 }
 
 // Same as global `Clone`.
+//go:noinline
 func (self Slice[A]) Clone() Slice[A] { return Clone(self) }
 
 /*
@@ -249,6 +265,7 @@ func CloneAppend[Slice ~[]Elem, Elem any](src Slice, val ...Elem) Slice {
 }
 
 // Same as global `CloneAppend`.
+//go:noinline
 func (self Slice[A]) CloneAppend(val ...A) Slice[A] {
 	return CloneAppend(self, val...)
 }
@@ -294,6 +311,7 @@ zero value.
 func Head[Slice ~[]Elem, Elem any](val Slice) Elem { return Get(val, 0) }
 
 // Same as global `Head`.
+//go:noinline
 func (self Slice[A]) Head() A { return Head(self) }
 
 /*
@@ -303,6 +321,7 @@ empty, the pointer is nil.
 func HeadPtr[Slice ~[]Elem, Elem any](val Slice) *Elem { return GetPtr(val, 0) }
 
 // Same as global `HeadPtr`.
+//go:noinline
 func (self Slice[A]) HeadPtr() *A { return HeadPtr(self) }
 
 /*
@@ -312,6 +331,7 @@ zero value.
 func Last[Slice ~[]Elem, Elem any](val Slice) Elem { return Get(val, len(val)-1) }
 
 // Same as global `Last`.
+//go:noinline
 func (self Slice[A]) Last() A { return Last(self) }
 
 /*
@@ -321,6 +341,7 @@ the pointer is nil.
 func LastPtr[Slice ~[]Elem, Elem any](val Slice) *Elem { return GetPtr(val, len(val)-1) }
 
 // Same as global `LastPtr`.
+//go:noinline
 func (self Slice[A]) LastPtr() *A { return LastPtr(self) }
 
 /*
@@ -332,6 +353,7 @@ func LastIndex[Slice ~[]Elem, Elem any](val Slice) int {
 }
 
 // Same as global `LastIndex`.
+//go:noinline
 func (self Slice[A]) LastIndex() int { return LastIndex(self) }
 
 /*
@@ -346,6 +368,7 @@ func Init[Slice ~[]Elem, Elem any](val Slice) Slice {
 }
 
 // Same as global `Init`.
+//go:noinline
 func (self Slice[A]) Init() Slice[A] { return Init(self) }
 
 /*
@@ -360,6 +383,7 @@ func Tail[Slice ~[]Elem, Elem any](val Slice) Slice {
 }
 
 // Same as global `Tail`.
+//go:noinline
 func (self Slice[A]) Tail() Slice[A] { return Tail(self) }
 
 // Returns a subslice containing N elements from the start.
@@ -368,6 +392,7 @@ func Take[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 }
 
 // Same as global `Take`.
+//go:noinline
 func (self Slice[A]) Take(size int) Slice[A] { return Take(self, size) }
 
 // Returns a subslice excluding N elements from the start.
@@ -376,6 +401,7 @@ func Drop[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 }
 
 // Same as global `Drop`.
+//go:noinline
 func (self Slice[A]) Drop(size int) Slice[A] { return Drop(self, size) }
 
 /*
@@ -387,6 +413,7 @@ func TakeWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
 }
 
 // Same as global `TakeWhile`.
+//go:noinline
 func (self Slice[A]) TakeWhile(fun func(A) bool) Slice[A] {
 	return TakeWhile(self, fun)
 }
@@ -400,6 +427,7 @@ func DropWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
 }
 
 // Same as global `DropWhile`.
+//go:noinline
 func (self Slice[A]) DropWhile(fun func(A) bool) Slice[A] {
 	return DropWhile(self, fun)
 }
@@ -414,6 +442,7 @@ func Each[Slice ~[]Elem, Elem any](val Slice, fun func(Elem)) {
 }
 
 // Same as global `Each`.
+//go:noinline
 func (self Slice[A]) Each(val Slice[A], fun func(A)) { Each(self, fun) }
 
 /*
@@ -429,6 +458,7 @@ func EachPtr[Slice ~[]Elem, Elem any](val Slice, fun func(*Elem)) {
 }
 
 // Same as global `EachPtr`.
+//go:noinline
 func (self Slice[A]) EachPtr(fun func(*A)) { EachPtr(self, fun) }
 
 /*
@@ -616,6 +646,7 @@ func MapMut[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) Elem) Slice {
 }
 
 // Same as global `MapMut`.
+//go:noinline
 func (self Slice[A]) MapMut(fun func(A) A) Slice[A] { return MapMut(self, fun) }
 
 // Similar to `Map` but excludes any zero values produced by the given function.
@@ -704,6 +735,35 @@ func IndexPairInto[Elem any, Key comparable, Val any](
 }
 
 /*
+Groups the elements of the given slice by using keys generated by the given
+function, returning the resulting map. If the function is nil, returns nil.
+*/
+func Group[Slice ~[]Val, Key comparable, Val any](src Slice, fun func(Val) Key) map[Key][]Val {
+	if fun == nil {
+		return nil
+	}
+
+	out := map[Key][]Val{}
+	GroupInto(out, src, fun)
+	return out
+}
+
+/*
+Groups the elements of the given slice by adding its elements to slices in the
+given map, keyed by calling the given function for each element. If the
+function is nil, does nothing.
+*/
+func GroupInto[Key comparable, Val any](tar map[Key][]Val, src []Val, fun func(Val) Key) {
+	if fun == nil {
+		return
+	}
+	for _, val := range src {
+		key := fun(val)
+		tar[key] = append(tar[key], val)
+	}
+}
+
+/*
 Somewhat similar to `Map`. Creates a slice by "mapping" source values to
 outputs. Calls the given function N times, passing an index, starting with 0.
 */
@@ -754,6 +814,7 @@ func Count[A any](src []A, fun func(A) bool) int {
 }
 
 // Same as global `Count`.
+//go:noinline
 func (self Slice[A]) Count(src []A, fun func(A) bool) int { return Count(self, fun) }
 
 /*
@@ -795,6 +856,7 @@ func Filter[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) (out Slice)
 }
 
 // Same as global `Filter`.
+//go:noinline
 func (self Slice[A]) Filter(fun func(A) bool) Slice[A] {
 	return Filter(self, fun)
 }
@@ -830,6 +892,7 @@ func Reject[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) (out Slice)
 }
 
 // Same as global `Reject`.
+//go:noinline
 func (self Slice[A]) Reject(fun func(A) bool) Slice[A] {
 	return Reject(self, fun)
 }
@@ -874,6 +937,7 @@ func FilterIndex[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) []int 
 }
 
 // Same as global `FilterIndex`.
+//go:noinline
 func (self Slice[A]) FilterIndex(fun func(A) bool) []int {
 	return FilterIndex(self, fun)
 }
@@ -887,6 +951,7 @@ func ZeroIndex[Slice ~[]Elem, Elem any](src Slice) []int {
 }
 
 // Same as global `ZeroIndex`.
+//go:noinline
 func (self Slice[A]) ZeroIndex() []int { return ZeroIndex(self) }
 
 /*
@@ -898,6 +963,7 @@ func NonZeroIndex[Slice ~[]Elem, Elem any](src Slice) []int {
 }
 
 // Same as global `NonZeroIndex`.
+//go:noinline
 func (self Slice[A]) NonZeroIndex() []int { return NonZeroIndex(self) }
 
 // Returns a version of the given slice without any zero values.
@@ -906,6 +972,7 @@ func Compact[Slice ~[]Elem, Elem any](src Slice) Slice {
 }
 
 // Same as global `Compact`.
+//go:noinline
 func (self Slice[A]) Compact() Slice[A] { return Compact(self) }
 
 /*
@@ -924,6 +991,7 @@ func FindIndex[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) int {
 }
 
 // Same as global `FindIndex`.
+//go:noinline
 func (self Slice[A]) FindIndex(fun func(A) bool) int {
 	return FindIndex(self, fun)
 }
@@ -942,6 +1010,7 @@ func Found[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) (Elem, bool)
 }
 
 // Same as global `Found`.
+//go:noinline
 func (self Slice[A]) Found(fun func(A) bool) (A, bool) {
 	return Found(self, fun)
 }
@@ -955,6 +1024,7 @@ func Find[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Elem {
 }
 
 // Same as global `Find`.
+//go:noinline
 func (self Slice[A]) Find(fun func(A) bool) A { return Find(self, fun) }
 
 /*
@@ -1072,12 +1142,14 @@ func Some[A any](src []A, fun func(A) bool) bool {
 }
 
 // Same as global `Some`.
+//go:noinline
 func (self Slice[A]) Some(fun func(A) bool) bool { return Some(self, fun) }
 
 // Inverse of `Some`.
 func None[A any](src []A, fun func(A) bool) bool { return !Some(src, fun) }
 
 // Same as global `None`.
+//go:noinline
 func (self Slice[A]) None(fun func(A) bool) bool { return None(self, fun) }
 
 /*
@@ -1113,6 +1185,7 @@ func Every[A any](src []A, fun func(A) bool) bool {
 }
 
 // Same as global `Every`.
+//go:noinline
 func (self Slice[A]) Every(fun func(A) bool) bool { return Every(self, fun) }
 
 /*
@@ -1221,6 +1294,7 @@ func Reverse[A any](val []A) {
 }
 
 // Same as global `Reverse`.
+//go:noinline
 func (self Slice[_]) Reverse() { Reverse(self) }
 
 // Reverses the given slice in-place, mutating it and returning that slice.
@@ -1230,4 +1304,5 @@ func Reversed[Slice ~[]Elem, Elem any](val Slice) Slice {
 }
 
 // Same as global `Reversed`.
+//go:noinline
 func (self Slice[A]) Reversed() Slice[A] { return Reversed(self) }

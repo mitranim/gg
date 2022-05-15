@@ -7,30 +7,15 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
-func TestMapPtrInit(t *testing.T) {
-	defer gtest.Catch(t)
-
-	var tar IntMap
-	gtest.Equal(gg.MapPtrInit(&tar), tar)
-	gtest.NotZero(tar)
-
-	tar[10] = 20
-	gtest.Equal(gg.MapPtrInit(&tar), tar)
-	gtest.Equal(tar, IntMap{10: 20})
-}
-
 func TestMapInit(t *testing.T) {
 	defer gtest.Catch(t)
 
 	var tar IntMap
-	gtest.NotZero(gg.MapInit(tar))
-	gtest.Zero(tar)
-
-	tar = gg.MapInit(tar)
+	gtest.Equal(gg.MapInit(&tar), tar)
 	gtest.NotZero(tar)
 
 	tar[10] = 20
-	gtest.Equal(gg.MapInit(tar), tar)
+	gtest.Equal(gg.MapInit(&tar), tar)
 	gtest.Equal(tar, IntMap{10: 20})
 }
 

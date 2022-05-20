@@ -37,3 +37,18 @@ func BenchmarkOpt_String(b *testing.B) {
 		gg.Nop1(val.String())
 	}
 }
+
+func TestOpt_Scan(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Type = gg.Opt[float64]
+
+	var tar Type
+	gtest.NoError(tar.Scan(float64(9.999999682655225e-18)))
+	gtest.Eq(tar.Val, 9.999999682655225e-18)
+
+	tar.Clear()
+	gtest.Zero(tar)
+	gtest.NoError(tar.Scan(`9.999999682655225e-18`))
+	gtest.Eq(tar.Val, 9.999999682655225e-18)
+}

@@ -132,6 +132,13 @@ func (self *Opt[A]) Scan(src any) error {
 		self.Clear()
 		return nil
 	}
+
+	val, ok := src.(A)
+	if ok {
+		self.Set(val)
+		return nil
+	}
+
 	return self.with(ScanCatch[A](src, self))
 }
 

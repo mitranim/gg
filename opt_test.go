@@ -33,7 +33,7 @@ func TestOpt_UnmarshalJSON(t *testing.T) {
 func BenchmarkOpt_String(b *testing.B) {
 	val := gg.OptVal(`str`)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(val.String())
 	}
 }

@@ -76,19 +76,19 @@ This benchmark is defective. It fails to reproduce spurious escapes commonly
 observed in code using this function.
 */
 func Benchmark_reflect_TypeOf(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.TypeOf(SomeModel{}))
 	}
 }
 
 func BenchmarkTypeOf(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.TypeOf(SomeModel{}))
 	}
 }
 
 func BenchmarkType(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Type[SomeModel]())
 	}
 }
@@ -134,19 +134,19 @@ func testKindOf[A any](src A, exp r.Kind) {
 }
 
 func BenchmarkKindOf(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.KindOf(SomeModel{}))
 	}
 }
 
 func BenchmarkAnyToString_miss(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop2(gg.AnyToString(SomeModel{}))
 	}
 }
 
 func BenchmarkAnyToString_hit(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop2(gg.AnyToString([]byte(`hello world`)))
 	}
 }
@@ -154,7 +154,7 @@ func BenchmarkAnyToString_hit(b *testing.B) {
 func BenchmarkStructFields_Init(b *testing.B) {
 	key := gg.Type[SomeModel]()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		var tar gg.StructFields
 		tar.Init(key)
 	}
@@ -174,7 +174,7 @@ func TestStructFieldCache(t *testing.T) {
 func BenchmarkStructFieldCache(b *testing.B) {
 	key := gg.Type[SomeModel]()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.StructFieldCache.Get(key))
 	}
 }
@@ -376,7 +376,7 @@ func Benchmark_clone_direct_CloneDeep(b *testing.B) {
 	gtest.Equal(gg.CloneDeep(src), src)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.CloneDeep(src))
 	}
 }
@@ -384,7 +384,7 @@ func Benchmark_clone_direct_CloneDeep(b *testing.B) {
 func Benchmark_clone_direct_native(b *testing.B) {
 	src := [8]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(esc(src))
 	}
 }
@@ -394,7 +394,7 @@ func Benchmark_clone_slice_CloneDeep(b *testing.B) {
 	gtest.Equal(gg.CloneDeep(src), src)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.CloneDeep(src))
 	}
 }
@@ -404,7 +404,7 @@ func Benchmark_clone_slice_Clone(b *testing.B) {
 	gtest.Equal(gg.Clone(src), src)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Clone(src))
 	}
 }
@@ -417,7 +417,7 @@ func Benchmark_clone_map_CloneDeep(b *testing.B) {
 	gtest.Equal(gg.CloneDeep(src), src)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.CloneDeep(src))
 	}
 }
@@ -430,7 +430,7 @@ func Benchmark_clone_map_MapClone(b *testing.B) {
 	gtest.Equal(gg.MapClone(src), src)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.MapClone(src))
 	}
 }

@@ -92,3 +92,31 @@ func TestIsFin(t *testing.T) {
 	gtest.True(gg.IsFin(0.0))
 	gtest.True(gg.IsFin(-0.0))
 }
+
+func TestFac(t *testing.T) {
+	defer gtest.Catch(t)
+
+	test := func(src, exp uint64) { gtest.Eq(gg.Fac(src), exp) }
+
+	test(0, 1)
+	test(1, 1)
+	test(2, 2)
+	test(3, 6)
+	test(4, 24)
+	test(5, 120)
+	test(6, 720)
+	test(7, 5040)
+	test(8, 40320)
+	test(9, 362880)
+	test(10, 3628800)
+	test(11, 39916800)
+	test(12, 479001600)
+	test(13, 6227020800)
+	test(14, 87178291200)
+	test(15, 1307674368000)
+	test(16, 20922789888000)
+	test(17, 355687428096000)
+	test(18, 6402373705728000)
+	test(19, 121645100408832000)
+	test(20, 2432902008176640000)
+}

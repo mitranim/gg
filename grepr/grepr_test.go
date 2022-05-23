@@ -146,25 +146,25 @@ func ExampleString() {
 }
 
 func BenchmarkString_num(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(grepr.String(10))
 	}
 }
 
 func BenchmarkString_str(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(grepr.String(`str`))
 	}
 }
 
 func BenchmarkString_struct_flat(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(grepr.String(testEmbed))
 	}
 }
 
 func BenchmarkString_struct_nested(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(grepr.String(testOuter))
 	}
 }
@@ -176,7 +176,7 @@ func BenchmarkString_fmt_GoStringer(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(grepr.String(src))
 	}
 }
@@ -226,13 +226,13 @@ func BenchmarkString_cyclic(b *testing.B) {
 	cyclic0.Cyclic = &cyclic1
 	cyclic1.Cyclic = &cyclic0
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(grepr.String(&cyclic0))
 	}
 }
 
 func BenchmarkCanBackquote(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(grepr.CanBackquote(`
 one
 two

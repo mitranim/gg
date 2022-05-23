@@ -83,13 +83,13 @@ func TestConc(t *testing.T) {
 }
 
 func BenchmarkConcCatch_one(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		_ = gg.ConcCatch(func() { panic(testErr0) })
 	}
 }
 
 func BenchmarkConcCatch_multi(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		_ = gg.ConcCatch(
 			func() {},
 			func() { panic(testErr0) },

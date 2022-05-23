@@ -32,8 +32,8 @@ func testAnyNoEscUnsafe[A any](src A) {
 }
 
 func BenchmarkAnyNoEscUnsafe(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		val := []int{i}
+	for ind := 0; ind < b.N; ind++ {
+		val := []int{ind}
 		gg.Nop1(esc(gg.AnyNoEscUnsafe(val)))
 	}
 }

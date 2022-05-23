@@ -7,13 +7,13 @@ import (
 )
 
 func BenchmarkCaptureTrace_shallow(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.CaptureTrace(0))
 	}
 }
 
 func BenchmarkCaptureTrace_deep(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(trace0())
 	}
 }
@@ -22,7 +22,7 @@ func BenchmarkTrace_Frames_shallow(b *testing.B) {
 	trace := gg.CaptureTrace(0)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(trace.Frames())
 	}
 }
@@ -31,7 +31,7 @@ func BenchmarkTrace_Frames_deep(b *testing.B) {
 	trace := trace0()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(trace.Frames())
 	}
 }
@@ -40,7 +40,7 @@ func BenchmarkFrames_NameWidth(b *testing.B) {
 	frames := trace0().Frames()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(frames.NameWidth())
 	}
 }
@@ -50,7 +50,7 @@ func BenchmarkFrames_AppendIndentTable(b *testing.B) {
 	buf := make([]byte, 0, 1<<16)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(frames.AppendIndentTable(buf, 0))
 	}
 }
@@ -63,7 +63,7 @@ func BenchmarkFrames_AppendIndentTable_rel_path(b *testing.B) {
 	buf := make([]byte, 0, 1<<16)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(frames.AppendIndentTable(buf, 0))
 	}
 }
@@ -72,7 +72,7 @@ func BenchmarkTrace_capture_append(b *testing.B) {
 	buf := make([]byte, 0, 1<<16)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(trace0().Append(buf))
 	}
 }

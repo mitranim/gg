@@ -42,7 +42,7 @@ func TestAtom(t *testing.T) {
 func BenchmarkAtom_Store(b *testing.B) {
 	var ref gg.Atom[string]
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		ref.Store(`str`)
 	}
 }
@@ -51,7 +51,7 @@ func BenchmarkAtom_Load(b *testing.B) {
 	var ref gg.Atom[string]
 	ref.Store(`str`)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(ref.Load())
 	}
 }

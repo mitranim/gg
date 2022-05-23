@@ -21,7 +21,7 @@ func ExampleSlice() {
 }
 
 func BenchmarkSliceDat(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.SliceDat([]byte(`hello world`)))
 	}
 }
@@ -37,7 +37,7 @@ func TestLens(t *testing.T) {
 func BenchmarkLens(b *testing.B) {
 	val := [][]int{{}, {10}, {20, 30}, {40, 50, 60}}
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Lens(val...))
 	}
 }
@@ -61,8 +61,6 @@ func TestGrowLen(t *testing.T) {
 		cur := src[:2]
 
 		test := func(size int, expTar, expSrc []int) {
-			t.Helper()
-
 			tar := gg.GrowLen(cur, size)
 			gtest.Equal(src, expSrc)
 			gtest.Equal(tar, expTar)
@@ -93,7 +91,7 @@ func BenchmarkGrowLen(b *testing.B) {
 	buf := make([]byte, 0, 1024)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.GrowLen(buf, 128))
 	}
 }
@@ -222,7 +220,7 @@ func BenchmarkMap(b *testing.B) {
 	val := gg.Span(32)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Map(val, gg.Inc[int]))
 	}
 }
@@ -876,7 +874,7 @@ func BenchmarkSubtract(b *testing.B) {
 	base := []int{10, 20, 30, 40, 50, 60}
 	sub := [][]int{{10, 20}, {50}}
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Subtract(base, sub...))
 	}
 }
@@ -1107,7 +1105,7 @@ func TestConcat(t *testing.T) {
 func BenchmarkConcat(b *testing.B) {
 	src := [][]int{{10, 20}, {30, 40}, {50, 60}}
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Concat(src...))
 	}
 }
@@ -1122,7 +1120,7 @@ func TestPrimSorted(t *testing.T) {
 }
 
 func BenchmarkPrimSorted(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.SortedPrim(gg.SliceOf(20, 30, 10, 40)))
 	}
 }
@@ -1145,7 +1143,7 @@ func TestReversed(t *testing.T) {
 }
 
 func BenchmarkReversed(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Reversed([]int{20, 30, 10, 40}))
 	}
 }
@@ -1153,7 +1151,7 @@ func BenchmarkReversed(b *testing.B) {
 func BenchmarkTakeWhile(b *testing.B) {
 	val := []int{-30, -20, -10, 0, 10, 20, 30}
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.TakeWhile(val, gg.IsNeg[int]))
 	}
 }
@@ -1199,8 +1197,8 @@ func TestMinPrim(t *testing.T) {
 }
 
 func BenchmarkMinPrim(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		gg.Nop1(gg.MinPrim(i-1, i, i+1))
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.MinPrim(ind-1, ind, ind+1))
 	}
 }
 
@@ -1245,8 +1243,8 @@ func TestMaxPrim(t *testing.T) {
 }
 
 func BenchmarkMaxPrim(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		gg.Nop1(gg.MaxPrim(i-1, i, i+1))
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.MaxPrim(ind-1, ind, ind+1))
 	}
 }
 
@@ -1484,7 +1482,7 @@ func TestPlus(t *testing.T) {
 }
 
 func BenchmarkPlus(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Plus(10, 20, 30, 40, 50, 60, 70, 80, 90))
 	}
 }

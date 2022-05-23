@@ -73,6 +73,20 @@ func ReadFile[A Text](path string) A {
 }
 
 /*
+Fully reads the given stream via `io.ReadAll` and returns two "forks". If
+reading fails, panics. If the input is nil, both outputs are nil.
+*/
+func ForkReader(src io.Reader) (_, _ io.Reader) {
+	if src == nil {
+		return nil, nil
+	}
+
+	defer Detailf(`failed to read for forking`)
+	text := ReadAll(src)
+	return NewReadCloser(text), NewReadCloser(text)
+}
+
+/*
 Fully reads the given stream via `io.ReadAll`, closing it at the end, and
 returns two "forks". Used internally by `(*gh.Req).CloneBody` and
 `(*gh.Res).CloneBody`. If reading fails, panics. If the input is nil, both
@@ -84,9 +98,8 @@ func ForkReadCloser(src io.ReadCloser) (_, _ io.ReadCloser) {
 	}
 
 	defer Detailf(`failed to read for forking`)
-	val := ReadCloseAll(src)
-
-	return NewReadCloser(val), NewReadCloser(val)
+	text := ReadCloseAll(src)
+	return NewReadCloser(text), NewReadCloser(text)
 }
 
 // Shortcut for `os.Getwd` that panics on error.

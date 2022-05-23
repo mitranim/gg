@@ -44,31 +44,31 @@ func TestIsZero(t *testing.T) {
 }
 
 func Benchmark_is_zero_reflect_struct_zero(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.ValueOf(FatStruct{}).IsZero())
 	}
 }
 
 func Benchmark_is_zero_reflect_struct_non_zero(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.ValueOf(FatStruct{Id: 10}).IsZero())
 	}
 }
 
 func Benchmark_is_zero_IsZero_struct_zero(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.IsZero(FatStruct{}))
 	}
 }
 
 func Benchmark_is_zero_IsZero_struct_non_zero(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.IsZero(FatStruct{Id: 10}))
 	}
 }
 
 func Benchmark_is_zero_IsZero_time_Time_zero(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.IsZero(time.Time{}))
 	}
 }
@@ -76,7 +76,7 @@ func Benchmark_is_zero_IsZero_time_Time_zero(b *testing.B) {
 func Benchmark_is_zero_IsZero_time_Time_non_zero(b *testing.B) {
 	inst := time.Now()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.IsZero(inst))
 	}
 }
@@ -84,7 +84,7 @@ func Benchmark_is_zero_IsZero_time_Time_non_zero(b *testing.B) {
 func Benchmark_is_zero_method_time_Time(b *testing.B) {
 	inst := time.Now()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(inst.IsZero())
 	}
 }
@@ -102,13 +102,13 @@ func TestZero(t *testing.T) {
 func Benchmark_reflect_Zero(b *testing.B) {
 	typ := r.TypeOf(SomeModel{})
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.Zero(typ))
 	}
 }
 
 func BenchmarkZero(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Zero[SomeModel]())
 	}
 }
@@ -128,7 +128,7 @@ func TestClear(t *testing.T) {
 func BenchmarkClear(b *testing.B) {
 	var val string
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Clear(&val)
 		val = `str`
 	}
@@ -147,7 +147,7 @@ func TestDeref(t *testing.T) {
 }
 
 func BenchmarkDeref_miss(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Deref((*[]string)(nil)))
 	}
 }
@@ -155,7 +155,7 @@ func BenchmarkDeref_miss(b *testing.B) {
 func BenchmarkDeref_hit(b *testing.B) {
 	ptr := gg.Ptr([]string{`one`, `two`})
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Deref(ptr))
 	}
 }
@@ -266,13 +266,13 @@ func TestMax2(t *testing.T) {
 }
 
 func BenchmarkMaxPrim2(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.MaxPrim2(10, 20))
 	}
 }
 
 func BenchmarkMax2(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Max2(ComparerOf(10), ComparerOf(20)))
 	}
 }
@@ -344,25 +344,25 @@ func TestAnyTo(t *testing.T) {
 	})
 }
 func BenchmarkAnyTo_concrete_miss(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.AnyTo[gg.ErrStr](0))
 	}
 }
 
 func BenchmarkAnyTo_iface_miss(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.AnyTo[fmt.Stringer](0))
 	}
 }
 
 func BenchmarkAnyTo_concrete_hit(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.AnyTo[gg.ErrStr](gg.ErrStr(``)))
 	}
 }
 
 func BenchmarkAnyTo_iface_hit(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.AnyTo[fmt.Stringer](gg.ErrStr(``)))
 	}
 }
@@ -445,14 +445,14 @@ func TestPlus2(t *testing.T) {
 }
 
 func Benchmark_eq(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		gg.Nop1(i == i*2)
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(ind == ind*2)
 	}
 }
 
 func BenchmarkEq(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		gg.Nop1(gg.Eq(i, i*2))
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Eq(ind, ind*2))
 	}
 }
 
@@ -460,7 +460,7 @@ func Benchmark_reflect_DeepEqual_int(b *testing.B) {
 	one := 123
 	two := 123
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.DeepEqual(one, two))
 	}
 }
@@ -469,7 +469,7 @@ func BenchmarkEqual_int(b *testing.B) {
 	one := 123
 	two := 123
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Equal(one, two))
 	}
 }
@@ -478,7 +478,7 @@ func Benchmark_reflect_DeepEqual_bytes(b *testing.B) {
 	one := []byte(`one`)
 	two := []byte(`two`)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.DeepEqual(one, two))
 	}
 }
@@ -487,7 +487,7 @@ func BenchmarkEqual_bytes(b *testing.B) {
 	one := []byte(`one`)
 	two := []byte(`two`)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Equal(one, two))
 	}
 }
@@ -496,7 +496,7 @@ func Benchmark_reflect_DeepEqual_time_Time(b *testing.B) {
 	one := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
 	two := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.DeepEqual(one, two))
 	}
 }
@@ -505,7 +505,7 @@ func BenchmarkEqual_time_Time(b *testing.B) {
 	one := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
 	two := time.Date(1234, 5, 23, 12, 34, 56, 0, time.UTC)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Equal(one, two))
 	}
 }

@@ -47,7 +47,11 @@ across the Go library ecosystem extrinsically.
 */
 type Textable interface{ Prim | ~[]byte }
 
-// Describes text types: strings and byte slices.
+/*
+Describes text types: strings and byte slices. All types compatible with this
+interface can be freely cast to `[]byte` via `ToBytes` and to `string` via
+`ToString`, subject to safety gotchas described in those functions' comments.
+*/
 type Text interface{ ~string | ~[]byte }
 
 /*
@@ -76,6 +80,12 @@ Implemented by various utility types where zero value is considered null in
 encoding/decoding contexts such as JSON and SQL.
 */
 type Nullable interface{ IsNull() bool }
+
+/*
+Used by some 3rd party libraries. Implemented by some of our types for
+compatibility.
+*/
+type AnyGetter Getter[any]
 
 // Implemented by utility types that wrap arbitrary types, such as `Opt`.
 type Getter[A any] interface{ Get() A }
@@ -202,3 +212,9 @@ Implemented by some types such as `time.Time`, and invoked automatically by our
 function `Equal`.
 */
 type Equaler[A any] interface{ Equal(A) bool }
+
+/*
+Allows to customize/override `ErrFind`, which prioritizes this interface over
+the default behavior.
+*/
+type ErrFinder interface{ Find(func(error) bool) error }

@@ -29,3 +29,13 @@ func IsFin[A Float](val A) bool {
 	flo := float64(val)
 	return !math.IsNaN(flo) && !math.IsInf(flo, 0)
 }
+
+// Factorial without overflow checks. May overflow.
+func Fac[A Uint](src A) A {
+	var out A = 1
+	for src > 0 {
+		out *= src
+		src -= 1
+	}
+	return out
+}

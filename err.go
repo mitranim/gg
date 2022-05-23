@@ -236,7 +236,29 @@ func (self Errs) As(out any) bool {
 	})
 }
 
-// If there are any non-nil errors, panic with a stack trace.
+/*
+Returns the first error that satisfies the given test function, by calling
+`ErrFind` on each element. Order is depth-first rather than breadth-first.
+*/
+func (self Errs) Find(fun func(error) bool) error {
+	if fun != nil {
+		for _, val := range self {
+			val = ErrFind(val, fun)
+			if val != nil {
+				return val
+			}
+		}
+	}
+	return nil
+}
+
+/*
+Shortcut for `.Find(fun) != nil`. Returns true if at least one error satisfies
+the given predicate function, using `ErrFind` to unwrap.
+*/
+func (self Errs) Some(fun func(error) bool) bool { return self.Find(fun) != nil }
+
+// If there are any non-nil errors, panics with a stack trace.
 func (self Errs) Try() { Try(self.Err()) }
 
 /*
@@ -484,3 +506,69 @@ or `sql.Rows`. If the inner error is non-nil, panics, idempotently adding a
 stacktrace. Otherwise does nothing.
 */
 func ErrOk[A Errer](val A) { Try(ErrTraced(val.Err(), 1)) }
+
+/*
+Similar to `errors.As`. Differences:
+
+	* Instead of taking a pointer and returning a boolean, this returns the
+	  unwrapped error value. On success, output is non-zero. On failure, output
+	  is zero.
+
+	* Automatically tries non-pointer and pointer versions of the given type. The
+	  caller should always specify a non-pointer type. This provides nil-safety
+	  for types that implement `error` on the pointer type.
+*/
+func ErrAs[
+	Tar any,
+	Ptr interface {
+		*Tar
+		error
+	},
+](src error) Tar {
+	var tar Tar
+	if AnyIs[error](tar) && errors.As(src, &tar) {
+		return tar
+	}
+
+	var ptr Ptr
+	if errors.As(src, &ptr) {
+		return Deref((*Tar)(ptr))
+	}
+
+	return Zero[Tar]()
+}
+
+/*
+Somewhat analogous to `errors.Is` and `errors.As`, but instead of comparing an
+error to another error value or checking its type, uses a predicate function.
+Uses `errors.Unwrap` to traverse the error chain and returns the outermost
+error that satisfies the predicate, or nil. If the error
+*/
+func ErrFind(err error, fun func(error) bool) error {
+	for err != nil && fun != nil {
+		impl, _ := err.(ErrFinder)
+		if impl != nil {
+			return impl.Find(fun)
+		}
+
+		if fun(err) {
+			return err
+		}
+
+		next := errors.Unwrap(err)
+		if next != nil && next != err {
+			err = next
+			continue
+		}
+		return nil
+	}
+	return nil
+}
+
+/*
+Shortcut that returns true if `ErrFind` is non-nil for the given error and
+predicate function.
+*/
+func ErrSome(err error, fun func(error) bool) bool {
+	return ErrFind(err, fun) != nil
+}

@@ -71,7 +71,6 @@ func TestErrs_Err(t *testing.T) {
 	defer gtest.Catch(t)
 
 	testEmpty := func(src gg.Errs) {
-		t.Helper()
 		gtest.Zero(src.Err())
 	}
 
@@ -80,7 +79,6 @@ func TestErrs_Err(t *testing.T) {
 	testEmpty(gg.Errs{nil, nil, nil})
 
 	testOne := func(exp error) {
-		t.Helper()
 		gtest.Equal(gg.Errs{nil, exp, nil}.Err(), exp)
 		gtest.Equal(gg.Errs{exp, nil}.Err(), exp)
 		gtest.Equal(gg.Errs{nil, exp}.Err(), exp)
@@ -125,8 +123,6 @@ func TestErrs_As(t *testing.T) {
 	defer gtest.Catch(t)
 
 	test := func(src gg.Errs, ok bool, exp gg.ErrStr) {
-		t.Helper()
-
 		var tar gg.ErrStr
 		gtest.Eq(errors.As(src, &tar), ok)
 		gtest.Eq(tar, exp)
@@ -141,6 +137,29 @@ func TestErrs_As(t *testing.T) {
 	test(gg.Errs{testErr0, testErr1, testErrA}, true, testErrA)
 	test(gg.Errs{nil, testErr0, nil, testErr1, nil, testErrA, nil}, true, testErrA)
 	test(gg.Errs{nil, testErrA, nil, testErrB, nil}, true, testErrA)
+}
+
+func TestErrs_Find(t *testing.T) {
+	defer gtest.Catch(t)
+
+	for _, src := range []gg.Errs{nil, {}, {nil}, {nil, nil}} {
+		for _, fun := range []func(error) bool{nil, True1[error], False1[error]} {
+			gtest.Zero(src.Find(fun))
+		}
+	}
+
+	match := func(err error) bool { return err == testErr0 }
+
+	for _, src := range []gg.Errs{
+		{testErr0, testErr1, testErrA, testErrB},
+		{testErr1, testErr0, testErrA, testErrB},
+		{testErr1, testErrA, testErr0, testErrB},
+		{testErr1, testErrA, testErrB, testErr0},
+		{testErr1, nil, nil, testErr0},
+		{testErr1, gg.Wrapf(fmt.Errorf(`one: %w`, testErr0), `two`)},
+	} {
+		gtest.Equal(src.Find(match), testErr0)
+	}
 }
 
 func TestErrStr(t *testing.T) {
@@ -194,7 +213,7 @@ func BenchmarkIsErrTraced_error_without_trace(b *testing.B) {
 	const err = gg.ErrStr(`some error`)
 	gtest.False(gg.IsErrTraced(err))
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.IsErrTraced(err))
 	}
 }
@@ -203,7 +222,7 @@ func BenchmarkIsErrTraced_error_with_trace(b *testing.B) {
 	err := error(gg.Errf(`some error`))
 	gtest.True(gg.IsErrTraced(err))
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.IsErrTraced(err))
 	}
 }
@@ -212,7 +231,7 @@ func BenchmarkErrTraced_error_without_trace(b *testing.B) {
 	const err = gg.ErrStr(`some error`)
 	gtest.False(gg.IsErrTraced(err))
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ErrTraced(err, 1))
 	}
 }
@@ -221,7 +240,66 @@ func BenchmarkErrTraced_error_with_trace(b *testing.B) {
 	err := error(gg.Errf(`some error`))
 	gtest.True(gg.IsErrTraced(err))
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ErrTraced(err, 1))
 	}
+}
+
+func TestErrAs(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.ErrAs[gg.Err](nil))
+	gtest.Zero(gg.ErrAs[gg.ErrStr](nil))
+	gtest.Zero(gg.ErrAs[PtrErrStr](nil))
+
+	gtest.Zero(gg.ErrAs[gg.Err](fmt.Errorf(``)))
+	gtest.Zero(gg.ErrAs[gg.ErrStr](fmt.Errorf(``)))
+	gtest.Zero(gg.ErrAs[PtrErrStr](fmt.Errorf(``)))
+
+	gtest.Zero(gg.ErrAs[gg.Err](fmt.Errorf(``)))
+	gtest.Zero(gg.ErrAs[gg.ErrStr](fmt.Errorf(``)))
+	gtest.Zero(gg.ErrAs[PtrErrStr](fmt.Errorf(``)))
+
+	gtest.Zero(gg.ErrAs[gg.Err](fmt.Errorf(`%w`, fmt.Errorf(``))))
+	gtest.Zero(gg.ErrAs[gg.ErrStr](fmt.Errorf(`%w`, fmt.Errorf(``))))
+	gtest.Zero(gg.ErrAs[PtrErrStr](fmt.Errorf(`%w`, fmt.Errorf(``))))
+
+	gtest.Eq(
+		gg.ErrAs[gg.ErrStr](gg.ErrStr(`one`)),
+		gg.ErrStr(`one`),
+	)
+
+	gtest.Eq(
+		gg.ErrAs[gg.ErrStr](fmt.Errorf(`%w`, gg.ErrStr(`one`))),
+		gg.ErrStr(`one`),
+	)
+
+	gtest.Equal(
+		gg.ErrAs[PtrErrStr](gg.Ptr(PtrErrStr(`one`))),
+		PtrErrStr(`one`),
+	)
+
+	gtest.Equal(
+		gg.ErrAs[PtrErrStr](fmt.Errorf(`%w`, gg.Ptr(PtrErrStr(`one`)))),
+		PtrErrStr(`one`),
+	)
+}
+
+func TestErrFind(t *testing.T) {
+	defer gtest.Catch(t)
+
+	inner := error(gg.ErrStr(`one`))
+	outer := gg.Wrapf(inner, `two`)
+
+	gtest.Zero(gg.ErrFind(nil, nil))
+	gtest.Zero(gg.ErrFind(nil, True1[error]))
+	gtest.Zero(gg.ErrFind(nil, False1[error]))
+	gtest.Zero(gg.ErrFind(inner, False1[error]))
+	gtest.Zero(gg.ErrFind(outer, False1[error]))
+
+	gtest.Equal(gg.ErrFind(inner, True1[error]), inner)
+	gtest.Equal(gg.ErrFind(outer, True1[error]), outer)
+
+	test := func(err error) bool { return err == inner }
+	gtest.Equal(gg.ErrFind(outer, test), inner)
 }

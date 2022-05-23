@@ -47,25 +47,25 @@ func TestParseTo(t *testing.T) {
 }
 
 func BenchmarkParseTo_int(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[int](`123`))
 	}
 }
 
 func BenchmarkParseTo_int_ptr(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[*int](`123`))
 	}
 }
 
 func BenchmarkParseTo_Parser(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[ParserStr](`863872f79b1d4cc9a45e8027a6ad66ad`))
 	}
 }
 
 func BenchmarkParseTo_Parser_ptr(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[*ParserStr](`863872f79b1d4cc9a45e8027a6ad66ad`))
 	}
 }
@@ -73,7 +73,7 @@ func BenchmarkParseTo_Parser_ptr(b *testing.B) {
 func BenchmarkParseTo_Unmarshaler(b *testing.B) {
 	src := []byte(`863872f79b1d4cc9a45e8027a6ad66ad`)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[UnmarshalerBytes](src))
 	}
 }
@@ -81,19 +81,19 @@ func BenchmarkParseTo_Unmarshaler(b *testing.B) {
 func BenchmarkParseTo_Unmarshaler_ptr(b *testing.B) {
 	src := []byte(`863872f79b1d4cc9a45e8027a6ad66ad`)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[*UnmarshalerBytes](src))
 	}
 }
 
 func BenchmarkParseTo_time_Time(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[time.Time](`1234-05-23T12:34:56Z`))
 	}
 }
 
 func BenchmarkParseTo_time_Time_ptr(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ParseTo[*time.Time](`1234-05-23T12:34:56Z`))
 	}
 }
@@ -101,7 +101,7 @@ func BenchmarkParseTo_time_Time_ptr(b *testing.B) {
 func BenchmarkParse(b *testing.B) {
 	var val int
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Parse(`123`, &val)
 	}
 }

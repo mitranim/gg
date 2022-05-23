@@ -41,32 +41,63 @@ Mutations may trigger segfaults or cause undefined behavior.
 func StrDat[A Text](src A) *byte { return CastUnsafe[*byte](src) }
 
 /*
-Allocation-free conversion. Reinterprets an arbitrary string-like or bytes-like
-value as a regular string.
+Allocation-free conversion. Reinterprets arbitrary text as a string. If the
+string is used with an API that relies on string immutability, for example as a
+map key, the source memory must not be mutated afterwards.
 */
 func ToString[A Text](val A) string { return CastUnsafe[string](val) }
 
 /*
-Allocation-free conversion. Reinterprets an arbitrary string-like or bytes-like
-value as bytes.
+Allocation-free conversion. Reinterprets arbitrary text as bytes. If the source
+was a string, the output must NOT be mutated. Mutating memory that belongs to a
+string may produce segfaults or undefined behavior.
 */
 func ToBytes[A Text](val A) []byte {
 	return u.Slice(CastUnsafe[*byte](val), len(val))
 }
 
+// Concatenates the given text without any separators.
+func Str[A Text](val ...A) string { return Join(val, ``) }
+
 // Joins the given strings with newlines.
-func JoinLines(val ...string) string { return strings.Join(val, Newline) }
+func JoinLines[A Text](val ...A) string { return Join(val, Newline) }
 
 // Joins non-empty strings with newlines.
 func JoinLinesOpt[A Text](val ...A) string { return JoinOpt(val, Newline) }
 
 // Joins the given strings with a space.
-func Spaced(val ...string) string { return strings.Join(val, Space) }
+func Spaced[A Text](val ...A) string { return Join(val, Space) }
 
 // Joins non-empty strings with a space.
 func SpacedOpt[A Text](val ...A) string { return JoinOpt(val, Space) }
 
-// Similar to `strings.Join` but ignores empty strings.
+/*
+Similar to `strings.Join` but works on any input compatible with the `Text`
+interface.
+*/
+func Join[A Text](val []A, sep string) string {
+	if len(val) == 0 {
+		return ``
+	}
+	if len(val) == 1 {
+		return ToString(val[0])
+	}
+
+	var buf Buf
+	buf.GrowCap(Sum(val, StrLen[A]) + (len(sep) * (len(val) - 1)))
+
+	buf.AppendString(ToString(val[0]))
+	for _, val := range val[1:] {
+		buf.AppendString(sep)
+		buf.AppendString(ToString(val))
+	}
+	return buf.String()
+}
+
+/*
+Similar to `strings.Join` but works for any input compatible with the `Text`
+interface and ignores empty strings.
+*/
 func JoinOpt[A Text](val []A, sep string) string {
 	if len(val) == 0 {
 		return ``

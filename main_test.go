@@ -114,3 +114,8 @@ func (self *UnmarshalerBytes) UnmarshalText(val []byte) error {
 	*self = val
 	return nil
 }
+
+// Implements `error` on the pointer type, not on the value type.
+type PtrErrStr string
+
+func (self *PtrErrStr) Error() string { return gg.Deref((*string)(self)) }

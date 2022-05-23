@@ -60,7 +60,7 @@ func BenchmarkArr_Append(b *testing.B) {
 	arr := gsql.ArrOf(10, 20, 30, 40, 50, 60, 70, 80)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(arr.Append(buf))
 	}
 }
@@ -69,7 +69,7 @@ func BenchmarkArr_String(b *testing.B) {
 	arr := gsql.ArrOf(10, 20, 30, 40, 50, 60, 70, 80)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(arr.String())
 	}
 }

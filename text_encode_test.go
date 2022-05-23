@@ -43,7 +43,7 @@ func TestString(t *testing.T) {
 func BenchmarkString_string(b *testing.B) {
 	val := `str`
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.String(val))
 	}
 }
@@ -51,7 +51,7 @@ func BenchmarkString_string(b *testing.B) {
 func BenchmarkString_bool(b *testing.B) {
 	val := true
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.String(val))
 	}
 }
@@ -59,7 +59,7 @@ func BenchmarkString_bool(b *testing.B) {
 func BenchmarkString_int(b *testing.B) {
 	val := 123
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.String(val))
 	}
 }
@@ -67,7 +67,7 @@ func BenchmarkString_int(b *testing.B) {
 func BenchmarkString_stringer(b *testing.B) {
 	val := &url.URL{Path: `/one`}
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.String(val))
 	}
 }
@@ -87,7 +87,7 @@ func TestAppend(t *testing.T) {
 func Benchmark_string_any_fmt_Sprint(b *testing.B) {
 	var val SomeModel
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(fmt.Sprint(val))
 	}
 }
@@ -95,7 +95,7 @@ func Benchmark_string_any_fmt_Sprint(b *testing.B) {
 func Benchmark_string_any_StringAny(b *testing.B) {
 	var val SomeModel
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.StringAny(val))
 	}
 }

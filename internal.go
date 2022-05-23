@@ -42,10 +42,9 @@ func isFuncNameAnon(val string) bool {
 	return strings.HasPrefix(val, pre) && hasPrefixDigit(val[len(pre):])
 }
 
-func hasPrefixDigit(val string) bool {
-	char := StrHead(val)
-	return char >= '0' && char <= '9'
-}
+func hasPrefixDigit(val string) bool { return isDigit(StrHead(val)) }
+
+func isDigit(val byte) bool { return val >= '0' && val <= '9' }
 
 func validateLenMatch(one, two int) {
 	if one != two {
@@ -85,4 +84,24 @@ func relOpt(base, src string) string {
 		}
 	}
 	return src
+}
+
+func isIntString(val string) bool {
+	if len(val) == 0 {
+		return false
+	}
+
+	if len(val) > 0 && (val[0] == '+' || val[0] == '-') {
+		val = val[1:]
+	}
+
+	if len(val) == 0 {
+		return false
+	}
+	for ind := 0; ind < len(val); ind++ {
+		if !isDigit(val[ind]) {
+			return false
+		}
+	}
+	return true
 }

@@ -32,7 +32,7 @@ func TestLazy(t *testing.T) {
 func BenchmarkLazy(b *testing.B) {
 	once := gg.Lazy(gg.Cwd)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(once())
 	}
 }

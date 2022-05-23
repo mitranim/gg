@@ -274,20 +274,13 @@ and the stack trace.
 */
 func PanicStr(exp string, fun func(), opt ...any) {
 	err := gg.Catch(fun)
-
 	if err == nil {
 		panic(ToErr(1, msgOpt(opt, msgPanicNone(fun, nil))))
 	}
 
 	msg := err.Error()
-
 	if !strings.Contains(msg, exp) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
-			`unexpected error message mismatch`,
-			msgFun(fun),
-			msgDet(`actual error message:`, msg),
-			msgDet(`expected error message substring:`, exp),
-		))))
+		panic(ToErr(1, msgOpt(opt, msgErrMsgMismatch(fun, exp, msg))))
 	}
 }
 
@@ -333,6 +326,15 @@ func msgErrMismatch(fun func(), test func(error) bool, err error) string {
 	)
 }
 
+func msgErrMsgMismatch(fun func(), exp, act string) string {
+	return gg.JoinLinesOpt(
+		`unexpected error message mismatch`,
+		msgFun(fun),
+		msgDet(`actual error message:`, act),
+		msgDet(`expected error message substring:`, exp),
+	)
+}
+
 /*
 Asserts that the given function doesn't panic, or fails the test, printing the
 error's trace if possible, the optional additional messages, and the stack
@@ -355,14 +357,28 @@ and the stack trace.
 */
 func Error(test func(error) bool, err error, opt ...any) {
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
-			`unexpected lack of error`,
-			msgErrTest(test)),
-		)))
+		panic(ToErr(1, msgOpt(opt, msgErrorNone(test))))
 	}
 
 	if !test(err) {
 		panic(ToErr(1, msgOpt(opt, msgErrMismatch(nil, test, err))))
+	}
+}
+
+/*
+Asserts that the given error is non-nil and its message contains the given
+substring, or fails the test, printing the optional additional messages and the
+stack trace.
+*/
+func ErrorStr(exp string, err error, opt ...any) {
+	if err == nil {
+		panic(ToErr(1, msgOpt(opt, msgErrorNone(nil))))
+	}
+
+	msg := err.Error()
+
+	if !strings.Contains(msg, exp) {
+		panic(ToErr(1, msgOpt(opt, msgErrMsgMismatch(nil, exp, msg))))
 	}
 }
 
@@ -372,8 +388,12 @@ optional additional messages and the stack trace.
 */
 func ErrorAny(err error, opt ...any) {
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, `unexpected lack of error`)))
+		panic(ToErr(1, msgOpt(opt, msgErrorNone(nil))))
 	}
+}
+
+func msgErrorNone(test func(error) bool) string {
+	return gg.JoinLinesOpt(`unexpected lack of error`, msgErrFunTest(nil, test))
 }
 
 /*

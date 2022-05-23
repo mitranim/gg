@@ -18,13 +18,13 @@ func TestSetOf(t *testing.T) {
 }
 
 func BenchmarkSetOf_empty(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.SetOf[int]())
 	}
 }
 
 func BenchmarkSetOf_non_empty(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.SetOf(10, 20, 30, 40, 50, 60, 70, 80, 90))
 	}
 }
@@ -96,7 +96,6 @@ func TestSet(t *testing.T) {
 		defer gtest.Catch(t)
 
 		test := func(set IntSet, exp string) {
-			t.Helper()
 			gtest.Equal(gg.JsonString(set), exp)
 		}
 
@@ -110,7 +109,6 @@ func TestSet(t *testing.T) {
 		defer gtest.Catch(t)
 
 		test := func(src string, exp IntSet) {
-			t.Helper()
 			gtest.Equal(gg.JsonParseTo[IntSet](src), exp)
 		}
 
@@ -131,7 +129,7 @@ func TestSet(t *testing.T) {
 func Benchmark_Set_GoString(b *testing.B) {
 	val := gg.SetOf(10, 20, 30)
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(val.GoString())
 	}
 }

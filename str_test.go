@@ -34,8 +34,6 @@ func TestToString(t *testing.T) {
 	gtest.Eq(gg.ToString([]byte(nil)), ``)
 
 	test := func(str string) {
-		t.Helper()
-
 		src := []byte(str)
 		tar := gg.ToString(src)
 
@@ -181,7 +179,7 @@ func TestWords(t *testing.T) {
 func BenchmarkReWord_init(b *testing.B) {
 	src := gg.ReWord().String()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		regexp.MustCompile(src)
 	}
 }
@@ -189,7 +187,7 @@ func BenchmarkReWord_init(b *testing.B) {
 func BenchmarkReWord_reuse(b *testing.B) {
 	gg.Nop1(gg.ReWord())
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ReWord())
 	}
 }
@@ -198,7 +196,7 @@ func Benchmark_strings_Join(b *testing.B) {
 	val := gg.Map(gg.Span(128), gg.String[int])
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(strings.Join(val, ` `))
 	}
 }
@@ -207,7 +205,7 @@ func BenchmarkJoinOpt(b *testing.B) {
 	val := gg.Map(gg.Span(128), gg.String[int])
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.JoinOpt(val, ` `))
 	}
 }

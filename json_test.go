@@ -11,7 +11,7 @@ import (
 func Benchmark_json_Marshal(b *testing.B) {
 	var val SomeModel
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Try1(json.Marshal(val)))
 	}
 }
@@ -19,7 +19,7 @@ func Benchmark_json_Marshal(b *testing.B) {
 func BenchmarkJsonBytes(b *testing.B) {
 	var val SomeModel
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.JsonBytes(val))
 	}
 }
@@ -27,7 +27,7 @@ func BenchmarkJsonBytes(b *testing.B) {
 func Benchmark_json_Marshal_string(b *testing.B) {
 	var val SomeModel
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(string(gg.Try1(json.Marshal(val))))
 	}
 }
@@ -35,7 +35,7 @@ func Benchmark_json_Marshal_string(b *testing.B) {
 func BenchmarkJsonString(b *testing.B) {
 	var val SomeModel
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.JsonString(val))
 	}
 }
@@ -43,13 +43,13 @@ func BenchmarkJsonString(b *testing.B) {
 func Benchmark_json_Unmarshal(b *testing.B) {
 	var val int
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Try(json.Unmarshal(gg.ToBytes(`123`), &val))
 	}
 }
 
 func BenchmarkJsonParseTo(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.JsonParseTo[int](`123`))
 	}
 }
@@ -57,7 +57,7 @@ func BenchmarkJsonParseTo(b *testing.B) {
 func BenchmarkJsonParse(b *testing.B) {
 	var val int
 
-	for i := 0; i < b.N; i++ {
+	for ind := 0; ind < b.N; ind++ {
 		gg.JsonParse(`123`, &val)
 	}
 }

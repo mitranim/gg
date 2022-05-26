@@ -516,3 +516,67 @@ func TestDbNameToJsonNameCache(t *testing.T) {
 		},
 	)
 }
+
+func TestValueDeref(t *testing.T) {
+	defer gtest.Catch(t)
+
+	testZero := func(src any) {
+		gtest.Eq(gg.ValueDeref(r.ValueOf(src)), r.Value{})
+	}
+
+	testEq := func(src, exp any) {
+		gtest.Equal(
+			gg.ValueDeref(r.ValueOf(src)).Interface(),
+			exp,
+		)
+	}
+
+	testZero(nil)
+	testZero((*string)(nil))
+	testZero((**string)(nil))
+	testZero(gg.Ptr((*string)(nil)))
+	testZero(gg.Ptr(gg.Ptr((*string)(nil))))
+
+	testEq(`str`, `str`)
+	testEq(gg.Ptr(`str`), `str`)
+	testEq(gg.Ptr(gg.Ptr(`str`)), `str`)
+	testEq(gg.Ptr(gg.Ptr(`str`)), `str`)
+	testEq(gg.Ptr(gg.Ptr(gg.Ptr(`str`))), `str`)
+}
+
+func TestValueDerefAlloc(t *testing.T) {
+	defer gtest.Catch(t)
+
+	deref := func(src any) r.Value {
+		return gg.ValueDerefAlloc(r.ValueOf(src))
+	}
+
+	testZero := func(src any) { gtest.Eq(deref(src), r.Value{}) }
+
+	testZero(nil)
+	testZero((*string)(nil))
+	testZero((**string)(nil))
+
+	{
+		var tar string
+		gtest.Equal(deref(&tar).Interface(), any(``))
+	}
+
+	{
+		var tar *string
+		gtest.Equal(deref(&tar).Interface(), any(``))
+		gtest.Equal(tar, gg.Ptr(``))
+
+		deref(&tar).SetString(`str`)
+		gtest.Equal(tar, gg.Ptr(`str`))
+	}
+
+	{
+		var tar **string
+		gtest.Equal(deref(&tar).Interface(), any(``))
+		gtest.Equal(tar, gg.Ptr(gg.Ptr(``)))
+
+		deref(&tar).SetString(`str`)
+		gtest.Equal(tar, gg.Ptr(gg.Ptr(`str`)))
+	}
+}

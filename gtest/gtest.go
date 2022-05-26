@@ -211,8 +211,8 @@ func NotSliceIs[A ~[]B, B any](act, nom A, opt ...any) {
 }
 
 /*
-Asserts that the input is the zero value of its type, or fails the test,
-printing the optional additional messages and the stack trace.
+Asserts that the input is zero via `gg.IsZero`, or fails the test, printing the
+optional additional messages and the stack trace.
 */
 func Zero[A any](val A, opt ...any) {
 	if !gg.IsZero(val) {
@@ -224,8 +224,8 @@ func Zero[A any](val A, opt ...any) {
 }
 
 /*
-Asserts that the input is not the zero value of its type, or fails the test,
-printing the optional additional messages and the stack trace.
+Asserts that the input is zero via `gg.IsZero`, or fails the test, printing the
+optional additional messages and the stack trace.
 */
 func NotZero[A any](val A, opt ...any) {
 	if gg.IsZero(val) {

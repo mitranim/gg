@@ -72,11 +72,22 @@ Always closes the rows. If output is not a slice, verifies that there is EXACTLY
 one row in total, otherwise panics.
 */
 func ScanAny[Src Rows](src Src, out any) {
-	tar := gg.ValueDeref(r.ValueOf(out))
+	ScanReflect(src, r.ValueOf(out))
+}
 
-	if tar.Kind() == r.Slice {
-		scanValsAny(src, tar)
+// Variant of `ScanAny` that takes a reflect value rather than `any`.
+func ScanReflect[Src Rows](src Src, out r.Value) {
+	if out.Kind() != r.Pointer {
+		panic(gg.Errf(`scan destination must be a pointer, got %q`, out.Type()))
+	}
+	if out.IsNil() {
+		panic(gg.Errf(`scan destination must be non-nil, got nil %q`, out.Type()))
+	}
+	out = gg.ValueDerefAlloc(out)
+
+	if out.Kind() == r.Slice {
+		scanValsReflect(src, out)
 	} else {
-		scanValAny(src, tar)
+		scanValReflect(src, out)
 	}
 }

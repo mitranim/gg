@@ -15,40 +15,71 @@ func TestIsZero(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.True(gg.IsZero(0))
-	gtest.True(!gg.IsZero(1))
-	gtest.True(!gg.IsZero(-1))
+	gtest.False(gg.IsZero(1))
+	gtest.False(gg.IsZero(-1))
 
 	gtest.True(gg.IsZero(``))
-	gtest.True(!gg.IsZero(` `))
+	gtest.False(gg.IsZero(` `))
 
 	gtest.True(gg.IsZero([]string(nil)))
-	gtest.True(!gg.IsZero([]string{}))
+	gtest.False(gg.IsZero([]string{}))
 
 	t.Run(`method`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
 		gtest.True(gg.IsZero[IsZeroAlwaysTrue](``))
+		gtest.True(gg.IsZero[IsZeroAlwaysFalse](``))
 		gtest.True(gg.IsZero[IsZeroAlwaysTrue](`str`))
-
-		gtest.False(gg.IsZero[IsZeroAlwaysFalse](``))
 		gtest.False(gg.IsZero[IsZeroAlwaysFalse](`str`))
+
+		gtest.True(gg.IsZero(r.ValueOf(nil)))
+		gtest.True(gg.IsZero(r.ValueOf(``)))
+		gtest.False(gg.IsZero(r.ValueOf(`str`)))
 	})
 
 	t.Run(`time`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.True(gg.IsZero(time.Time{}))
+		const minSec = 60
+		const hourMin = 60
+		const offsetHour = 1
+
+		local := time.FixedZone(`local`, minSec*hourMin*offsetHour)
+
+		testZero := func(src time.Time) {
+			gtest.True(src.IsZero())
+			gtest.True(gg.IsZero(src))
+			gtest.Eq(gg.IsZero(src), src.IsZero())
+		}
+
+		testZero(time.Time{})
+		testZero(time.Time{}.In(time.UTC))
+		testZero(time.Time{}.In(local))
+
+		gtest.Eq(time.Time{}, time.Time{}.In(time.UTC))
+		gtest.NotEq(time.Time{}, time.Time{}.In(local))
+
+		gtest.Eq(
+			time.Date(1, 1, 1, offsetHour, 0, 0, 0, local),
+			time.Time{}.In(local),
+		)
+
 		gtest.True(gg.IsZero(time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)))
+		gtest.True(gg.IsZero(time.Date(1, 1, 1, offsetHour, 0, 0, 0, local)))
+
 		gtest.False(gg.IsZero(time.Date(1, 1, 1, 0, 0, 0, 1, time.UTC)))
+		gtest.False(gg.IsZero(time.Date(1, 1, 0, 0, 0, 0, 1, local)))
 	})
 }
 
+// This is a control. Our version should be significantly more efficient.
 func Benchmark_is_zero_reflect_struct_zero(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.ValueOf(FatStruct{}).IsZero())
 	}
 }
 
+// This is a control. Our version should be significantly more efficient.
 func Benchmark_is_zero_reflect_struct_non_zero(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(r.ValueOf(FatStruct{Id: 10}).IsZero())

@@ -352,13 +352,32 @@ func TypeDeref(val r.Type) r.Type {
 
 /*
 Dereferences the provided value until it's no longer a pointer. If the input is
-a nil pointer or a pointer to a nil pointer (recursively), returns an
-empty/invalid value.
+a nil pointer, or if any intermediary pointers are nil, returns an
+empty/invalid value. Also see `ValueDerefAlloc` which allocates intermediary
+pointers as necessary/possible.
 */
 func ValueDeref(val r.Value) r.Value {
 	for val.Kind() == r.Pointer {
 		if val.IsNil() {
 			return r.Value{}
+		}
+		val = val.Elem()
+	}
+	return val
+}
+
+/*
+Dereferences the provided value until it's no longer a pointer, allocating
+intermediary pointers as necessary/possible. Also see `ValueDerefAlloc` which
+does not allocate intermediaries.
+*/
+func ValueDerefAlloc(val r.Value) r.Value {
+	for val.Kind() == r.Pointer {
+		if val.IsNil() {
+			if !val.CanSet() {
+				return r.Value{}
+			}
+			val.Set(r.New(val.Type().Elem()))
 		}
 		val = val.Elem()
 	}

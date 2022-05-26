@@ -13,8 +13,10 @@ var (
 )
 
 /*
-If the input implements `Zeroable`, returns the result of calling that method.
-Otherwise returns true if the input is the zero value of its type.
+Returns true if the input is the zero value of its type. Optionally falls back
+on `Zeroable.IsZero` if the input implements this interface. Support for
+`Zeroable` is useful for types such as `time.Time`, where "zero" is determined
+only by the timestamp, ignoring the timezone.
 */
 func IsZero[A any](val A) bool {
 	box := AnyNoEscUnsafe(val)
@@ -22,21 +24,30 @@ func IsZero[A any](val A) bool {
 		return true
 	}
 
+	// Prioritize `==` over reflection if possible. This is measurably faster than
+	// the reflect-based version, especially for large value types such as fat
+	// structs or arrays,
+	if Type[A]().Comparable() {
+		// True zero value must always be considered zero, even if the type
+		// implements `Zeroable`. More importantly, this safeguards us against
+		// unusual cases such as `reflect.Value.IsZero`, which panics when called
+		// on the zero value of `reflect.Value`.
+		if box == AnyNoEscUnsafe(Zero[A]()) {
+			return true
+		}
+
+		impl, _ := box.(Zeroable)
+		return impl != nil && impl.IsZero()
+	}
+
 	impl, _ := box.(Zeroable)
 	if impl != nil {
 		return impl.IsZero()
 	}
-
-	// For large value types such as fat structs or arrays, this is measurably
-	// faster than the reflect-based version.
-	if Type[A]().Comparable() {
-		return box == AnyNoEscUnsafe(Zero[A]())
-	}
-
 	return r.ValueOf(box).IsZero()
 }
 
-// True if the input is not a zero of its type.
+// Inverse of `IsZero`.
 func IsNonZero[A any](val A) bool { return !IsZero(val) }
 
 // Returns a zero value of the given type.

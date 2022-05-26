@@ -127,8 +127,7 @@ func scanNextScalar[Row any, Src ColumnerScanner](src Src) (out Row) {
 }
 
 func scanNextStruct[Row any, Src ColumnerScanner](src Src, meta typeMeta) (out Row) {
-	tar := r.ValueOf(gg.AnyNoEscUnsafe(&out)).Elem()
-	scanStruct(src, meta, tar)
+	scanStructReflect(src, meta, r.ValueOf(gg.AnyNoEscUnsafe(&out)).Elem())
 	return
 }
 
@@ -145,7 +144,7 @@ Would be nice to use an implementation similar to this:
 destinations such as `string` fields. This behavior is inconsistent with
 JSON, and unfortunate for our purposes.
 */
-func scanStruct[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value) {
+func scanStructReflect[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value) {
 	typ := tar.Type()
 	cols := gg.Try1(src.Columns())
 	indir := gg.Map(cols, func(key string) r.Value {
@@ -162,20 +161,20 @@ func scanStruct[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value) {
 	})
 }
 
-func scanValsAny[Src Rows](src Src, tar r.Value) {
+func scanValsReflect[Src Rows](src Src, tar r.Value) {
 	defer gg.Close(src)
 
 	elem := tar.Type().Elem()
 	meta := typeMetaCache.Get(elem)
 
 	for src.Next() {
-		tar.Set(r.Append(tar, scanNextAny(src, meta, elem)))
+		tar.Set(r.Append(tar, scanNextReflect(src, meta, elem)))
 	}
 
 	gg.ErrOk(src)
 }
 
-func scanValAny[Src Rows](src Src, tar r.Value) {
+func scanValReflect[Src Rows](src Src, tar r.Value) {
 	defer gg.Close(src)
 
 	if !src.Next() {
@@ -183,7 +182,7 @@ func scanValAny[Src Rows](src Src, tar r.Value) {
 	}
 
 	typ := tar.Type()
-	tar.Set(scanNextAny(src, typeMetaCache.Get(typ), typ))
+	tar.Set(scanNextReflect(src, typeMetaCache.Get(typ), typ))
 	gg.ErrOk(src)
 
 	if src.Next() {
@@ -191,21 +190,21 @@ func scanValAny[Src Rows](src Src, tar r.Value) {
 	}
 }
 
-func scanNextAny[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
+func scanNextReflect[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
 	if meta.IsScalar() {
-		return scanNextScalarAny(src, typ)
+		return scanNextScalarReflect(src, typ)
 	}
-	return scanNextStructAny(src, meta, typ)
+	return scanNextStructReflect(src, meta, typ)
 }
 
-func scanNextScalarAny[Src ColumnerScanner](src Src, typ r.Type) r.Value {
+func scanNextScalarReflect[Src ColumnerScanner](src Src, typ r.Type) r.Value {
 	tar := r.New(typ)
 	gg.Try(src.Scan(tar.Interface()))
 	return tar.Elem()
 }
 
-func scanNextStructAny[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
+func scanNextStructReflect[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
 	tar := gg.NewElem(typ)
-	scanStruct(src, meta, tar)
+	scanStructReflect(src, meta, tar)
 	return tar
 }

@@ -2,22 +2,22 @@ package gg
 
 /*
 Short for "zero optional value". Workaround for the lack of type inference in
-type literals.
+struct literals.
 */
 func ZopVal[A any](val A) Zop[A] { return Zop[A]{val} }
 
 /*
 Short for "zero optional". The zero value is considered empty/null in JSON. Note
-that "encoding/json" doesn't support ",omitempty" for struct values. This
-wrapper allows empty structs to become "null". This type doesn't implement any
-other encoding or decoding methods, and is intended only for non-scalar values
-such as "models" / "data classes".
+that "encoding/json" doesn't support ",omitempty" for structs. This wrapper
+allows empty structs to become "null". This type doesn't implement any other
+encoding or decoding methods, and is intended only for non-scalar values such
+as "models" / "data classes".
 */
 type Zop[A any] struct {
 	/**
-	The `role:"ref"` annotation, where "ref" is short for "reference", indicates
-	that this field is a reference/pointer to the inner type/value.
-	Reflection-based code may use this to treat `Zop` like a pointer.
+	Annotation `role:"ref"` indicates that this field is a reference/pointer to
+	the inner type/value. Reflection-based code may use this to treat this type
+	like a pointer.
 	*/
 	Val A `role:"ref"`
 }

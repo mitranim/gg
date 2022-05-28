@@ -8,10 +8,13 @@ func MaybeVal[A any](val A) Maybe[A] { return Maybe[A]{val, nil} }
 // Shortcut for creating a `Maybe` with the given error.
 func MaybeErr[A any](err error) Maybe[A] { return Maybe[A]{Zero[A](), err} }
 
-// Contains a value or an error.
+/*
+Contains a value or an error. The JSON tags "value" and "error" are chosen due
+to their existing popularity in HTTP API.
+*/
 type Maybe[A any] struct {
-	Val A     `json:"val,omitempty"`
-	Err error `json:"err,omitempty"`
+	Val A     `json:"value,omitempty"`
+	Err error `json:"error,omitempty"`
 }
 
 /*

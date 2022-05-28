@@ -284,6 +284,30 @@ func (self *DbNameToJsonName) Init(src r.Type) {
 	}
 }
 
+var JsonNameToDbFieldCache = TypeCacheOf[JsonNameToDbField]()
+
+type JsonNameToDbField map[string]r.StructField
+
+func (self *JsonNameToDbField) Init(src r.Type) {
+	for _, field := range StructDeepPublicFieldCache.Get(src) {
+		if IsNonZero(FieldDbName(field)) {
+			MapSetOpt(MapInit(self), FieldJsonName(field), field)
+		}
+	}
+}
+
+var DbNameToJsonFieldCache = TypeCacheOf[DbNameToJsonField]()
+
+type DbNameToJsonField map[string]r.StructField
+
+func (self *DbNameToJsonField) Init(src r.Type) {
+	for _, field := range StructDeepPublicFieldCache.Get(src) {
+		if IsNonZero(FieldJsonName(field)) {
+			MapSetOpt(MapInit(self), FieldDbName(field), field)
+		}
+	}
+}
+
 /*
 Takes a struct field tag and returns its identifier part, following the
 "encoding/json" conventions. Ident "-" is converted to "". Usage:

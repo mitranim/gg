@@ -8,18 +8,27 @@ import (
 /*
 Shortcut for mutexes. Usage:
 
-	defer Locked(someLock).Unlock()
+	defer Lock(someLock).Unlock()
 */
-func Locked[A interface{ Lock() }](val A) A {
+func Lock(val sync.Locker) sync.Locker {
 	val.Lock()
 	return val
+}
+
+/*
+Shortcut for dereferencing a pointer a lock. Uses `Deref`, returning the zero
+value of the given type if the pointer is nil.
+*/
+func LockDeref[A any](lock sync.Locker, ptr *A) A {
+	defer Lock(lock).Unlock()
+	return Deref(ptr)
 }
 
 /*
 Typed version of `atomic.Value`. Currently implemented as a typedef of
 `atomic.Value` where the value is internally stored as `any`, which may cause
 the value to be automatically copied when stored. Thus, large values should be
-stored by pointer, unless copying is desirable. This may change in the future.
+stored by pointer to minimize copying. This may change in the future.
 */
 type Atom[A any] atomic.Value
 
@@ -56,7 +65,7 @@ func (self *Atom[A]) CompareAndSwap(prev, next A) bool {
 Typed version of `sync.Map`. Currently implemented as a typedef of `sync.Map`
 where both keys and valus are internally stored as `any`, which may cause them
 to be automatically copied when stored. Thus, large values should be stored by
-pointer, unless copying is desirable. This may change in the future.
+pointer to minimize copying. This may change in the future.
 */
 type SyncMap[Key comparable, Val any] sync.Map
 
@@ -97,4 +106,76 @@ func (self *SyncMap[Key, Val]) Range(fun func(Key, Val) bool) {
 	(*sync.Map)(self).Range(func(key, val any) bool {
 		return fun(key.(Key), val.(Val))
 	})
+}
+
+// Alias of `chan` with additional convenience methods.
+type Chan[A any] chan A
+
+// Closes the channel unless it's nil.
+func (self Chan[_]) Close() {
+	if self != nil {
+		close(self)
+	}
+}
+
+// Same as global `ChanInit`.
+//go:noinline
+func (self *Chan[A]) Init() Chan[A] { return ChanInit(self) }
+
+/*
+Idempotently initializes the channel. If the pointer is non-nil and the channel
+is nil, creates a new unbuffered channel and assigns it to the pointer. Returns
+the resulting channel.
+*/
+func ChanInit[Tar ~chan Val, Val any](ptr *Tar) Tar {
+	if ptr == nil {
+		return nil
+	}
+	if *ptr == nil {
+		*ptr = make(Tar)
+	}
+	return *ptr
+}
+
+// Same as global `ChanInitCap`.
+//go:noinline
+func (self *Chan[A]) InitCap(cap int) Chan[A] { return ChanInitCap(self, cap) }
+
+/*
+Idempotently initializes the channel. If the pointer is non-nil and the channel
+is nil, creates a new buffered channel with the given capacity and assigns it
+to the pointer. Returns the resulting channel.
+*/
+func ChanInitCap[Tar ~chan Val, Val any](ptr *Tar, cap int) Tar {
+	if ptr == nil {
+		return nil
+	}
+	if *ptr == nil {
+		*ptr = make(Tar, cap)
+	}
+	return *ptr
+}
+
+// Same as global `SendOpt`.
+//go:noinline
+func (self Chan[A]) SendOpt(val A) { SendOpt(self, val) }
+
+// Shortcut for sending a value over a channel in a non-blocking fashion.
+func SendOpt[Tar ~chan Val, Val any](tar Tar, val Val) {
+	select {
+	case tar <- val:
+	default:
+	}
+}
+
+// Same as global `SendZeroOpt`.
+//go:noinline
+func (self Chan[A]) SendZeroOpt() { SendZeroOpt(self) }
+
+// Shortcut for sending a zero value over a channel in a non-blocking fashion.
+func SendZeroOpt[Tar ~chan Val, Val any](tar Tar) {
+	select {
+	case tar <- Zero[Val]():
+	default:
+	}
 }

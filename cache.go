@@ -81,7 +81,7 @@ func (self *Cache[Key, Val, Ptr]) Ptr(key Key) Ptr {
 		return ptr
 	}
 
-	defer Locked(&self.Lock).Unlock()
+	defer Lock(&self.Lock).Unlock()
 
 	ptr = self.Map[key]
 	if ptr != nil {
@@ -95,12 +95,12 @@ func (self *Cache[Key, Val, Ptr]) Ptr(key Key) Ptr {
 }
 
 func (self *Cache[Key, _, Ptr]) get(key Key) Ptr {
-	defer Locked(self.Lock.RLocker()).Unlock()
+	defer Lock(self.Lock.RLocker()).Unlock()
 	return self.Map[key]
 }
 
 func (self *Cache[Key, _, _]) Del(key Key) {
-	defer Locked(&self.Lock).Unlock()
+	defer Lock(&self.Lock).Unlock()
 	delete(self.Map, key)
 }
 
@@ -121,7 +121,7 @@ func (self *TypeCache[Val, Ptr]) Ptr(key r.Type) Ptr {
 		return ptr
 	}
 
-	defer Locked(&self.Lock).Unlock()
+	defer Lock(&self.Lock).Unlock()
 
 	ptr = self.Map[key]
 	if ptr != nil {
@@ -135,7 +135,7 @@ func (self *TypeCache[Val, Ptr]) Ptr(key r.Type) Ptr {
 }
 
 func (self *TypeCache[Val, Ptr]) get(key r.Type) Ptr {
-	defer Locked(self.Lock.RLocker()).Unlock()
+	defer Lock(self.Lock.RLocker()).Unlock()
 	return self.Map[key]
 }
 
@@ -150,14 +150,14 @@ type Mem[A any] struct {
 
 // Clears the inner value and timestamp.
 func (self *Mem[A]) Clear() {
-	defer Locked(self).Unlock()
+	defer Lock(self).Unlock()
 	Clear(&self.Val)
 	Clear(&self.Inst)
 }
 
 // Returns the inner `Timed`.
 func (self *Mem[A]) GetTimed() Timed[A] {
-	defer Locked(self.RLocker()).Unlock()
+	defer Lock(self.RLocker()).Unlock()
 	return self.Timed
 }
 
@@ -199,7 +199,7 @@ func (self *Mem[A]) Dedup(life time.Duration, fun func() A) A {
 		return val.Val
 	}
 
-	defer Locked(self).Unlock()
+	defer Lock(self).Unlock()
 
 	if fun != nil && self.Timed.IsExpired(life) {
 		self.Timed.Set(fun())

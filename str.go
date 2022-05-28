@@ -34,6 +34,9 @@ func IsStrNonEmpty[A Text](val A) bool { return len(val) > 0 }
 // True if len == 0.
 func IsStrEmpty[A Text](val A) bool { return len(val) == 0 }
 
+// Compares two text chunks via `==`.
+func StrEq[A Text](one, two A) bool { return ToString(one) == ToString(two) }
+
 /*
 Returns the underlying data pointer of the given string or byte slice.
 Mutations may trigger segfaults or cause undefined behavior.

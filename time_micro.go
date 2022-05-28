@@ -152,7 +152,7 @@ with `.Parse`. Otherwise uses the default `json.Unmarshal` behavior for
 `*time.Time` and stores the resulting timestamp in milliseconds.
 */
 func (self *TimeMicro) UnmarshalJSON(src []byte) error {
-	if ToString(src) == `null` {
+	if isJsonEmpty(src) {
 		self.Clear()
 		return nil
 	}

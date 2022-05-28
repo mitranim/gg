@@ -13,8 +13,10 @@ var (
 	TraceBaseDir   = `` // Set to `Cwd()` for better traces.
 )
 
-// Free cast of the given ptr slice to `Trace`.
-func ToTrace(val []uintptr) Trace { return CastUnsafe[Trace](val) }
+// Free cast of `~[]~uintptr` to `Trace`.
+func ToTrace[Slice ~[]Val, Val ~uintptr](src Slice) Trace {
+	return CastUnsafe[Trace](src)
+}
 
 /*
 Shortcut for capturing a trace of the the current call stack, skipping N frames

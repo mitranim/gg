@@ -6,14 +6,17 @@ import (
 	"strconv"
 )
 
-// Decodes arbitrary text into value of specific type, using `Parse`.
+/*
+Decodes arbitrary text into a value of the given type, using `ParseCatch`.
+Panics on errors.
+*/
 func ParseTo[Out any, Src Text](src Src) (out Out) {
-	Parse(src, &out)
+	Try(ParseCatch(src, &out))
 	return
 }
 
 /*
-Decodes arbitrary text into value of specific type, using `ParseCatch`.
+Decodes arbitrary text into a value of the given type, using `ParseCatch`.
 Panics on errors.
 */
 func Parse[Out any, Src Text](src Src, out *Out) {
@@ -22,10 +25,10 @@ func Parse[Out any, Src Text](src Src, out *Out) {
 
 /*
 Missing feature of the standard library. Decodes arbitrary text into a value of
-an arbitrary type. The output must either implement `Parser`, or implement
-`encoding.TextUnmarshaler`, or be a pointer to any of the types described by
-the constraint `Textable` defined by this package. If the output is not
-decodable, this returns an error.
+an arbitrary given type. The output must either implement `Parser`, or
+implement `encoding.TextUnmarshaler`, or be a pointer to any of the types
+described by the constraint `Textable` defined by this package. If the output
+is not decodable, this returns an error.
 */
 func ParseCatch[Out any, Src Text](src Src, out *Out) error {
 	if out == nil {

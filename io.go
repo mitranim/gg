@@ -119,3 +119,58 @@ func MkdirAll(path string) {
 
 // Shortcut for `os.Stat` that panics on error.
 func Stat(path string) fs.FileInfo { return Try1(os.Stat(path)) }
+
+/*
+Shortcut for writing the given text to the given `io.Writer`.
+Automatically converts text to bytes and panics on errors.
+*/
+func Write[Out io.Writer, Src Text](out Out, src Src) {
+	Try1(out.Write(ToBytes(src)))
+}
+
+const (
+	// Standard terminal escape sequence.
+	TermEsc = "\x1b"
+
+	/**
+	Escape sequence recognized by many terminals. When printed, causes the
+	terminal to scroll down as much as needed to create an appearance of
+	clearing the window. Scrolling up reveals previous content.
+	*/
+	TermEscClearSoft = TermEsc + `c`
+
+	/**
+	Escape sequence recognized by many terminals. When printed, causes the
+	terminal to clear the scrollback buffer, without clearing the currently
+	visible content.
+	*/
+	TermEscClearScrollback = TermEsc + `[3J`
+
+	/**
+	Escape sequence recognized by many terminals. When printed, causes the
+	terminal to clear both the scrollback buffer and the currently visible
+	content.
+	*/
+	TermEscClearHard = TermEscClearSoft + TermEscClearScrollback
+)
+
+/*
+Prints `TermEscClearScrollback` to `os.Stdout`, causing the current TTY to clear
+the scrollback buffer.
+*/
+func TermClearScrollback() {
+	_, _ = io.WriteString(os.Stdout, TermEscClearScrollback)
+}
+
+/*
+Prints `TermEscClearScrollback` to `os.Stdout`, causing the current TTY to push
+existing content out of view.
+*/
+func TermClearSoft() {
+	_, _ = io.WriteString(os.Stdout, TermEscClearSoft)
+}
+
+// Prints `TermEscClearScrollback` to `os.Stdout`, clearing the current TTY.
+func TermClearHard() {
+	_, _ = io.WriteString(os.Stdout, TermEscClearHard)
+}

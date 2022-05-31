@@ -12,7 +12,7 @@ func ValidPk[
 	Val Pked[Key],
 ](val Val) Key {
 	key := val.Pk()
-	if key == Zero[Key]() {
+	if IsZero(key) {
 		panic(Errf(`unexpected empty key of type %T for %#v`, key, val))
 	}
 	return key

@@ -103,3 +103,15 @@ func clonedStruct(src r.Value) r.Value {
 	cloneStruct(out)
 	return out
 }
+
+func growLenReflect(tar r.Value) {
+	len, cap := tar.Len(), tar.Cap()
+	if cap > len {
+		tar.SetLen(len + 1)
+		return
+	}
+
+	buf := r.MakeSlice(tar.Type(), len+1, MaxPrim(len*2, 4))
+	r.Copy(buf, tar)
+	tar.Set(buf)
+}

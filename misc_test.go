@@ -572,7 +572,7 @@ func TestSnapSlice(t *testing.T) {
 	tar := []int{10, 20}
 	snap := gg.SnapSlice(&tar)
 
-	gtest.Equal(snap, gg.SliceSnap[int]{&tar, 2})
+	gtest.Equal(snap, gg.SliceSnapshot[int]{&tar, 2})
 	gtest.Eq(cap(tar), 2)
 
 	tar = []int{10, 20, 30, 40}

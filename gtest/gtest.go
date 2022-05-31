@@ -4,6 +4,7 @@ Missing feature of the standard library: terse, expressive test assertions.
 package gtest
 
 import (
+	e "errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -285,6 +286,26 @@ func PanicStr(exp string, fun func(), opt ...any) {
 }
 
 /*
+Asserts that the given function panics and the panic result matches the given
+error via `errors.Is`, or fails the test, printing the optional additional
+messages and the stack trace.
+*/
+func PanicErrIs(exp error, fun func(), opt ...any) {
+	if exp == nil {
+		panic(ToErr(1, msgOpt(opt, `expected error must be non-nil`)))
+	}
+
+	err := gg.Catch(fun)
+	if err == nil {
+		panic(ToErr(1, msgOpt(opt, msgPanicNone(fun, nil))))
+	}
+
+	if !e.Is(err, exp) {
+		panic(ToErr(1, msgOpt(opt, msgErrIsMismatch(err, exp))))
+	}
+}
+
+/*
 Asserts that the given function panics, or fails the test, printing the optional
 additional messages and the stack trace.
 */
@@ -332,6 +353,14 @@ func msgErrMsgMismatch(fun func(), exp, act string) string {
 		msgFun(fun),
 		msgDet(`actual error message:`, act),
 		msgDet(`expected error message substring:`, exp),
+	)
+}
+
+func msgErrIsMismatch(err, exp error) string {
+	return gg.JoinLinesOpt(
+		`unexpected error mismatch`,
+		msgDet(`actual error:`, gg.StringAny(err)),
+		msgDet(`expected error via errors.Is:`, gg.StringAny(exp)),
 	)
 }
 

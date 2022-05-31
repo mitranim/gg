@@ -14,11 +14,10 @@ type SliceHeader struct {
 
 /*
 Dangerous tool for performance fine-tuning. Converts the given pointer to
-`unsafe.Pointer` and tricks the compiler to prevent escape analysis of the
-resulting pointer from moving the underlying memory to the heap. Can negate
-failures of Go escape analysis, but can also introduce tricky bugs. The caller
-MUST ensure that the original is not freed while the resulting pointer is still
-in use.
+`unsafe.Pointer` and tricks the compiler into thinking that the memory
+underlying the pointer should not be moved to the heap. Can negate failures of
+Go escape analysis, but can also introduce tricky bugs. The caller MUST ensure
+that the original is not freed while the resulting pointer is still in use.
 */
 func PtrNoEscUnsafe[A any](val *A) u.Pointer { return noescape(u.Pointer(val)) }
 

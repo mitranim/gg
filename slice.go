@@ -272,10 +272,12 @@ func (self Slice[A]) CloneAppend(val ...A) Slice[A] {
 
 /*
 Appends the given elements to the given slice. Similar to built-in `append` but
-less noisy.
+syntactically easier because the destination is not repeated.
 */
 func AppendVals[Slice ~[]Elem, Elem any](tar *Slice, val ...Elem) {
-	*tar = append(*tar, val...)
+	if tar != nil {
+		*tar = append(*tar, val...)
+	}
 }
 
 // Same as global `AppendVals`.
@@ -324,6 +326,20 @@ func HeadPtr[Slice ~[]Elem, Elem any](val Slice) *Elem { return GetPtr(val, 0) }
 //go:noinline
 func (self Slice[A]) HeadPtr() *A { return HeadPtr(self) }
 
+func PopHead[Slice ~[]Elem, Elem any](ptr *Slice) Elem {
+	if ptr == nil {
+		return Zero[Elem]()
+	}
+
+	head, tail := Head(*ptr), Tail(*ptr)
+	*ptr = tail
+	return head
+}
+
+// Same as global `PopHead`.
+//go:noinline
+func (self *Slice[A]) PopHead() A { return PopHead(self) }
+
 /*
 Returns the last element of the given slice. If the slice is empty, returns the
 zero value.
@@ -355,6 +371,20 @@ func LastIndex[Slice ~[]Elem, Elem any](val Slice) int {
 // Same as global `LastIndex`.
 //go:noinline
 func (self Slice[A]) LastIndex() int { return LastIndex(self) }
+
+func PopLast[Slice ~[]Elem, Elem any](ptr *Slice) Elem {
+	if ptr == nil {
+		return Zero[Elem]()
+	}
+
+	init, last := Init(*ptr), Last(*ptr)
+	*ptr = init
+	return last
+}
+
+// Same as global `PopLast`.
+//go:noinline
+func (self *Slice[A]) PopLast() A { return PopLast(self) }
 
 /*
 Returns the initial part of the given slice: all except the last value.

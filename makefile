@@ -8,6 +8,7 @@ TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(SHORT) $(PROF)
 TEST       := test $(TEST_FLAGS) -timeout=2s -run=$(run)
 FEAT       := ./$(or $(feat),...)
 BENCH      := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=128ms
+GOW        := gow -c -v
 WATCH      := watchexec -r -c -d=0 -n
 
 default: test_w
@@ -16,13 +17,13 @@ watch:
 	$(PAR) test_w lint_w
 
 test_w:
-	gow -c -v $(TEST) $(FEAT)
+	$(GOW) $(TEST) $(FEAT)
 
 test:
 	go $(TEST) $(FEAT)
 
 bench_w:
-	gow -c -v $(BENCH) $(FEAT)
+	$(GOW) $(BENCH) $(FEAT)
 
 bench:
 	go $(BENCH) $(FEAT)
@@ -42,3 +43,8 @@ prof_cpu:
 
 prof_mem:
 	go tool pprof -web mem.prof
+
+# Assumes MacOS and Homebrew.
+deps:
+	go install github.com/mitranim/gow@latest
+	brew install -q watchexec golangci-lint

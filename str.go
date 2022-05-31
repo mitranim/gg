@@ -3,6 +3,8 @@ package gg
 import (
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 	u "unsafe"
 )
 
@@ -61,6 +63,17 @@ func ToBytes[A Text](val A) []byte {
 
 // Concatenates the given text without any separators.
 func Str[A Text](val ...A) string { return Join(val, ``) }
+
+// Self-explanatory. Splits the given text into lines.
+func SplitLines[A Text](src A) []string {
+	if len(src) == 0 {
+		return nil
+	}
+	return RE_NEWLINE().Split(ToString(src), -1)
+}
+
+// Matches any newline. Supports Windows, Unix, and old MacOS styles.
+var RE_NEWLINE = Lazy1(regexp.MustCompile, `(?:\r\n|\r|\n)`)
 
 // Joins the given strings with newlines.
 func JoinLines[A Text](val ...A) string { return Join(val, Newline) }
@@ -166,6 +179,16 @@ func HasNewlineSuffix[A Text](val A) bool {
 	return StrLast(val) == '\n' || StrLast(val) == '\r'
 }
 
+// Missing/private half of `strings.TrimSpace`. Trims only the prefix.
+func TrimSpacePrefix[A Text](src A) A {
+	return CastUnsafe[A](strings.TrimLeftFunc(ToString(src), unicode.IsSpace))
+}
+
+// Missing/private half of `strings.TrimSpace`. Trims only the suffix.
+func TrimSpaceSuffix[A Text](src A) A {
+	return CastUnsafe[A](strings.TrimRightFunc(ToString(src), unicode.IsSpace))
+}
+
 /*
 Regexp for splitting arbitrary text into words, Unicode-aware. Used by
 `ToWords`.
@@ -237,4 +260,9 @@ func (self Words) MapHead(fun func(string) string) Words {
 		self[0] = fun(self[0])
 	}
 	return self
+}
+
+// Uses `utf8.RuneCountInString` to count chars in arbitrary text.
+func CharCount[A Text](val A) int {
+	return utf8.RuneCountInString(ToString(val))
 }

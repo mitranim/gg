@@ -108,7 +108,7 @@ func StringCatch[A any](val A) (string, error) {
 		return strconv.FormatFloat(float64(val), 'f', -1, 64), nil
 
 	default:
-		return ValueStringCatch(r.ValueOf(box))
+		return StringReflectCatch(r.ValueOf(box))
 	}
 }
 
@@ -116,7 +116,7 @@ func StringCatch[A any](val A) (string, error) {
 Reflection-based component of `StringCatch`.
 Mostly for internal use.
 */
-func ValueStringCatch(val r.Value) (string, error) {
+func StringReflectCatch(val r.Value) (string, error) {
 	if !val.IsValid() {
 		return ``, nil
 	}
@@ -228,7 +228,7 @@ func AppendCatch[A ~[]byte, B any](buf A, src B) (A, error) {
 			return append(buf, stringer.String()...), nil
 		}
 
-		return ValueAppendCatch(buf, r.ValueOf(box))
+		return AppendReflectCatch(buf, r.ValueOf(box))
 	}
 }
 
@@ -236,7 +236,7 @@ func AppendCatch[A ~[]byte, B any](buf A, src B) (A, error) {
 Reflection-based component of `AppendCatch`.
 Mostly for internal use.
 */
-func ValueAppendCatch[A ~[]byte](buf A, val r.Value) (A, error) {
+func AppendReflectCatch[A ~[]byte](buf A, val r.Value) (A, error) {
 	if !val.IsValid() {
 		return buf, nil
 	}

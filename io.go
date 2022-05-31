@@ -133,22 +133,22 @@ const (
 	TermEsc = "\x1b"
 
 	/**
-	Escape sequence recognized by many terminals. When printed, causes the
-	terminal to scroll down as much as needed to create an appearance of
-	clearing the window. Scrolling up reveals previous content.
+	Escape sequence recognized by many terminals. When printed, should cause
+	the terminal to scroll down as much as needed to create an appearance of
+	clearing the window. Scrolling up should reveal previous content.
 	*/
 	TermEscClearSoft = TermEsc + `c`
 
 	/**
-	Escape sequence recognized by many terminals. When printed, causes the
-	terminal to clear the scrollback buffer, without clearing the currently
+	Escape sequence recognized by many terminals. When printed, should cause
+	the terminal to clear the scrollback buffer without clearing the currently
 	visible content.
 	*/
 	TermEscClearScrollback = TermEsc + `[3J`
 
 	/**
-	Escape sequence recognized by many terminals. When printed, causes the
-	terminal to clear both the scrollback buffer and the currently visible
+	Escape sequence recognized by many terminals. When printed, should cause
+	the terminal to clear both the scrollback buffer and the currently visible
 	content.
 	*/
 	TermEscClearHard = TermEscClearSoft + TermEscClearScrollback

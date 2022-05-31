@@ -119,3 +119,10 @@ func (self *UnmarshalerBytes) UnmarshalText(val []byte) error {
 type PtrErrStr string
 
 func (self *PtrErrStr) Error() string { return gg.Deref((*string)(self)) }
+
+type StrsParser []string
+
+func (self *StrsParser) Parse(src string) error {
+	gg.AppendVals(self, src)
+	return nil
+}

@@ -56,12 +56,13 @@ func (self *lazy[A]) init() {
 	}
 }
 
+// Type-inferring shortcut for creating a `Cache` of the given type.
 func CacheOf[
 	Key comparable,
 	Val any,
 	Ptr Initer1[Val, Key],
 ]() *Cache[Key, Val, Ptr] {
-	return &Cache[Key, Val, Ptr]{Map: map[Key]Ptr{}}
+	return new(Cache[Key, Val, Ptr])
 }
 
 type Cache[
@@ -90,7 +91,7 @@ func (self *Cache[Key, Val, Ptr]) Ptr(key Key) Ptr {
 
 	ptr = new(Val)
 	ptr.Init(key)
-	self.Map[key] = ptr
+	MapInit(&self.Map)[key] = ptr
 	return ptr
 }
 
@@ -104,8 +105,9 @@ func (self *Cache[Key, _, _]) Del(key Key) {
 	delete(self.Map, key)
 }
 
+// Type-inferring shortcut for creating a `TypeCache` of the given type.
 func TypeCacheOf[Val any, Ptr Initer1[Val, r.Type]]() *TypeCache[Val, Ptr] {
-	return &TypeCache[Val, Ptr]{Map: map[r.Type]Ptr{}}
+	return new(TypeCache[Val, Ptr])
 }
 
 type TypeCache[Val any, Ptr Initer1[Val, r.Type]] struct {
@@ -130,7 +132,12 @@ func (self *TypeCache[Val, Ptr]) Ptr(key r.Type) Ptr {
 
 	ptr = new(Val)
 	ptr.Init(key)
+
+	if self.Map == nil {
+		self.Map = map[r.Type]Ptr{}
+	}
 	self.Map[key] = ptr
+
 	return ptr
 }
 

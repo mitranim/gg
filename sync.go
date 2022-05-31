@@ -16,12 +16,24 @@ func Lock(val sync.Locker) sync.Locker {
 }
 
 /*
-Shortcut for dereferencing a pointer a lock. Uses `Deref`, returning the zero
-value of the given type if the pointer is nil.
+Shortcut for dereferencing a pointer under a lock. Uses `Deref`, returning the
+zero value of the given type if the pointer is nil.
 */
-func LockDeref[A any](lock sync.Locker, ptr *A) A {
+func LockGet[A any](lock sync.Locker, ptr *A) A {
+	if ptr == nil {
+		return Zero[A]()
+	}
 	defer Lock(lock).Unlock()
-	return Deref(ptr)
+	return *ptr
+}
+
+// Shortcut for writing to a pointer under a lock.
+func LockSet[A any](lock sync.Locker, ptr *A, val A) {
+	if ptr == nil {
+		return
+	}
+	defer Lock(lock).Unlock()
+	*ptr = val
 }
 
 /*

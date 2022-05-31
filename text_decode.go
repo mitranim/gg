@@ -45,14 +45,14 @@ func ParseCatch[Out any, Src Text](src Src, out *Out) error {
 		return unmarshaler.UnmarshalText(ToBytes(src))
 	}
 
-	return ParseValueCatch(src, r.ValueOf(AnyNoEscUnsafe(out)).Elem())
+	return ParseReflectCatch(src, r.ValueOf(AnyNoEscUnsafe(out)).Elem())
 }
 
 /*
 Reflection-based component of `ParseCatch`.
 Mostly for internal use.
 */
-func ParseValueCatch[A Text](src A, out r.Value) error {
+func ParseReflectCatch[A Text](src A, out r.Value) error {
 	typ := out.Type()
 	kind := typ.Kind()
 
@@ -96,7 +96,7 @@ func ParseValueCatch[A Text](src A, out r.Value) error {
 			return unmarshaler.UnmarshalText(ToBytes(src))
 		}
 
-		return ParseValueCatch[A](src, out.Elem())
+		return ParseReflectCatch[A](src, out.Elem())
 
 	default:
 		if IsTypeBytes(typ) {

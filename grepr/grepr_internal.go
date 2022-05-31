@@ -545,11 +545,11 @@ func isValueNilable(src r.Value) bool {
 	}
 }
 
-func setElideType(buf *Fmt, val bool) gg.Snap[bool] {
+func setElideType(buf *Fmt, val bool) gg.Snapshot[bool] {
 	return gg.Swap(&buf.ElideType, val)
 }
 
-func incLvl(buf *Fmt) gg.Snap[int] {
+func incLvl(buf *Fmt) gg.Snapshot[int] {
 	return gg.Swap(&buf.Lvl, buf.Lvl+1)
 }
 

@@ -372,25 +372,34 @@ func Fellback[A any](tar *A, fallback A) bool {
 }
 
 /*
+Snapshots the current value at the given pointer and returns a snapshot
+that can restore this value. Usage:
+
+	defer Snap(&somePtr).Done()
+	somePtr.SomeField = someValue
+*/
+func Snap[A any](ptr *A) Snapshot[A] { return Snapshot[A]{ptr, *ptr} }
+
+/*
 Snapshots the previous value, sets the next value, and returns a snapshot
 that can restore the previous value. Usage:
 
 	defer Swap(&somePtr, someVal).Done()
 */
-func Swap[A any](ptr *A, next A) Snap[A] {
+func Swap[A any](ptr *A, next A) Snapshot[A] {
 	prev := *ptr
 	*ptr = next
-	return Snap[A]{ptr, prev}
+	return Snapshot[A]{ptr, prev}
 }
 
 // Short for "snapshot". Used by `Swap`.
-type Snap[A any] struct {
+type Snapshot[A any] struct {
 	Ptr *A
 	Val A
 }
 
 // If the pointer is non-nil, writes the value to it. See `Swap`.
-func (self Snap[_]) Done() {
+func (self Snapshot[_]) Done() {
 	if self.Ptr != nil {
 		*self.Ptr = self.Val
 	}
@@ -402,24 +411,24 @@ the previous length. Usage:
 
 	defer SnapSlice(&somePtr).Done()
 */
-func SnapSlice[Slice ~[]Elem, Elem any](ptr *Slice) SliceSnap[Elem] {
-	return SliceSnap[Elem]{CastUnsafe[*[]Elem](ptr), PtrLen(ptr)}
+func SnapSlice[Slice ~[]Elem, Elem any](ptr *Slice) SliceSnapshot[Elem] {
+	return SliceSnapshot[Elem]{CastUnsafe[*[]Elem](ptr), PtrLen(ptr)}
 }
 
 /*
-Analogous to `Snap`, but instead of storing a value, stores a length.
+Analogous to `Snapshot`, but instead of storing a value, stores a length.
 When done, reverts the referenced slice to the given length.
 */
-type SliceSnap[A any] struct {
+type SliceSnapshot[A any] struct {
 	Ptr *[]A
 	Len int
 }
 
 /*
-Analogous to `Snap.Done`. Reverts the referenced slice to `self.Len` while
+Analogous to `Snapshot.Done`. Reverts the referenced slice to `self.Len` while
 keeping the capacity.
 */
-func (self SliceSnap[_]) Done() {
+func (self SliceSnapshot[_]) Done() {
 	if self.Ptr != nil {
 		*self.Ptr = (*self.Ptr)[:self.Len]
 	}

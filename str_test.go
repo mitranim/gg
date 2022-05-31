@@ -209,3 +209,21 @@ func BenchmarkJoinOpt(b *testing.B) {
 		gg.Nop1(gg.JoinOpt(val, ` `))
 	}
 }
+
+func TestSplitLines(t *testing.T) {
+	defer gtest.Catch(t)
+
+	var Split = gg.SplitLines[string]
+
+	gtest.Zero(Split(""))
+	gtest.Equal(Split(" "), []string{` `})
+	gtest.Equal(Split("\n"), []string{``, ``})
+	gtest.Equal(Split("one"), []string{`one`})
+	gtest.Equal(Split("one\n"), []string{`one`, ``})
+	gtest.Equal(Split("\none"), []string{``, `one`})
+	gtest.Equal(Split("\none\n"), []string{``, `one`, ``})
+	gtest.Equal(Split("one\ntwo"), []string{`one`, `two`})
+	gtest.Equal(Split("one\ntwo\n"), []string{`one`, `two`, ``})
+	gtest.Equal(Split("\none\ntwo"), []string{``, `one`, `two`})
+	gtest.Equal(Split("\none\ntwo\n"), []string{``, `one`, `two`, ``})
+}

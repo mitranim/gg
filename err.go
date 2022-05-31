@@ -516,7 +516,8 @@ Similar to `errors.As`. Differences:
 
 	* Automatically tries non-pointer and pointer versions of the given type. The
 	  caller should always specify a non-pointer type. This provides nil-safety
-	  for types that implement `error` on the pointer type.
+	  for types that implement `error` on the pointer type. The caller doesn't
+	  have to remember whether to use pointer or non-pointer.
 */
 func ErrAs[
 	Tar any,

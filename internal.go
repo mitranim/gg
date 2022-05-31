@@ -3,6 +3,7 @@ package gg
 import (
 	"path/filepath"
 	r "reflect"
+	"regexp"
 	"strings"
 	u "unsafe"
 )
@@ -104,4 +105,18 @@ func isIntString(val string) bool {
 		}
 	}
 	return true
+}
+
+func hasCliFlag(val string) bool { return len(val) > 0 && val[0] == '-' }
+
+func isCliFlagValid(val string) bool { return reCliFlag().MatchString(val) }
+
+var reCliFlag = Lazy1(regexp.MustCompile, `^-+[\p{L}\d]+$`)
+
+func cliFlagSplit(src string) (string, string, bool) {
+	ind := strings.IndexRune(src, '=')
+	if ind >= 0 {
+		return src[:ind], src[ind+1:], true
+	}
+	return src, ``, false
 }

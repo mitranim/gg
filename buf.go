@@ -91,7 +91,8 @@ func (self *Buf) AppendSpaces(count int) { self.AppendByteN(' ', count) }
 
 // Appends the given byte N times. Mutates and returns the receiver.
 func (self *Buf) AppendByteN(val byte, count int) {
-	for range Iter(count) {
+	for count > 0 {
+		count--
 		self.AppendByte(val)
 	}
 }

@@ -192,6 +192,15 @@ func ValueToStringCatch(val r.Value) (string, error) {
 	return out, ErrConv(val.Interface(), Type[string]())
 }
 
+func ValidateKind(tar r.Type, exp r.Kind) {
+	if TypeKind(tar) != exp {
+		panic(Errf(
+			`expected type of kind %q, got type %v of kind %q`,
+			exp, tar, TypeKind(tar),
+		))
+	}
+}
+
 var StructFieldCache = TypeCacheOf[StructFields]()
 
 type StructFields []r.StructField
@@ -241,9 +250,7 @@ type StructDeepPublicFields []r.StructField
 
 // Implement an interface used by `TypeCache`.
 func (self *StructDeepPublicFields) Init(src r.Type) {
-	if TypeKind(src) != r.Struct {
-		panic(Errf(`expected struct type, got type %v of kind %v`, src, TypeKind(src)))
-	}
+	ValidateKind(src, r.Struct)
 	path := make([]int, 0, expectedStructNesting)
 	self.append(&path, r.StructField{Type: src, Anonymous: true})
 }

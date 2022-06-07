@@ -340,61 +340,61 @@ func TestAnyIs(t *testing.T) {
 	})
 }
 
-func TestAnyTo(t *testing.T) {
+func TestAnyAs(t *testing.T) {
 	t.Run(`nil`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.Zero(gg.AnyTo[any](nil))
-		gtest.Zero(gg.AnyTo[int](nil))
-		gtest.Zero(gg.AnyTo[string](nil))
-		gtest.Zero(gg.AnyTo[*string](nil))
-		gtest.Zero(gg.AnyTo[fmt.Stringer](nil))
+		gtest.Zero(gg.AnyAs[any](nil))
+		gtest.Zero(gg.AnyAs[int](nil))
+		gtest.Zero(gg.AnyAs[string](nil))
+		gtest.Zero(gg.AnyAs[*string](nil))
+		gtest.Zero(gg.AnyAs[fmt.Stringer](nil))
 	})
 
 	t.Run(`mismatch`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.Zero(gg.AnyTo[int](`str`))
-		gtest.Zero(gg.AnyTo[string](10))
-		gtest.Zero(gg.AnyTo[*string](`str`))
-		gtest.Zero(gg.AnyTo[fmt.Stringer](`str`))
+		gtest.Zero(gg.AnyAs[int](`str`))
+		gtest.Zero(gg.AnyAs[string](10))
+		gtest.Zero(gg.AnyAs[*string](`str`))
+		gtest.Zero(gg.AnyAs[fmt.Stringer](`str`))
 	})
 
 	t.Run(`match`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.Equal(gg.AnyTo[any](`str`), `str`)
-		gtest.Eq(gg.AnyTo[int](10), 10)
-		gtest.Eq(gg.AnyTo[string](`str`), `str`)
-		gtest.Equal(gg.AnyTo[*string](gg.Ptr(`str`)), gg.Ptr(`str`))
+		gtest.Equal(gg.AnyAs[any](`str`), `str`)
+		gtest.Eq(gg.AnyAs[int](10), 10)
+		gtest.Eq(gg.AnyAs[string](`str`), `str`)
+		gtest.Equal(gg.AnyAs[*string](gg.Ptr(`str`)), gg.Ptr(`str`))
 
 		gtest.Equal(
-			gg.AnyTo[fmt.Stringer](gg.ErrStr(`str`)),
+			gg.AnyAs[fmt.Stringer](gg.ErrStr(`str`)),
 			fmt.Stringer(gg.ErrStr(`str`)),
 		)
 	})
 }
-func BenchmarkAnyTo_concrete_miss(b *testing.B) {
+func BenchmarkAnyAs_concrete_miss(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.AnyTo[gg.ErrStr](0))
+		gg.Nop1(gg.AnyAs[gg.ErrStr](0))
 	}
 }
 
-func BenchmarkAnyTo_iface_miss(b *testing.B) {
+func BenchmarkAnyAs_iface_miss(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.AnyTo[fmt.Stringer](0))
+		gg.Nop1(gg.AnyAs[fmt.Stringer](0))
 	}
 }
 
-func BenchmarkAnyTo_concrete_hit(b *testing.B) {
+func BenchmarkAnyAs_concrete_hit(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.AnyTo[gg.ErrStr](gg.ErrStr(``)))
+		gg.Nop1(gg.AnyAs[gg.ErrStr](gg.ErrStr(``)))
 	}
 }
 
-func BenchmarkAnyTo_iface_hit(b *testing.B) {
+func BenchmarkAnyAs_iface_hit(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.AnyTo[fmt.Stringer](gg.ErrStr(``)))
+		gg.Nop1(gg.AnyAs[fmt.Stringer](gg.ErrStr(``)))
 	}
 }
 

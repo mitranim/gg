@@ -100,12 +100,12 @@ func (self Opt[A]) MarshalJSON() ([]byte, error) {
 
 /*
 Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
-clears the receiver via `.Clear`. Otherwise uses `json.Unmarshaler` to decode
+clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
 into the underlying value.
 */
 //go:noinline
 func (self *Opt[A]) UnmarshalJSON(src []byte) error {
-	if isJsonEmpty(src) {
+	if IsJsonEmpty(src) {
 		self.Clear()
 		return nil
 	}

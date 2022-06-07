@@ -1,6 +1,10 @@
 package gg_test
 
-import "github.com/mitranim/gg"
+import (
+	"strconv"
+
+	"github.com/mitranim/gg"
+)
 
 func init() { gg.TraceBaseDir = gg.Cwd() }
 
@@ -125,4 +129,12 @@ type StrsParser []string
 func (self *StrsParser) Parse(src string) error {
 	gg.AppendVals(self, src)
 	return nil
+}
+
+func intStrPair(src int) []string {
+	return []string{strconv.Itoa(src - 1), strconv.Itoa(src + 1)}
+}
+
+func intPair(src int) []int {
+	return []int{src - 1, src + 1}
 }

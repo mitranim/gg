@@ -275,7 +275,7 @@ func AnyIs[A any](src any) bool {
 Non-asserting interface conversion. Safely converts the given `any` into the
 given type, returning zero value on failure.
 */
-func AnyTo[A any](src any) A {
+func AnyAs[A any](src any) A {
 	val, _ := AnyNoEscUnsafe(src).(A)
 	return val
 }
@@ -464,13 +464,14 @@ type Tup3[A, B, C any] struct {
 func (self Tup3[A, B, C]) Get() (A, B, C) { return self.A, self.B, self.C }
 
 /*
-Makes a zero value of the given type, passes it to the given mutator function by
-pointer, and returns the modified value. If the function is nil, the result is
-a zero value.
+Makes a zero value of the given type, passes it to the given mutator functions
+by pointer, and returns the modified value. Nil functions are ignored.
 */
-func With[A any](fun func(*A)) (out A) {
-	if fun != nil {
-		fun(&out)
+func With[A any](funs ...func(*A)) (out A) {
+	for _, fun := range funs {
+		if fun != nil {
+			fun(&out)
+		}
 	}
 	return
 }

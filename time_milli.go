@@ -152,7 +152,7 @@ with `.Parse`. Otherwise uses the default `json.Unmarshal` behavior for
 `*time.Time` and stores the resulting timestamp in milliseconds.
 */
 func (self *TimeMilli) UnmarshalJSON(src []byte) error {
-	if isJsonEmpty(src) {
+	if IsJsonEmpty(src) {
 		self.Clear()
 		return nil
 	}

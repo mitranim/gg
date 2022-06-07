@@ -50,12 +50,12 @@ nothing was previously stored.
 */
 func (self *Atom[A]) Loaded() (A, bool) {
 	val := (*atomic.Value)(self).Load()
-	return AnyTo[A](val), val != nil
+	return AnyAs[A](val), val != nil
 }
 
 // Typed version of `atomic.Value.Load`.
 func (self *Atom[A]) Load() A {
-	return AnyTo[A]((*atomic.Value)(self).Load())
+	return AnyAs[A]((*atomic.Value)(self).Load())
 }
 
 // Typed version of `atomic.Value.Store`.
@@ -65,7 +65,7 @@ func (self *Atom[A]) Store(val A) {
 
 // Typed version of `atomic.Value.Swap`.
 func (self *Atom[A]) Swap(val A) A {
-	return AnyTo[A]((*atomic.Value)(self).Swap(val))
+	return AnyAs[A]((*atomic.Value)(self).Swap(val))
 }
 
 // Typed version of `atomic.Value.CompareAndSwap`.
@@ -84,19 +84,19 @@ type SyncMap[Key comparable, Val any] sync.Map
 // Typed version of `sync.Map.Load`.
 func (self *SyncMap[Key, Val]) Load(key Key) (Val, bool) {
 	iface, ok := (*sync.Map)(self).Load(key)
-	return AnyTo[Val](iface), ok
+	return AnyAs[Val](iface), ok
 }
 
 // Typed version of `sync.Map.LoadOrStore`.
 func (self *SyncMap[Key, Val]) LoadOrStore(key Key, val Val) (Val, bool) {
 	iface, ok := (*sync.Map)(self).LoadOrStore(key, val)
-	return AnyTo[Val](iface), ok
+	return AnyAs[Val](iface), ok
 }
 
 // Typed version of `sync.Map.LoadAndDelete`.
 func (self *SyncMap[Key, Val]) LoadAndDelete(key Key) (Val, bool) {
 	iface, ok := (*sync.Map)(self).LoadAndDelete(key)
-	return AnyTo[Val](iface), ok
+	return AnyAs[Val](iface), ok
 }
 
 // Typed version of `sync.Map.Store`.

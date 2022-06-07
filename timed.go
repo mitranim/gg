@@ -63,12 +63,12 @@ func (self Timed[A]) MarshalJSON() ([]byte, error) {
 
 /*
 Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
-clears the receiver via `.Clear`. Otherwise uses `json.Unmarshaler` to decode
+clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
 into the underlying value, and sets the current timestamp on success.
 */
 //go:noinline
 func (self *Timed[A]) UnmarshalJSON(src []byte) error {
-	if isJsonEmpty(src) {
+	if IsJsonEmpty(src) {
 		self.Clear()
 		return nil
 	}

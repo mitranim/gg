@@ -412,6 +412,21 @@ func ErrorStr(exp string, err error, opt ...any) {
 }
 
 /*
+Asserts that the given error is non-nil and matches the expected error via
+`errors.Is`, or fails the test, printing the optional additional messages and
+the stack trace.
+*/
+func ErrorIs(exp, err error, opt ...any) {
+	if exp == nil {
+		panic(ToErr(1, msgOpt(opt, `expected error must be non-nil`)))
+	}
+
+	if !e.Is(err, exp) {
+		panic(ToErr(1, msgOpt(opt, msgErrIsMismatch(err, exp))))
+	}
+}
+
+/*
 Asserts that the given error is non-nil, or fails the test, printing the
 optional additional messages and the stack trace.
 */

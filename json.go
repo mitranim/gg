@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Uses `json.Marshal` to encode the given value as JSON, panicking on error.
@@ -129,4 +130,10 @@ func JsonDecodeClose[A any](src io.ReadCloser, out *A) {
 	if out != nil {
 		Try(json.NewDecoder(NoEscUnsafe(src)).Decode(AnyNoEscUnsafe(out)))
 	}
+}
+
+// True if the input is "null" or blank. Ignores whitespace.
+func IsJsonEmpty[A Text](val A) bool {
+	src := strings.TrimSpace(ToString(val))
+	return src == `` || src == `null`
 }

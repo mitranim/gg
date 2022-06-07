@@ -347,7 +347,7 @@ type ErrAny struct{ Val any }
 func (self ErrAny) Error() string { return fmt.Sprint(self.Val) }
 
 // Implement a hidden interface in "errors".
-func (self ErrAny) Unwrap() error { return AnyTo[error](self.Val) }
+func (self ErrAny) Unwrap() error { return AnyAs[error](self.Val) }
 
 /*
 String typedef that implements `error`. Errors of this type can be defined as
@@ -412,7 +412,7 @@ If no trace is found, generates a new trace, skipping the given amount of
 frames. Suitable for use on `any` values returned by `recover`.
 */
 func AnyTrace(val any, skip int) Trace {
-	out := ErrTrace(AnyTo[error](val))
+	out := ErrTrace(AnyAs[error](val))
 	if out != nil {
 		return out
 	}

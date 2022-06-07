@@ -225,6 +225,23 @@ func BenchmarkMap(b *testing.B) {
 	}
 }
 
+func TestMapMut(t *testing.T) {
+	defer gtest.Catch(t)
+
+	src := []int{10, 20, 30}
+	gtest.SliceIs(gg.MapMut(src, nil), src)
+	gtest.Equal(src, []int{10, 20, 30})
+
+	gtest.SliceIs(gg.MapMut(src, gg.Inc[int]), src)
+	gtest.Equal(src, []int{11, 21, 31})
+
+	gtest.SliceIs(gg.MapMut(src, gg.Dec[int]), src)
+	gtest.Equal(src, []int{10, 20, 30})
+
+	gtest.SliceIs(gg.MapMut(src, gg.Dec[int]), src)
+	gtest.Equal(src, []int{9, 19, 29})
+}
+
 func TestMap2(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -262,21 +279,42 @@ func TestMap2(t *testing.T) {
 	)
 }
 
-func TestMapMut(t *testing.T) {
+func TestMapFlat(t *testing.T) {
 	defer gtest.Catch(t)
 
-	src := []int{10, 20, 30}
-	gtest.SliceIs(gg.MapMut(src, nil), src)
-	gtest.Equal(src, []int{10, 20, 30})
+	gtest.Equal(
+		gg.MapFlat([]int(nil), intStrPair),
+		[]string(nil),
+	)
 
-	gtest.SliceIs(gg.MapMut(src, gg.Inc[int]), src)
-	gtest.Equal(src, []int{11, 21, 31})
+	gtest.Equal(
+		gg.MapFlat([]int{}, intStrPair),
+		[]string(nil),
+	)
 
-	gtest.SliceIs(gg.MapMut(src, gg.Dec[int]), src)
-	gtest.Equal(src, []int{10, 20, 30})
+	gtest.Equal(
+		gg.MapFlat([]int{10}, intStrPair),
+		[]string{`9`, `11`},
+	)
 
-	gtest.SliceIs(gg.MapMut(src, gg.Dec[int]), src)
-	gtest.Equal(src, []int{9, 19, 29})
+	gtest.Equal(
+		gg.MapFlat([]int{10, 20}, intStrPair),
+		[]string{`9`, `11`, `19`, `21`},
+	)
+
+	gtest.Equal(
+		gg.MapFlat([]int{10, 20, 30}, intStrPair),
+		[]string{`9`, `11`, `19`, `21`, `29`, `31`},
+	)
+}
+
+func BenchmarkMapFlat(b *testing.B) {
+	val := gg.Span(32)
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.MapFlat(val, intPair))
+	}
 }
 
 func TestIndex(t *testing.T) {
@@ -903,6 +941,52 @@ func TestIntersect(t *testing.T) {
 
 	gtest.Equal(gg.Intersect(Type{10, 20}, Type{-10, 20, 30}), Type{20})
 	gtest.Equal(gg.Intersect(Type{10, 20, 30}, Type{-10, 20, 30, 40}), Type{20, 30})
+}
+
+func TestUnion(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Elem = int
+	type Slice = []Elem
+
+	gtest.Zero(gg.Union[Slice]())
+	gtest.Zero(gg.Union[Slice](nil))
+	gtest.Zero(gg.Union[Slice](nil, nil))
+	gtest.Zero(gg.Union[Slice](nil, nil, Slice{}, nil, Slice{}))
+
+	// Special case: if the arguments have exactly one non-empty slice, return it
+	// as-is, even if it contains dupes.
+	gtest.Equal(gg.Union(Slice{10}), Slice{10})
+	gtest.Equal(gg.Union(Slice{10, 10}), Slice{10, 10})
+	gtest.Equal(gg.Union(nil, Slice{10, 10}), Slice{10, 10})
+	gtest.Equal(gg.Union(Slice{10, 10}, nil), Slice{10, 10})
+	gtest.Equal(gg.Union(nil, Slice{10, 10}, nil), Slice{10, 10})
+
+	gtest.Equal(gg.Union(Slice{10}, Slice{10}), Slice{10})
+	gtest.Equal(gg.Union(Slice{10, 20}, Slice{10}), Slice{10, 20})
+	gtest.Equal(gg.Union(Slice{10, 20}, Slice{10, 20}), Slice{10, 20})
+	gtest.Equal(gg.Union(Slice{10, 20}, Slice{20, 10}), Slice{10, 20})
+	gtest.Equal(gg.Union(Slice{10, 20}, Slice{20, 10, 30}), Slice{10, 20, 30})
+	gtest.Equal(gg.Union(Slice{10, 20}, Slice{20, 10}, Slice{30, 20, 10}), Slice{10, 20, 30})
+	gtest.Equal(gg.Union(Slice{}, Slice{20, 10}, Slice{30, 20, 10}), Slice{20, 10, 30})
+}
+
+func TestUniq(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Elem = int
+	type Slice = []Elem
+
+	gtest.Zero(gg.Uniq(Slice(nil)))
+	gtest.Zero(gg.Uniq(Slice{}))
+
+	gtest.Equal(gg.Uniq(Slice{10}), Slice{10})
+	gtest.Equal(gg.Uniq(Slice{10, 10}), Slice{10})
+	gtest.Equal(gg.Uniq(Slice{10, 10, 10}), Slice{10})
+	gtest.Equal(gg.Uniq(Slice{10, 10, 10, 20}), Slice{10, 20})
+	gtest.Equal(gg.Uniq(Slice{10, 10, 10, 20, 20}), Slice{10, 20})
+	gtest.Equal(gg.Uniq(Slice{10, 20, 20, 10}), Slice{10, 20})
+	gtest.Equal(gg.Uniq(Slice{30, 10, 20, 20, 10, 30}), Slice{30, 10, 20})
 }
 
 func TestHas(t *testing.T) {

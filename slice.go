@@ -624,24 +624,6 @@ func Map[A, B any](src []A, fun func(A) B) []B {
 }
 
 /*
-Similar to `Map` but iterates two slices pairwise, passing each element pair to
-the mapping function. If slice lengths don't match, panics.
-*/
-func Map2[A, B, C any](one []A, two []B, fun func(A, B) C) []C {
-	validateLenMatch(len(one), len(two))
-
-	if one == nil || two == nil {
-		return nil
-	}
-
-	out := make([]C, 0, len(one))
-	for ind := range one {
-		out = append(out, fun(one[ind], two[ind]))
-	}
-	return out
-}
-
-/*
 Similar to `Map` but instead of creating a new slice, appends to an existing
 slice.
 */
@@ -679,6 +661,24 @@ func MapMut[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) Elem) Slice {
 //go:noinline
 func (self Slice[A]) MapMut(fun func(A) A) Slice[A] { return MapMut(self, fun) }
 
+/*
+Similar to `Map` but iterates two slices pairwise, passing each element pair to
+the mapping function. If slice lengths don't match, panics.
+*/
+func Map2[A, B, C any](one []A, two []B, fun func(A, B) C) []C {
+	validateLenMatch(len(one), len(two))
+
+	if one == nil || two == nil {
+		return nil
+	}
+
+	out := make([]C, 0, len(one))
+	for ind := range one {
+		out = append(out, fun(one[ind], two[ind]))
+	}
+	return out
+}
+
 // Similar to `Map` but excludes any zero values produced by the given function.
 func MapCompact[A, B any](src []A, fun func(A) B) []B {
 	if fun == nil {
@@ -691,6 +691,19 @@ func MapCompact[A, B any](src []A, fun func(A) B) []B {
 		if !IsZero(val) {
 			out = append(out, val)
 		}
+	}
+	return out
+}
+
+// Similar to `Map` but concats the slices returned by the given function.
+func MapFlat[A, B any](src []A, fun func(A) []B) []B {
+	if src == nil {
+		return nil
+	}
+
+	var out []B
+	for _, val := range src {
+		out = append(out, fun(val)...)
 	}
 	return out
 }
@@ -949,7 +962,7 @@ func (self *Slice[A]) RejectAppend(src []A, fun func(A) bool) {
 }
 
 /*
-Returns the indexes of the given slice that satisfy the given function.
+Takes a slice and returns the indexes whose elements satisfy the given function.
 All indexes are within the bounds of the original slice.
 */
 func FilterIndex[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) []int {
@@ -973,7 +986,7 @@ func (self Slice[A]) FilterIndex(fun func(A) bool) []int {
 }
 
 /*
-Returns the indexes of the given slice whose values are zero.
+Takes a slice and returns the indexes whose elements are zero.
 All indexes are within the bounds of the original slice.
 */
 func ZeroIndex[Slice ~[]Elem, Elem any](src Slice) []int {
@@ -985,7 +998,7 @@ func ZeroIndex[Slice ~[]Elem, Elem any](src Slice) []int {
 func (self Slice[A]) ZeroIndex() []int { return ZeroIndex(self) }
 
 /*
-Returns the indexes of the given slice whose values are non-zero.
+Takes a slice and returns the indexes whose elements are non-zero.
 All indexes are within the bounds of the original slice.
 */
 func NonZeroIndex[Slice ~[]Elem, Elem any](src Slice) []int {
@@ -1120,6 +1133,52 @@ func Subtract[Slice ~[]Elem, Elem comparable](base Slice, sub ...Slice) Slice {
 // Returns intersection of two slices: elements that occur in both.
 func Intersect[Slice ~[]Elem, Elem comparable](one, two Slice) Slice {
 	return Filter(one, SetOf(two...).Has)
+}
+
+/*
+Combines the given slices, deduplicating their elements and preserving the order
+of first occurrence for each element. As a special case, if the arguments
+contain exactly one non-empty slice, it's returned as-is without deduplication.
+To ensure uniqueness in all cases, call `Uniq`.
+*/
+func Union[Slice ~[]Elem, Elem comparable](val ...Slice) Slice {
+	if Count(val, HasLen[Slice]) == 1 {
+		return Find(val, HasLen[Slice])
+	}
+
+	var tar Slice
+	var set Set[Elem]
+
+	for _, val := range val {
+		for _, val := range val {
+			if set.Has(val) {
+				continue
+			}
+			tar = append(tar, val)
+			set.Init().Add(val)
+		}
+	}
+
+	return tar
+}
+
+/*
+Deduplicates the elements of the given slice, preserving the order of initial
+occurrence for each element. The output is always a newly allocated slice.
+*/
+func Uniq[Slice ~[]Elem, Elem comparable](src Slice) Slice {
+	var tar Slice
+	var set Set[Elem]
+
+	for _, val := range src {
+		if set.Has(val) {
+			continue
+		}
+		tar = append(tar, val)
+		set.Init().Add(val)
+	}
+
+	return tar
 }
 
 /*

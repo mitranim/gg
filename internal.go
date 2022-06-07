@@ -17,10 +17,6 @@ func noescape(src u.Pointer) u.Pointer {
 	return u.Pointer(out ^ 0)
 }
 
-func isJsonEmpty[A Text](val A) bool {
-	return len(val) == 0 || strings.TrimSpace(ToString(val)) == `null`
-}
-
 func errAppendInner(buf Buf, err error) Buf {
 	if err != nil {
 		buf.AppendString(`: `)

@@ -181,6 +181,27 @@ Mutates and returns the receiver.
 */
 func (self *Buf) AppendAny(val any) { *self = Append(*self, val) }
 
+// Like `(*Buf).AppendAny` but variadic. TODO better name.
+func (self *Buf) AppendAnys(val ...any) {
+	for _, val := range val {
+		self.AppendAny(val)
+	}
+}
+
+/*
+Like `(*Buf).AppendAnys` but ensures a trailing newline, similarly to
+`fmt.Println`. If the last value provides a newline, an additional newline
+is not appended. TODO better name.
+*/
+func (self *Buf) AppendAnysln(val ...any) {
+	len0 := self.Len()
+	self.AppendAnys(val...)
+	len1 := self.Len()
+	if len0 == len1 || (len1 > len0 && !HasNewlineSuffix(*self)) {
+		self.AppendNewline()
+	}
+}
+
 /*
 Appends the text representation of the input, using the `AppendGoString`
 function. Mutates and returns the receiver.

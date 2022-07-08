@@ -113,6 +113,11 @@ Interface for types that support parsing from a string. Counterpart to
 */
 type Parser interface{ Parse(string) error }
 
+type ParserPtr[A any] interface {
+	*A
+	Parser
+}
+
 // Copy of `sql.Scanner`. Copied here to avoid a huge import.
 type Scanner interface{ Scan(any) error }
 

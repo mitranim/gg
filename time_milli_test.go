@@ -94,6 +94,7 @@ func testTimeMilli(t *testing.T) {
 	})
 
 	t.Run(`Parse`, func(t *testing.T) {
+		defer gtest.Catch(t)
 		testTimeMilliParse(t, (*gg.TimeMilli).Parse)
 	})
 

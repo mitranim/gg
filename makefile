@@ -44,6 +44,15 @@ prof_cpu:
 prof_mem:
 	go tool pprof -web mem.prof
 
+# Example: `make release tag=v0.0.1`.
+release:
+ifeq ($(tag),)
+	$(error missing tag)
+endif
+	git pull --rebase
+	git show-ref --tags --quiet "$(tag)" || git tag "$(tag)"
+	git push origin $$(git symbolic-ref --short HEAD) "$(tag)"
+
 # Assumes MacOS and Homebrew.
 deps:
 	go install github.com/mitranim/gow@latest

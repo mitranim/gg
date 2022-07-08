@@ -27,6 +27,8 @@ func TestString(t *testing.T) {
 	gtest.Eq(gg.String(-10), `-10`)
 
 	gtest.Eq(gg.String(0.0), `0`)
+	gtest.Eq(gg.String(10.0), `10`)
+	gtest.Eq(gg.String(-10.0), `-10`)
 	gtest.Eq(gg.String(10.23), `10.23`)
 	gtest.Eq(gg.String(-10.23), `-10.23`)
 

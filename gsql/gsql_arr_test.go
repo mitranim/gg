@@ -19,9 +19,9 @@ func TestArrOf(t *testing.T) {
 }
 
 func TestArr(t *testing.T) {
-	defer gtest.Catch(t)
-
 	t.Run(`String`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
 		gtest.Str(gsql.Arr[int](nil), ``)
 		gtest.Str(gsql.Arr[int]{}, `{}`)
 		gtest.Str(gsql.Arr[int]{10}, `{10}`)
@@ -32,6 +32,8 @@ func TestArr(t *testing.T) {
 	})
 
 	t.Run(`Parse`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
 		testParser(``, gsql.Arr[int](nil))
 		testParser(`{}`, gsql.Arr[int]{})
 		testParser(`{10}`, gsql.Arr[int]{10})

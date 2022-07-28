@@ -37,8 +37,8 @@ func TestErrTrace(t *testing.T) {
 
 	gtest.Eq(outer.Error(), `outer: inner`)
 	gtest.True(errors.Is(outer, inner))
-	gtest.Equal(gg.ErrTrace(inner), gg.Deref(inner.Trace))
-	gtest.Equal(gg.ErrTrace(outer), gg.Deref(inner.Trace))
+	gtest.Equal(gg.ErrTrace(inner), gg.PtrGet(inner.Trace))
+	gtest.Equal(gg.ErrTrace(outer), gg.PtrGet(inner.Trace))
 }
 
 func TestToErrAny(t *testing.T) {
@@ -192,7 +192,7 @@ func TestWrapf(t *testing.T) {
 
 		gtest.Equal(err.Msg, `unable to do stuff`)
 		gtest.Equal(err.Cause, error(gg.ErrAny{`some cause`}))
-		gtest.True(gg.Deref(err.Trace).HasLen())
+		gtest.True(gg.PtrGet(err.Trace).HasLen())
 	})
 
 	t.Run(`cause_with_stack`, func(t *testing.T) {
@@ -201,11 +201,11 @@ func TestWrapf(t *testing.T) {
 		err := gg.Wrapf(gg.Errf(`some cause`), `unable to %v`, `do stuff`).(gg.Err)
 
 		gtest.Equal(err.Msg, `unable to do stuff`)
-		gtest.False(gg.Deref(err.Trace).HasLen())
+		gtest.False(gg.PtrGet(err.Trace).HasLen())
 
 		cause := err.Cause.(gg.Err)
 		gtest.Equal(cause.Msg, `some cause`)
-		gtest.True(gg.Deref(cause.Trace).HasLen())
+		gtest.True(gg.PtrGet(cause.Trace).HasLen())
 	})
 }
 

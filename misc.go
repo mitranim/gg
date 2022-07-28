@@ -24,14 +24,19 @@ func IsZero[A any](val A) bool {
 		return true
 	}
 
-	// Prioritize `==` over reflection if possible. This is measurably faster than
-	// the reflect-based version, especially for large value types such as fat
-	// structs or arrays,
+	/**
+	Prioritize `==` over reflection if possible. This is measurably faster than
+	the reflect-based version, especially for large value types such as fat
+	structs or arrays. It would be ideal to compare concrete values rather than
+	`any`, but we can't afford to require `comparable` here, and comparing `any`
+	seems fast enough.
+	*/
 	if Type[A]().Comparable() {
-		// True zero value must always be considered zero, even if the type
-		// implements `Zeroable`. More importantly, this safeguards us against
-		// unusual cases such as `reflect.Value.IsZero`, which panics when called
-		// on the zero value of `reflect.Value`.
+		/**
+		True zero value must always be considered zero. This safeguards us against
+		bizarre implementations of `Zeroable` such as `reflect.Value.IsZero`,
+		which panics when called on the zero value of `reflect.Value`.
+		*/
 		if box == AnyNoEscUnsafe(Zero[A]()) {
 			return true
 		}
@@ -75,11 +80,8 @@ containing a shallow copy of that value.
 */
 func Ptr[A any](val A) *A { return &val }
 
-/*
-If the pointer is non-nil, dereferences it. Otherwise returns zero value.
-TODO consider renaming to `PtrGet`.
-*/
-func Deref[A any](val *A) A {
+// If the pointer is non-nil, dereferences it. Otherwise returns zero value.
+func PtrGet[A any](val *A) A {
 	if val != nil {
 		return *val
 	}
@@ -101,6 +103,17 @@ func PtrSetOpt[A any](tar, src *A) {
 	if tar != nil && src != nil {
 		*tar = *src
 	}
+}
+
+/*
+If the pointer is non-nil, returns its value while zeroing the destination.
+Otherwise returns zero value.
+*/
+func PtrPop[A any](src *A) (out A) {
+	if src != nil {
+		out, *src = *src, out
+	}
+	return
 }
 
 /*

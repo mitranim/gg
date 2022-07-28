@@ -33,7 +33,8 @@ type Coll[
 /*
 Reindexes the collection. Must be invoked after appending elements to the slice
 through external means. Note that all built-in methods of this type perform
-indexing automatically.
+indexing automatically. This method must be invoked if the collection is
+modified by directly accessing `.Slice` and/or `.Index`.
 */
 func (self *Coll[Key, Val]) Calc() {
 	if !self.isIndexed() {
@@ -71,7 +72,7 @@ was actually present.
 */
 func (self Coll[Key, Val]) Got(key Key) (Val, bool) {
 	ptr := self.Ptr(key)
-	return Deref(ptr), ptr != nil
+	return PtrGet(ptr), ptr != nil
 }
 
 /*
@@ -85,7 +86,7 @@ func (self Coll[Key, _]) Has(key Key) bool {
 
 // Returns the value indexed on the given key, or the zero value of that type.
 func (self Coll[Key, Val]) Get(key Key) Val {
-	return Deref(self.Ptr(key))
+	return PtrGet(self.Ptr(key))
 }
 
 /*
@@ -100,7 +101,14 @@ func (self Coll[Key, Val]) Ptr(key Key) *Val {
 	return GetPtr(self.Slice, ind)
 }
 
+// Same as `len(self.Index)`.
 func (self Coll[_, _]) Len() int { return len(self.Index) }
+
+// True if length > 0.
+func (self Coll[_, _]) HasLen() bool { return self.Len() > 0 }
+
+// Inverse of `.HasLen`.
+func (self Coll[_, _]) IsEmpty() bool { return !self.HasLen() }
 
 // Implement `json.Marshaler`. Encodes the inner slice, ignoring the index.
 func (self Coll[_, _]) MarshalJSON() ([]byte, error) {

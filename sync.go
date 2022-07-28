@@ -16,7 +16,7 @@ func Lock(val sync.Locker) sync.Locker {
 }
 
 /*
-Shortcut for dereferencing a pointer under a lock. Uses `Deref`, returning the
+Shortcut for dereferencing a pointer under a lock. Uses `PtrGet`, returning the
 zero value of the given type if the pointer is nil.
 */
 func LockGet[A any](lock sync.Locker, ptr *A) A {

@@ -19,7 +19,7 @@ wrapping. Provides a convenient builder API.
 type Err struct {
 	Msg   string
 	Cause error
-	Trace *Trace // Included by pointer to allow `==` for errors.
+	Trace *Trace // By pointer to allow `==` without panics.
 }
 
 // Implement `error`.
@@ -95,12 +95,12 @@ func (self Err) AppendStack(inout []byte) []byte {
 
 	if self.Msg == `` {
 		if cause == nil {
-			return Deref(self.Trace).AppendIndent(buf, 0)
+			return PtrGet(self.Trace).AppendIndent(buf, 0)
 		}
 
 		if !causeTraced {
 			buf.AppendString(cause.Error())
-			buf = errAppendTraceIndent(buf, Deref(self.Trace))
+			buf = errAppendTraceIndent(buf, PtrGet(self.Trace))
 			return buf
 		}
 
@@ -111,14 +111,14 @@ func (self Err) AppendStack(inout []byte) []byte {
 	if !causeTraced {
 		buf.AppendString(self.Msg)
 		buf = errAppendInner(buf, cause)
-		buf = errAppendTraceIndent(buf, Deref(self.Trace))
+		buf = errAppendTraceIndent(buf, PtrGet(self.Trace))
 		return buf
 	}
 
 	buf.AppendString(self.Msg)
 
-	if Deref(self.Trace).HasLen() {
-		buf = errAppendTraceIndent(buf, Deref(self.Trace))
+	if PtrGet(self.Trace).HasLen() {
+		buf = errAppendTraceIndent(buf, PtrGet(self.Trace))
 		if cause != nil {
 			buf.AppendNewline()
 			buf.AppendNewline()
@@ -160,7 +160,7 @@ func (self Err) Format(out fmt.State, verb rune) {
 Implement `StackTraced`, which allows to retrieve stack traces from nested
 errors.
 */
-func (self Err) StackTrace() []uintptr { return Deref(self.Trace).Prim() }
+func (self Err) StackTrace() []uintptr { return PtrGet(self.Trace).Prim() }
 
 // Returns a modified version where `.Msg` is set to the input.
 func (self Err) Msgd(val string) Err {
@@ -206,7 +206,7 @@ func (self Err) TracedOpt(skip int) Err {
 
 // True if either the error or its cause has a non-empty stack trace.
 func (self Err) IsTraced() bool {
-	return Deref(self.Trace).HasLen() || IsErrTraced(self.Cause)
+	return PtrGet(self.Trace).HasLen() || IsErrTraced(self.Cause)
 }
 
 /*
@@ -533,7 +533,7 @@ func ErrAs[
 
 	var ptr Ptr
 	if errors.As(src, &ptr) {
-		return Deref((*Tar)(ptr))
+		return PtrGet((*Tar)(ptr))
 	}
 
 	return Zero[Tar]()

@@ -59,8 +59,8 @@ func Len[Slice ~[]Elem, Elem any](val Slice) int { return len(val) }
 //go:noinline
 func (self Slice[_]) Len() int { return len(self) }
 
-// Same as `len(Deref(val))` but can be passed to higher-order functions.
-func PtrLen[Slice ~[]Elem, Elem any](val *Slice) int { return len(Deref(val)) }
+// Same as `len(PtrGet(val))` but can be passed to higher-order functions.
+func PtrLen[Slice ~[]Elem, Elem any](val *Slice) int { return len(PtrGet(val)) }
 
 // Same as global `PtrLen`.
 func (self *Slice[_]) PtrLen() int { return PtrLen(self) }

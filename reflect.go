@@ -371,8 +371,8 @@ func IsFieldEmbed(val r.StructField) bool {
 }
 
 /*
-Returns the element type of the provided type, automatically dereferencing
-pointer types. If the input is nil, returns nil.
+Dereferences the given type, converting `reflect.Pointer` to its element type as
+many times as necessary. Returns an underlying non-pointer type.
 */
 func TypeDeref(val r.Type) r.Type {
 	for val != nil && val.Kind() == r.Pointer {
@@ -382,10 +382,10 @@ func TypeDeref(val r.Type) r.Type {
 }
 
 /*
-Dereferences the provided value until it's no longer a pointer. If the input is
-a nil pointer, or if any intermediary pointers are nil, returns an
-empty/invalid value. Also see `ValueDerefAlloc` which allocates intermediary
-pointers as necessary/possible.
+Dereferences the given value until it's no longer a pointer. If the input is a
+nil pointer, or if any intermediary pointers are nil, returns an empty/invalid
+value. Also see `ValueDerefAlloc` which allocates intermediary pointers as
+necessary/possible.
 */
 func ValueDeref(val r.Value) r.Value {
 	for val.Kind() == r.Pointer {
@@ -398,7 +398,7 @@ func ValueDeref(val r.Value) r.Value {
 }
 
 /*
-Dereferences the provided value until it's no longer a pointer, allocating
+Dereferences the given value until it's no longer a pointer, allocating
 intermediary pointers as necessary/possible. Also see `ValueDerefAlloc` which
 does not allocate intermediaries.
 */
@@ -422,13 +422,12 @@ For any "indirect" type, reassignment is insufficient to make a copy.
 
 Special exceptions:
 
-	* Strings are considered to be non-indirect, despite containing a pointer.
-	  Generally in Go, strings are considered to be immutable and reassignment is
-	  considered to be a copy.
+	* Strings are considered to be direct, despite containing a pointer.
+	  Generally in Go, strings are considered to be immutable.
 
-	* Chans are considered to be non-indirect.
+	* Chans are ignored / considered to be direct.
 
-	* Funcs are considered to be non-indirect.
+	* Funcs are ignored / considered to be direct.
 
 	* For structs, only public fields are checked.
 */

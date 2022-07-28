@@ -165,29 +165,29 @@ func BenchmarkClear(b *testing.B) {
 	}
 }
 
-func TestDeref(t *testing.T) {
+func TestPtrGet(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.Eq(gg.Deref((*string)(nil)), ``)
-	gtest.Eq(gg.Deref(new(string)), ``)
-	gtest.Eq(gg.Deref(gg.Ptr(`str`)), `str`)
+	gtest.Eq(gg.PtrGet((*string)(nil)), ``)
+	gtest.Eq(gg.PtrGet(new(string)), ``)
+	gtest.Eq(gg.PtrGet(gg.Ptr(`str`)), `str`)
 
-	gtest.Eq(gg.Deref((*int)(nil)), 0)
-	gtest.Eq(gg.Deref(new(int)), 0)
-	gtest.Eq(gg.Deref(gg.Ptr(10)), 10)
+	gtest.Eq(gg.PtrGet((*int)(nil)), 0)
+	gtest.Eq(gg.PtrGet(new(int)), 0)
+	gtest.Eq(gg.PtrGet(gg.Ptr(10)), 10)
 }
 
-func BenchmarkDeref_miss(b *testing.B) {
+func BenchmarkPtrGet_miss(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.Deref((*[]string)(nil)))
+		gg.Nop1(gg.PtrGet((*[]string)(nil)))
 	}
 }
 
-func BenchmarkDeref_hit(b *testing.B) {
+func BenchmarkPtrGet_hit(b *testing.B) {
 	ptr := gg.Ptr([]string{`one`, `two`})
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.Deref(ptr))
+		gg.Nop1(gg.PtrGet(ptr))
 	}
 }
 
@@ -223,6 +223,18 @@ func TestPtrSetOpt(t *testing.T) {
 
 	gg.PtrSetOpt(&tar, gg.Ptr(`two`))
 	gtest.Eq(tar, `two`)
+}
+
+func TestPtrPop(t *testing.T) {
+	defer gtest.Catch(t)
+
+	test := func(src *string, exp string) {
+		gtest.Eq(gg.PtrPop(src), exp)
+	}
+
+	test(nil, ``)
+	test(gg.Ptr(``), ``)
+	test(gg.Ptr(`val`), `val`)
 }
 
 func TestPtrInited(t *testing.T) {

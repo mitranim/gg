@@ -1,7 +1,4 @@
-Missing feature of the standard library: printing arbitrary inputs as Go code,
-with proper spacing and support for multi-line output with indentation. The
-name "repr" stands for "representation" and alludes to the Python function with
-the same name.
+Missing feature of the standard library: printing arbitrary inputs as Go code, with proper spacing and support for multi-line output with indentation. The name "repr" stands for "representation" and alludes to the Python function with the same name.
 
 API doc: https://pkg.go.dev/github.com/mitranim/gg/grepr
 

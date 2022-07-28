@@ -92,7 +92,7 @@ func (self *typeMeta) addAny(index []int, cols []string, typ r.Type) {
 
 func (self *typeMeta) addStruct(index []int, cols []string, typ r.Type) {
 	self.initMap()
-	for _, field := range gg.StructFieldCache.Get(typ) {
+	for _, field := range gg.StructPublicFieldCache.Get(typ) {
 		self.addField(index, cols, field)
 	}
 }

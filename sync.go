@@ -38,9 +38,10 @@ func LockSet[A any](lock sync.Locker, ptr *A, val A) {
 
 /*
 Typed version of `atomic.Value`. Currently implemented as a typedef of
-`atomic.Value` where the value is internally stored as `any`, which may cause
-the value to be automatically copied when stored. Thus, large values should be
-stored by pointer to minimize copying. This may change in the future.
+`atomic.Value` where the value is internally stored as `any`. Converting
+non-interface values to `any` may automatically create a copy on the heap.
+Values other than booleans and machine numbers should be stored by pointer to
+minimize copying. This may change in the future.
 */
 type Atom[A any] atomic.Value
 
@@ -75,9 +76,10 @@ func (self *Atom[A]) CompareAndSwap(prev, next A) bool {
 
 /*
 Typed version of `sync.Map`. Currently implemented as a typedef of `sync.Map`
-where both keys and valus are internally stored as `any`, which may cause them
-to be automatically copied when stored. Thus, large values should be stored by
-pointer to minimize copying. This may change in the future.
+where both keys and valus are internally stored as `any`. Converting
+non-interface values to `any` may automatically create a copy on the heap.
+Values other than booleans and machine numbers should be stored by pointer to
+minimize copying. This may change in the future.
 */
 type SyncMap[Key comparable, Val any] sync.Map
 

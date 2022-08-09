@@ -74,6 +74,12 @@ func Clear[A any](val *A) {
 	}
 }
 
+// Calls `Clear` and returns the same pointer.
+func Cleared[A any](val *A) *A {
+	Clear(val)
+	return val
+}
+
 /*
 Takes an arbitrary value and returns a non-nil pointer to a new memory region
 containing a shallow copy of that value.

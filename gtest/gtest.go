@@ -343,7 +343,7 @@ func msgErrMismatch(fun func(), test func(error) bool, err error) string {
 	return gg.JoinLinesOpt(
 		`unexpected error mismatch`,
 		msgErrFunTest(fun, test),
-		msgDet(`actual error:`, gg.StringAny(err)),
+		msgErrActual(err),
 	)
 }
 
@@ -359,7 +359,7 @@ func msgErrMsgMismatch(fun func(), exp, act string) string {
 func msgErrIsMismatch(err, exp error) string {
 	return gg.JoinLinesOpt(
 		`unexpected error mismatch`,
-		msgDet(`actual error:`, gg.StringAny(err)),
+		msgErrActual(err),
 		msgDet(`expected error via errors.Is:`, gg.StringAny(exp)),
 	)
 }
@@ -459,9 +459,20 @@ func msgFunErr(fun func(), err error) string {
 
 func msgErr(err error) string {
 	return gg.JoinLinesOpt(
-		msgDet(`error trace:`, strings.TrimSpace(gg.ErrTrace(err).StringIndent(1))),
+		msgDet(`error trace:`, errTrace(err)),
 		msgDet(`error string:`, gg.StringAny(err)),
 	)
+}
+
+func msgErrActual(err error) string {
+	return gg.JoinLinesOpt(
+		msgDet(`actual error trace:`, errTrace(err)),
+		msgDet(`actual error string:`, gg.StringAny(err)),
+	)
+}
+
+func errTrace(err error) string {
+	return strings.TrimSpace(gg.ErrTrace(err).StringIndent(1))
 }
 
 // Shortcut for error testing.

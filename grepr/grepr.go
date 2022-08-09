@@ -77,7 +77,7 @@ func StringIndent(src any, lvl int) string {
 
 /*
 Shortcut for printing a given value as Go code, prefixed with a description.
-Very handy for debug-printing.
+Handy for debug-printing.
 */
 func Prn(desc string, src any) {
 	fmt.Println(desc, String(src))

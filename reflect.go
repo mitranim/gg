@@ -464,8 +464,8 @@ func CloneDeep[A any](src A) A {
 }
 
 /*
-Mutates the input in-place, replacing the underlying data with a deep clone if
-necessary. The given value must be settable.
+Replaces the given value, which must be settable, with a deep clone, if the
+value is indirect. See `IsIndirect`.
 */
 func ValueClone(src r.Value) {
 	switch src.Kind() {

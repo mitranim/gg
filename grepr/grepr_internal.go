@@ -518,7 +518,7 @@ func fmtIndent(buf *Fmt) {
 
 /*
 TODO: consider eliding the name of the "current" package. Is that possible?
-We can inspect the stacktrace, but we might be unable to define "current".
+We can inspect the stack trace, but we might be unable to define "current".
 */
 func typeName(typ r.Type) string { return typ.String() }
 

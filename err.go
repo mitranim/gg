@@ -503,7 +503,7 @@ func ErrParse[A Text](err error, src A, typ r.Type) error {
 /*
 Shortcut for flushing errors out of error containers such as `context.Context`
 or `sql.Rows`. If the inner error is non-nil, panics, idempotently adding a
-stacktrace. Otherwise does nothing.
+stack trace. Otherwise does nothing.
 */
 func ErrOk[A Errer](val A) { Try(ErrTraced(val.Err(), 1)) }
 

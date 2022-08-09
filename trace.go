@@ -161,6 +161,7 @@ func (self Caller) AppendNewlineIndent(buf []byte, lvl int) []byte {
 	return self.Frame().AppendNewlineIndent(buf, lvl)
 }
 
+// Used for stack trace formatting.
 type Frames []Frame
 
 func (self Frames) NameWidth() int {

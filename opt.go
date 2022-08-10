@@ -32,7 +32,6 @@ func (self Opt[_]) IsNull() bool { return !self.Ok }
 func (self Opt[_]) IsNonNull() bool { return self.Ok }
 
 // Implement `Clearer`. Zeroes the receiver.
-//go:noinline
 func (self *Opt[_]) Clear() { Clear(self) }
 
 // Implement `Getter`, returning the underlying value as-is.
@@ -59,28 +58,23 @@ func (self *Opt[A]) Ptr() *A {
 Implement `fmt.Stringer`. If `.IsNull`, returns an empty string. Otherwise uses
 the `String` function to encode the inner value.
 */
-//go:noinline
 func (self Opt[A]) String() string { return StringNull[A](self) }
 
 /*
 Implement `Parser`. If the input is empty, clears the receiver via `.Clear`.
 Otherwise uses the `ParseCatch` function, decoding into the underlying value.
 */
-//go:noinline
 func (self *Opt[A]) Parse(src string) error {
 	return self.with(ParseClearCatch[A](src, self))
 }
 
 // Implement `Appender`, appending the same representation as `.String`.
-//go:noinline
 func (self Opt[A]) Append(buf []byte) []byte { return AppendNull[A](buf, self) }
 
 // Implement `encoding.TextMarshaler`, returning the same representation as `.String`.
-//go:noinline
 func (self Opt[A]) MarshalText() ([]byte, error) { return MarshalNullCatch[A](self) }
 
 // Implement `encoding.TextUnmarshaler`, using the same logic as `.Parse`.
-//go:noinline
 func (self *Opt[A]) UnmarshalText(src []byte) error {
 	if len(src) == 0 {
 		self.Clear()
@@ -93,7 +87,6 @@ func (self *Opt[A]) UnmarshalText(src []byte) error {
 Implement `json.Marshaler`. If `.IsNull`, returns a representation of JSON null.
 Otherwise uses `json.Marshal` to encode the underlying value.
 */
-//go:noinline
 func (self Opt[A]) MarshalJSON() ([]byte, error) {
 	return JsonBytesNullCatch[A](self)
 }
@@ -103,7 +96,6 @@ Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
 clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
 into the underlying value.
 */
-//go:noinline
 func (self *Opt[A]) UnmarshalJSON(src []byte) error {
 	if IsJsonEmpty(src) {
 		self.Clear()
@@ -117,7 +109,6 @@ Implement SQL `driver.Valuer`. If `.IsNull`, returns nil. If the underlying
 value implements `driver.Valuer`, delegates to its method. Otherwise returns
 the underlying value as-is.
 */
-//go:noinline
 func (self Opt[A]) Value() (driver.Value, error) { return ValueNull[A](self) }
 
 /*
@@ -126,7 +117,6 @@ If the underlying type implements `Scanner`, delegates to that implementation.
 Otherwise input must be nil or text-like (see `Text`). Text decoding uses the
 same logic as `.Parse`.
 */
-//go:noinline
 func (self *Opt[A]) Scan(src any) error {
 	if src == nil {
 		self.Clear()

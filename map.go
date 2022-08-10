@@ -31,7 +31,6 @@ func MapInit[Map ~map[Key]Val, Key comparable, Val any](val *Map) Map {
 }
 
 // Self as global `MapInit`.
-//go:noinline
 func (self *Dict[Key, Val]) Init() Dict[Key, Val] { return MapInit(self) }
 
 /*
@@ -51,7 +50,6 @@ func MapClone[Map ~map[Key]Val, Key comparable, Val any](src Map) Map {
 }
 
 // Self as global `MapClone`.
-//go:noinline
 func (self Dict[Key, Val]) Clone() Dict[Key, Val] { return MapClone(self) }
 
 // Returns the maps's keys as a slice. Order is random.
@@ -68,7 +66,6 @@ func MapKeys[Key comparable, Val any](src map[Key]Val) []Key {
 }
 
 // Self as global `MapKeys`.
-//go:noinline
 func (self Dict[Key, _]) Keys() []Key { return MapKeys(self) }
 
 // Returns the maps's values as a slice. Order is random.
@@ -85,7 +82,6 @@ func MapVals[Key comparable, Val any](src map[Key]Val) []Val {
 }
 
 // Self as global `MapVals`.
-//go:noinline
 func (self Dict[_, Val]) Vals() []Val { return MapVals(self) }
 
 // Same as `_, ok := tar[key]`, expressed as a generic function.
@@ -95,7 +91,6 @@ func MapHas[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) bool {
 }
 
 // Self as global `MapHas`.
-//go:noinline
 func (self Dict[Key, _]) Has(key Key) bool { return MapHas(self, key) }
 
 // Same as `val, ok := tar[key]`, expressed as a generic function.
@@ -105,7 +100,6 @@ func MapGot[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) (Val, b
 }
 
 // Self as global `MapGot`.
-//go:noinline
 func (self Dict[Key, Val]) Got(key Key) (Val, bool) { return MapGot(self, key) }
 
 // Same as `val := tar[key]`, expressed as a generic function.
@@ -114,7 +108,6 @@ func MapGet[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) Val {
 }
 
 // Self as global `MapGet`.
-//go:noinline
 func (self Dict[Key, Val]) Get(key Key) Val { return MapGet(self, key) }
 
 // Same as `tar[key] = val`, expressed as a generic function.
@@ -123,7 +116,6 @@ func MapSet[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key, val Val
 }
 
 // Self as global `MapSet`.
-//go:noinline
 func (self Dict[Key, Val]) Set(key Key, val Val) { MapSet(self, key, val) }
 
 /*
@@ -137,7 +129,6 @@ func MapSetOpt[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key, val 
 }
 
 // Self as global `MapSetOpt`.
-//go:noinline
 func (self Dict[Key, Val]) SetOpt(key Key, val Val) { MapSetOpt(self, key, val) }
 
 // Same as `delete(tar, key)`, expressed as a generic function.
@@ -146,7 +137,6 @@ func MapDel[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) {
 }
 
 // Self as global `MapDel`.
-//go:noinline
 func (self Dict[Key, _]) Del(key Key) { delete(self, key) }
 
 // Deletes all entries, returning the resulting map. Passing nil is safe.
@@ -157,7 +147,6 @@ func MapClear[Map ~map[Key]Val, Key comparable, Val any](tar Map) {
 }
 
 // Self as global `MapClear`.
-//go:noinline
 func (self Dict[_, _]) Clear() { MapClear(self) }
 
 // Needs a better name.

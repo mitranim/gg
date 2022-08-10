@@ -133,7 +133,6 @@ func (self Chan[_]) Close() {
 }
 
 // Same as global `ChanInit`.
-//go:noinline
 func (self *Chan[A]) Init() Chan[A] { return ChanInit(self) }
 
 /*
@@ -152,7 +151,6 @@ func ChanInit[Tar ~chan Val, Val any](ptr *Tar) Tar {
 }
 
 // Same as global `ChanInitCap`.
-//go:noinline
 func (self *Chan[A]) InitCap(cap int) Chan[A] { return ChanInitCap(self, cap) }
 
 /*
@@ -171,7 +169,6 @@ func ChanInitCap[Tar ~chan Val, Val any](ptr *Tar, cap int) Tar {
 }
 
 // Same as global `SendOpt`.
-//go:noinline
 func (self Chan[A]) SendOpt(val A) { SendOpt(self, val) }
 
 // Shortcut for sending a value over a channel in a non-blocking fashion.
@@ -183,7 +180,6 @@ func SendOpt[Tar ~chan Val, Val any](tar Tar, val Val) {
 }
 
 // Same as global `SendZeroOpt`.
-//go:noinline
 func (self Chan[A]) SendZeroOpt() { SendZeroOpt(self) }
 
 // Shortcut for sending a zero value over a channel in a non-blocking fashion.

@@ -33,7 +33,6 @@ var (
 func (self Arr[A]) IsNull() bool { return self == nil }
 
 // Implement `fmt.Stringer`. Returns an SQL encoding of the array.
-//go:noinline
 func (self Arr[A]) String() string { return gg.AppenderString(self) }
 
 /*
@@ -63,7 +62,6 @@ func (self Arr[A]) AppendInner(buf []byte) []byte {
 }
 
 // Decodes from an SQL array literal string. Supports nested arrays.
-//go:noinline
 func (self *Arr[A]) Parse(src string) (err error) {
 	defer gg.Rec(&err)
 	defer gg.Detailf(`unable to decode %q into %T`, src, self)
@@ -93,7 +91,6 @@ func (self *Arr[A]) Parse(src string) (err error) {
 }
 
 // Truncates the length, keeping the capacity.
-//go:noinline
 func (self *Arr[A]) Clear() { gg.SliceTrunc(self) }
 
 // Implement `driver.Valuer`.

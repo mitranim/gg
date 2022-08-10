@@ -56,7 +56,6 @@ func (self *Set[A]) Init() Set[A] {
 	return *self
 }
 
-//go:noinline
 func (self Set[A]) Has(val A) bool { return MapHas(self, val) }
 
 func (self Set[A]) Add(val ...A) Set[A] {
@@ -105,7 +104,6 @@ func (self Set[A]) Reset(val ...A) Set[A] {
 }
 
 // Converts the map to a slice of its values. Order is random.
-//go:noinline
 func (self Set[A]) Slice() []A { return MapKeys(self) }
 
 /*
@@ -145,7 +143,6 @@ func (self *Set[A]) UnmarshalJSON(src []byte) error {
 }
 
 // Implement `fmt.GoStringer`, returning valid Go code that constructs the set.
-//go:noinline
 func (self Set[A]) GoString() string {
 	typ := TypeOf(self).String()
 

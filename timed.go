@@ -28,7 +28,6 @@ func (self Timed[_]) IsNull() bool { return self.Inst.IsZero() }
 func (self Timed[_]) IsNonNull() bool { return !self.Inst.IsZero() }
 
 // Implement `Clearer`. Zeroes the receiver.
-//go:noinline
 func (self *Timed[A]) Clear() { Clear(self) }
 
 // Implement `Getter`, returning the underlying value as-is.
@@ -56,7 +55,6 @@ func (self *Timed[A]) Ptr() *A {
 Implement `json.Marshaler`. If `.IsNull`, returns a representation of JSON null.
 Otherwise uses `json.Marshal` to encode the underlying value.
 */
-//go:noinline
 func (self Timed[A]) MarshalJSON() ([]byte, error) {
 	return JsonBytesNullCatch[A](self)
 }
@@ -66,7 +64,6 @@ Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
 clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
 into the underlying value, and sets the current timestamp on success.
 */
-//go:noinline
 func (self *Timed[A]) UnmarshalJSON(src []byte) error {
 	if IsJsonEmpty(src) {
 		self.Clear()

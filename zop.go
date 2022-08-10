@@ -49,7 +49,6 @@ func (self *Zop[A]) Ptr() *A {
 Implement `json.Marshaler`. If `.IsNull`, returns a representation of JSON null.
 Otherwise uses `json.Marshal` to encode the underlying value.
 */
-//go:noinline
 func (self Zop[A]) MarshalJSON() ([]byte, error) {
 	return JsonBytesNullCatch[A](self)
 }
@@ -59,7 +58,6 @@ Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
 clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
 into the underlying value.
 */
-//go:noinline
 func (self *Zop[A]) UnmarshalJSON(src []byte) error {
 	if IsJsonEmpty(src) {
 		self.Clear()

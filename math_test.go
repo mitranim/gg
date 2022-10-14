@@ -90,7 +90,6 @@ func TestIsFin(t *testing.T) {
 	gtest.False(gg.IsFin(math.Inf(1)))
 	gtest.False(gg.IsFin(math.Inf(-1)))
 	gtest.True(gg.IsFin(0.0))
-	gtest.True(gg.IsFin(-0.0))
 }
 
 func TestFac(t *testing.T) {

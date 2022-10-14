@@ -146,6 +146,12 @@ func fmtUintHex[A uint64 | uintptr](buf *Fmt, src A) {
 	buf.Buf = strconv.AppendUint(buf.Buf, uint64(src), 16)
 }
 
+/*
+TODO: if the type is not exactly `string` and the value is not used in a
+strongly typed context, wrap the literal in a cast.
+
+TODO: same for other literals: bools, ints, floats, bytes, runes, complex.
+*/
 func fmtString(buf *Fmt, src string) {
 	if buf.IsMulti() && CanBackquote(src) {
 		buf.AppendByte('`')

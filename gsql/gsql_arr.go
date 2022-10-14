@@ -7,8 +7,8 @@ import (
 )
 
 /*
-Shortcut for casting into `Arr`. Workaround for lack of type inference in type
-literals and casts.
+Shortcut for casting into `Arr`. Workaround for the lack of type inference in
+type literals and casts.
 */
 func ToArr[A any](val []A) Arr[A] { return val }
 

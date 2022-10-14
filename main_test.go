@@ -42,6 +42,7 @@ type StructDirect struct {
 	private *string
 }
 
+//nolint:unused
 type StructIndirect struct {
 	Public0 int
 	Public1 *string
@@ -129,6 +130,23 @@ type StrsParser []string
 func (self *StrsParser) Parse(src string) error {
 	gg.AppendVals(self, src)
 	return nil
+}
+
+type IntsValue []int
+
+func (self *IntsValue) Set(src string) error {
+	return gg.ParseCatch(src, gg.AppendPtrZero(self))
+}
+
+/**
+Defined as a struct to verify that the flag parser supports slices of arbitrary
+types implementing `flag.Value`, even if they're not typedefs of text types,
+and not something normally compatible with `gg.Parse`.
+*/
+type IntValue struct{ Val int }
+
+func (self *IntValue) Set(src string) error {
+	return gg.ParseCatch(src, &self.Val)
 }
 
 func intStrPair(src int) []string {

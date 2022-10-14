@@ -247,7 +247,7 @@ func msgSingle[A any](val A) string {
 func msgOpt(opt []any, src string) string {
 	return gg.JoinLinesOpt(
 		src,
-		msgDet(`extra:`, gg.SpacedOpt(gg.Map(opt, gg.StringAny[any])...)),
+		msgDet(`extra:`, gg.SpacedOpt(opt...)),
 	)
 }
 

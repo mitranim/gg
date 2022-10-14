@@ -149,7 +149,10 @@ func MapClear[Map ~map[Key]Val, Key comparable, Val any](tar Map) {
 // Self as global `MapClear`.
 func (self Dict[_, _]) Clear() { MapClear(self) }
 
-// Needs a better name.
+/*
+Needs a better name. Can't be defined on `Dict` because Go doesn't support type
+parameters in method.
+*/
 func MapDict[Key comparable, A, B any](src map[Key]A, fun func(A) B) map[Key]B {
 	if src == nil || fun == nil {
 		return nil

@@ -126,6 +126,49 @@ func TestGrowCap(t *testing.T) {
 	})
 }
 
+func TestTruncLen(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Slice = []int
+
+	test := func(src Slice, size int, exp Slice) {
+		out := gg.TruncLen(src, size)
+		gtest.Equal(out, exp)
+
+		gtest.Eq(
+			gg.CastUnsafe[gg.SliceHeader](out).Dat,
+			gg.CastUnsafe[gg.SliceHeader](src).Dat,
+			`reslicing must preserve data pointer`,
+		)
+
+		gtest.Eq(
+			gg.CastUnsafe[gg.SliceHeader](out).Cap,
+			gg.CastUnsafe[gg.SliceHeader](src).Cap,
+			`reslicing must preserve capacity`,
+		)
+	}
+
+	test(nil, -1, nil)
+	test(nil, 0, nil)
+	test(nil, 1, nil)
+	test(nil, 2, nil)
+
+	test(Slice{}, -1, Slice{})
+	test(Slice{}, 0, Slice{})
+	test(Slice{}, 1, Slice{})
+	test(Slice{}, 2, Slice{})
+
+	src := Slice{10, 20, 30, 40}
+	test(src, -1, Slice{})
+	test(src, 0, Slice{})
+	test(src, 1, Slice{10})
+	test(src, 2, Slice{10, 20})
+	test(src, 3, Slice{10, 20, 30})
+	test(src, 4, src)
+	test(src, 5, src)
+	test(src, 6, src)
+}
+
 func TestTake(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -969,6 +1012,14 @@ func TestUnion(t *testing.T) {
 	gtest.Equal(gg.Union(Slice{10, 20}, Slice{20, 10, 30}), Slice{10, 20, 30})
 	gtest.Equal(gg.Union(Slice{10, 20}, Slice{20, 10}, Slice{30, 20, 10}), Slice{10, 20, 30})
 	gtest.Equal(gg.Union(Slice{}, Slice{20, 10}, Slice{30, 20, 10}), Slice{20, 10, 30})
+}
+
+func BenchmarkUnion(b *testing.B) {
+	src := [][]int{{10, 20}, {30, 40}, {50, 60}}
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Union(src...))
+	}
 }
 
 func TestUniq(t *testing.T) {

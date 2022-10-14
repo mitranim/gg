@@ -5,7 +5,7 @@ import (
 	r "reflect"
 )
 
-/*
+/**
 Parses CLI flags into an instance of the given type, which must be a struct.
 For parsing rules, see `FlagParser`.
 */
@@ -14,7 +14,7 @@ func FlagParseTo[A any](src []string) (out A) {
 	return
 }
 
-/*
+/**
 Parses CLI flags into the given value, which must be a struct.
 Panics on error. For parsing rules, see `FlagParser`.
 */
@@ -24,7 +24,7 @@ func FlagParse[A any](src []string, out *A) {
 	}
 }
 
-/*
+/**
 Parses CLI flags into the given value, which must be a struct.
 For parsing rules, see `FlagParser`.
 */
@@ -34,7 +34,7 @@ func FlagParseCatch[A any](src []string, out *A) (err error) {
 	return
 }
 
-/*
+/**
 Parses CLI flags into the given output, which must be a settable struct value.
 For parsing rules, see `FlagParser`.
 */
@@ -49,10 +49,9 @@ func FlagParseReflect(src []string, out r.Value) {
 	par.Defaults()
 }
 
-/*
-Tool for parsing CLI flags into struct instances.
-Partial replacement for the standard library package "flag".
-Example:
+/**
+Tool for parsing lists of CLI flags into structs. Partial replacement for the
+standard library package "flag". Example:
 
 	type Opt struct {
 		Args []string `flag:""`
@@ -101,22 +100,22 @@ Parsing rules:
 		* If the target is a slice, append the new value.
 */
 type FlagParser struct {
-	Tar   r.Value
-	Def   FlagDef
-	Found Set[string]
+	Tar r.Value
+	Def FlagDef
+	Got Set[string]
 }
 
-/*
+/**
 Initializes the parser for the given destination, which must be a settable
 struct value.
 */
 func (self *FlagParser) Init(tar r.Value) {
 	self.Tar = tar
 	self.Def = FlagDefCache.Get(tar.Type())
-	self.Found = make(Set[string], len(self.Def.Flags))
+	self.Got = make(Set[string], len(self.Def.Flags))
 }
 
-/*
+/**
 Parses the given CLI args into the destination. May be called multiple times.
 Must be called after `(*FlagParser).Init`, and before `FlagParser.Default`.
 */
@@ -130,12 +129,12 @@ func (self FlagParser) Args(src []string) {
 		head := PopHead(&src)
 		key, val, split := cliFlagSplit(head)
 		if split {
-			self.Found.Add(key)
+			self.Got.Add(key)
 			self.Flag(key, val)
 			continue
 		}
 
-		self.Found.Add(head)
+		self.Got.Add(head)
 
 		if IsEmpty(src) || hasCliFlag(Head(src)) {
 			self.TrailingFlag(head)
@@ -172,6 +171,9 @@ func (self FlagParser) Flag(key, src string) {
 
 // For internal use.
 func (self FlagParser) FieldParse(src string, out r.Value) {
+	var nested bool
+
+interfaces:
 	ptr := out.Addr().Interface()
 
 	// Part of the `flag.Value` interface.
@@ -196,6 +198,11 @@ func (self FlagParser) FieldParse(src string, out r.Value) {
 	if out.Kind() == r.Slice {
 		growLenReflect(out)
 		out = out.Index(out.Len() - 1)
+
+		if !nested {
+			nested = true
+			goto interfaces
+		}
 	}
 
 	if out.Kind() == r.Bool && src == `` {
@@ -237,14 +244,14 @@ func (self FlagParser) TrailingBool(key string) bool {
 	return false
 }
 
-/*
+/**
 Applies defaults to all flags which have not been found during parsing.
 Explicitly providing an empty value suppresses a default, although
 an empty string may not be a viable input to some types.
 */
 func (self FlagParser) Defaults() {
 	for _, field := range self.Def.Flags {
-		if !self.Found.Has(field.Flag) {
+		if !self.Got.Has(field.Flag) {
 			if field.InitHas {
 				self.FieldParse(field.Init, self.Tar.FieldByIndex(field.Index))
 			}
@@ -260,7 +267,7 @@ func FlagHelp[A any]() string {
 // Stores cached `FlagDef` definitions for struct types.
 var FlagDefCache = TypeCacheOf[FlagDef]()
 
-/*
+/**
 Struct type definition suitable for flag parsing. Used internally by
 `FlagParser`. User code shouldn't have to use this type, but it's exported for
 customization purposes.
@@ -373,7 +380,7 @@ func (self FlagDefField) GetDescLen() int { return self.DescLen }
 // Default help formatter, used by `FlagHelp` and `FlagDef.Help`.
 var FlagFmtDefault = With((*FlagFmt).Default)
 
-/*
+/**
 Table-like formatter for listing available flags, initial values, and
 descriptions. Used via `FlagFmtDefault`, `FlagHelp`, `FlagDef.Help`.
 To customize printing, mutate `FlagFmtDefault`.
@@ -403,7 +410,7 @@ func (self FlagFmt) String(def FlagDef) string {
 	return ToString(self.Append(nil, def))
 }
 
-/*
+/**
 Appends table-like help for the given definition. Known limitation: assumes
 monospace, doesn't support wider characters such as kanji or emoji.
 */
@@ -416,7 +423,6 @@ func (self FlagFmt) Append(src []byte, def FlagDef) []byte {
 	prefixLen := CharCount(self.Prefix)
 	sepLen := CharCount(self.Infix)
 	newlineLen := CharCount(Newline)
-
 	flagLen := MaxPrimBy(flags, FlagDefField.GetFlagLen)
 
 	var flagHeadLen int

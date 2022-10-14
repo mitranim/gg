@@ -5,16 +5,23 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	r "reflect"
 	"strings"
 )
 
 /*
-Creates a read-closer able to read from the given string or byte slice.
-Equivalent to `io.NopCloser(strings.NewReader(string(val)))`
-but marginally more efficient.
+Creates a read-closer able to read from the given string or byte slice. Similar
+to the following, but shorter and avoids allocation in case of bytes-to-string
+or string-to-bytes conversion:
+
+	io.NopCloser(strings.NewReader(string(val)))
+	io.NopCloser(bytes.NewReader([]byte(val)))
 */
-func NewReadCloser[A Text](val A) *StringReadCloser {
-	return new(StringReadCloser).Reset(ToString(val))
+func NewReadCloser[A Text](val A) io.ReadCloser {
+	if Kind[A]() == r.String {
+		return new(StringReadCloser).Reset(ToString(val))
+	}
+	return new(BytesReadCloser).Reset(ToBytes(val))
 }
 
 // Variant of `strings.Reader` that also implements nop `io.Closer`.

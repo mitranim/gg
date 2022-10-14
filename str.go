@@ -61,8 +61,160 @@ func ToBytes[A Text](val A) []byte {
 	return u.Slice(CastUnsafe[*byte](val), len(val))
 }
 
+/*
+Converts arguments to strings and concatenates the results. See `StringCatch`
+for the encoding rules. Also see `JoinDense` for a more limited but more
+efficient version that doesn't involve `any`.
+*/
+func Str(src ...any) string { return JoinAny(src, ``) }
+
+/*
+Converts arguments to strings and joins the results with a single space. See
+`StringCatch` for encoding rules. Also see `JoinSpaced` for a more limited but
+more efficient version that doesn't involve `any`.
+*/
+func Spaced(src ...any) string { return JoinAny(src, Space) }
+
+/*
+Converts arguments to strings and joins the results with a single space,
+ignoring empty strings. See `StringCatch` for the encoding rules. Also see
+`JoinSpacedOpt` for a more limited but more efficient version that doesn't
+involve `any`.
+*/
+func SpacedOpt(src ...any) string { return JoinAnyOpt(src, Space) }
+
+/*
+Similar to `strings.Join` but takes `[]any`, converting elements to strings. See
+`StringCatch` for the encoding rules. Also see `Join`, `JoinOpt`,
+`JoinAnyOpt`.
+*/
+func JoinAny(src []any, sep string) string {
+	switch len(src) {
+	case 0:
+		return ``
+
+	case 1:
+		return String(src[0])
+
+	default:
+		var buf Buf
+		for ind, src := range src {
+			if ind > 0 {
+				buf.AppendString(sep)
+			}
+			buf.AppendAny(src)
+		}
+		return buf.String()
+	}
+}
+
+// Like `JoinAny` but ignores empty strings.
+func JoinAnyOpt(src []any, sep string) string {
+	switch len(src) {
+	case 0:
+		return ``
+
+	case 1:
+		return String(src[0])
+
+	default:
+		var buf Buf
+
+		for ind, src := range src {
+			len0 := buf.Len()
+			if ind > 0 {
+				buf.AppendString(sep)
+			}
+			len1 := buf.Len()
+
+			buf.AppendAny(src)
+
+			if ind > 0 && buf.Len() == len1 {
+				buf.TruncLen(len0)
+			}
+		}
+
+		return buf.String()
+	}
+}
+
 // Concatenates the given text without any separators.
-func Str[A Text](val ...A) string { return Join(val, ``) }
+func JoinDense[A Text](val ...A) string { return Join(val, ``) }
+
+// Joins the given strings with a space.
+func JoinSpaced[A Text](val ...A) string { return Join(val, Space) }
+
+// Joins non-empty strings with a space.
+func JoinSpacedOpt[A Text](val ...A) string { return JoinOpt(val, Space) }
+
+// Joins the given strings with newlines.
+func JoinLines[A Text](val ...A) string { return Join(val, Newline) }
+
+// Joins non-empty strings with newlines.
+func JoinLinesOpt[A Text](val ...A) string { return JoinOpt(val, Newline) }
+
+/*
+Similar to `strings.Join` but works on any input compatible with the `Text`
+interface. Also see `JoinOpt`, `JoinAny`, `JoinAnyOpt`.
+*/
+func Join[A Text](src []A, sep string) string {
+	switch len(src) {
+	case 0:
+		return ``
+
+	case 1:
+		return ToString(src[0])
+
+	default:
+		var buf Buf
+		buf.GrowCap(Sum(src, StrLen[A]) + (len(sep) * (len(src) - 1)))
+
+		buf.AppendString(ToString(src[0]))
+		for _, src := range src[1:] {
+			buf.AppendString(sep)
+			buf.AppendString(ToString(src))
+		}
+		return buf.String()
+	}
+}
+
+/*
+Similar to `strings.Join` but works for any input compatible with the `Text`
+interface and ignores empty strings.
+*/
+func JoinOpt[A Text](src []A, sep string) string {
+	switch len(src) {
+	case 0:
+		return ``
+
+	case 1:
+		return ToString(src[0])
+
+	default:
+		var size int
+		for _, src := range src {
+			wid := len(src)
+			if wid > 0 {
+				size = size + wid + len(sep)
+			}
+		}
+
+		var buf Buf
+		buf.GrowCap(size)
+
+		var found bool
+		for _, src := range src {
+			if len(src) > 0 {
+				if found {
+					buf.AppendString(sep)
+				}
+				buf = append(buf, src...)
+				found = true
+			}
+		}
+		return buf.String()
+	}
+}
 
 // Self-explanatory. Splits the given text into lines.
 func SplitLines[A Text](src A) []string {
@@ -74,77 +226,6 @@ func SplitLines[A Text](src A) []string {
 
 // Matches any newline. Supports Windows, Unix, and old MacOS styles.
 var RE_NEWLINE = Lazy1(regexp.MustCompile, `(?:\r\n|\r|\n)`)
-
-// Joins the given strings with newlines.
-func JoinLines[A Text](val ...A) string { return Join(val, Newline) }
-
-// Joins non-empty strings with newlines.
-func JoinLinesOpt[A Text](val ...A) string { return JoinOpt(val, Newline) }
-
-// Joins the given strings with a space.
-func Spaced[A Text](val ...A) string { return Join(val, Space) }
-
-// Joins non-empty strings with a space.
-func SpacedOpt[A Text](val ...A) string { return JoinOpt(val, Space) }
-
-/*
-Similar to `strings.Join` but works on any input compatible with the `Text`
-interface.
-*/
-func Join[A Text](val []A, sep string) string {
-	if len(val) == 0 {
-		return ``
-	}
-	if len(val) == 1 {
-		return ToString(val[0])
-	}
-
-	var buf Buf
-	buf.GrowCap(Sum(val, StrLen[A]) + (len(sep) * (len(val) - 1)))
-
-	buf.AppendString(ToString(val[0]))
-	for _, val := range val[1:] {
-		buf.AppendString(sep)
-		buf.AppendString(ToString(val))
-	}
-	return buf.String()
-}
-
-/*
-Similar to `strings.Join` but works for any input compatible with the `Text`
-interface and ignores empty strings.
-*/
-func JoinOpt[A Text](val []A, sep string) string {
-	if len(val) == 0 {
-		return ``
-	}
-	if len(val) == 1 {
-		return ToString(val[0])
-	}
-
-	var size int
-	for _, val := range val {
-		wid := len(val)
-		if wid > 0 {
-			size = size + wid + len(sep)
-		}
-	}
-
-	var buf Buf
-	buf.GrowCap(size)
-
-	var found bool
-	for _, val := range val {
-		if len(val) > 0 {
-			if found {
-				buf.AppendString(sep)
-			}
-			buf = append(buf, val...)
-			found = true
-		}
-	}
-	return buf.String()
-}
 
 /*
 Searches for the given separator and returns the part of the string before the
@@ -222,7 +303,7 @@ func (self Words) Snake() string { return self.Join(`_`) }
 func (self Words) Kebab() string { return self.Join(`-`) }
 
 // Combines the words via "".
-func (self Words) Solid() string { return self.Join(``) }
+func (self Words) Dense() string { return self.Join(``) }
 
 // Combines the words via ",".
 func (self Words) Comma() string { return self.Join(`,`) }

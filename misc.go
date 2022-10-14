@@ -300,6 +300,12 @@ func AnyAs[A any](src any) A {
 }
 
 /*
+Converts the argument to `any` and returns it. Sometimes useful in higher-order
+functions.
+*/
+func ToAny[A any](val A) any { return val }
+
+/*
 Uses `context.WithValue` to create a context with the given value, using the
 type's nil pointer "(*A)(nil)" as the key.
 */

@@ -107,7 +107,13 @@ func hasCliFlag(val string) bool { return len(val) > 0 && val[0] == '-' }
 
 func isCliFlagValid(val string) bool { return reCliFlag().MatchString(val) }
 
-var reCliFlag = Lazy1(regexp.MustCompile, `^-+[\p{L}\d]+$`)
+/*
+Must begin with `-` and consist of alphanumeric characters, optionally
+containing `-` between those characters.
+
+TODO test.
+*/
+var reCliFlag = Lazy1(regexp.MustCompile, `^-+[\p{L}\d]+(?:[\p{L}\d-]*[\p{L}\d])?$`)
 
 func cliFlagSplit(src string) (string, string, bool) {
 	ind := strings.IndexRune(src, '=')

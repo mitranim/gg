@@ -463,27 +463,73 @@ func TestFlagParseTo(t *testing.T) {
 	t.Run(`Parser`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		testFlagMissingValue(`-p`)
+		type Src []string
+		type Out = StrsParser
 
-		type Src = [2][]string
-
-		test := func(src Src) {
-			gtest.Equal(
-				gg.FlagParseTo[Flags](src[0]),
-				Flags{Parser: StrsParser(src[1])},
-			)
+		type Tar struct {
+			Val Out `flag:"-v"`
 		}
 
-		test(Src{})
+		test := func(src Src, out Out) {
+			gtest.Equal(gg.FlagParseTo[Tar](src), Tar{out})
+		}
 
-		test(Src{{`-p`, ``}, {``}})
-		test(Src{{`-p=`}, {``}})
+		test(nil, nil)
 
-		test(Src{{`-p`, `one`}, {`one`}})
-		test(Src{{`-p=one`}, {`one`}})
+		test(Src{`-v`, ``}, Out{``})
+		test(Src{`-v=`}, Out{``})
 
-		test(Src{{`-p`, `one`, `-p`, `two`}, {`one`, `two`}})
-		test(Src{{`-p=one`, `-p=two`}, {`one`, `two`}})
+		test(Src{`-v`, `10`}, Out{`10`})
+		test(Src{`-v=10`}, Out{`10`})
+
+		test(Src{`-v`, `10`, `-v`, `20`}, Out{`10`, `20`})
+		test(Src{`-v=10`, `-v=20`}, Out{`10`, `20`})
+	})
+
+	t.Run(`flag.Value`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		type Src []string
+		type Out = IntsValue
+
+		type Tar struct {
+			Val Out `flag:"-v"`
+		}
+
+		test := func(src Src, out Out) {
+			gtest.Equal(gg.FlagParseTo[Tar](src), Tar{out})
+		}
+
+		test(nil, nil)
+
+		test(Src{`-v`, `10`}, Out{10})
+		test(Src{`-v=10`}, Out{10})
+
+		test(Src{`-v`, `10`, `-v`, `20`}, Out{10, 20})
+		test(Src{`-v=10`, `-v=20`}, Out{10, 20})
+	})
+
+	t.Run(`[]flag.Value`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		type Src []string
+		type Out = []IntValue
+
+		type Tar struct {
+			Val Out `flag:"-v"`
+		}
+
+		test := func(src Src, out Out) {
+			gtest.Equal(gg.FlagParseTo[Tar](src), Tar{out})
+		}
+
+		test(nil, nil)
+
+		test(Src{`-v`, `10`}, Out{{10}})
+		test(Src{`-v=10`}, Out{{10}})
+
+		test(Src{`-v`, `10`, `-v`, `20`}, Out{{10}, {20}})
+		test(Src{`-v=10`, `-v=20`}, Out{{10}, {20}})
 	})
 
 	t.Run(`mixed`, func(t *testing.T) {

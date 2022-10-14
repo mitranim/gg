@@ -146,6 +146,24 @@ func GrowCapExact[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 // Same as global `GrowCapExact`.
 func (self Slice[A]) GrowCapExact(size int) Slice[A] { return GrowCapExact(self, size) }
 
+/*
+Returns a modified slice where length is reduced to the given size. Negative
+size is equivalent to zero. If the current length is already shorter, it's
+unaffected.
+*/
+func TruncLen[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
+	if size < len(src) {
+		if size < 0 {
+			return src[:0]
+		}
+		return src[:size]
+	}
+	return src
+}
+
+// Same as global `TruncLen`.
+func (self Slice[A]) TruncLen(size int) Slice[A] { return TruncLen(self, size) }
+
 // Zeroes each element of the given slice.
 func SliceZero[A any](val []A) {
 	var zero A

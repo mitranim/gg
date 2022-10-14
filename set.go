@@ -56,8 +56,13 @@ func (self *Set[A]) Init() Set[A] {
 	return *self
 }
 
+// Same as `len(set)`. Nil-safe.
+func (self Set[_]) Len() int { return len(self) }
+
+// True if the set includes the given value. Nil-safe.
 func (self Set[A]) Has(val A) bool { return MapHas(self, val) }
 
+// Idempotently adds the given values to the receiver, which must be non-nil.
 func (self Set[A]) Add(val ...A) Set[A] {
 	for _, val := range val {
 		self[val] = struct{}{}
@@ -65,6 +70,10 @@ func (self Set[A]) Add(val ...A) Set[A] {
 	return self
 }
 
+/*
+Set union. Idempotently adds all values from the given source sets to the
+receiver, which must be non-nil.
+*/
 func (self Set[A]) AddFrom(val ...Set[A]) Set[A] {
 	for _, val := range val {
 		for val := range val {
@@ -74,6 +83,7 @@ func (self Set[A]) AddFrom(val ...Set[A]) Set[A] {
 	return self
 }
 
+// Deletes the given values from the receiver, which may be nil.
 func (self Set[A]) Del(val ...A) Set[A] {
 	for _, val := range val {
 		delete(self, val)
@@ -81,6 +91,10 @@ func (self Set[A]) Del(val ...A) Set[A] {
 	return self
 }
 
+/*
+Deletes all values present in the given source sets from the receiver, which may
+be nil.
+*/
 func (self Set[A]) DelFrom(val ...Set[A]) Set[A] {
 	for _, val := range val {
 		for val := range val {
@@ -90,6 +104,7 @@ func (self Set[A]) DelFrom(val ...Set[A]) Set[A] {
 	return self
 }
 
+// Clears and returns the receiver, which may be nil.
 func (self Set[A]) Clear() Set[A] {
 	for val := range self {
 		delete(self, val)
@@ -97,6 +112,7 @@ func (self Set[A]) Clear() Set[A] {
 	return self
 }
 
+// Combination of `Set.Clear` and `Set.Add`.
 func (self Set[A]) Reset(val ...A) Set[A] {
 	self.Clear()
 	self.Add(val...)

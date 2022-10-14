@@ -86,6 +86,113 @@ func TestStrPop(t *testing.T) {
 	gtest.Eq(rem, ``)
 }
 
+func TestJoinAny(t *testing.T) {
+	gtest.Catch(t)
+
+	gtest.Zero(gg.JoinAny(nil, ``))
+	gtest.Zero(gg.JoinAny([]any{}, ``))
+	gtest.Zero(gg.JoinAny([]any{}, `_`))
+
+	gtest.Zero(gg.JoinAny([]any{``}, ``))
+	gtest.Zero(gg.JoinAny([]any{``, ``}, ``))
+	gtest.Zero(gg.JoinAny([]any{``, ``, ``}, ``))
+
+	gtest.Eq(gg.JoinAny([]any{``}, `_`), ``)
+	gtest.Eq(gg.JoinAny([]any{``, ``}, `_`), `_`)
+	gtest.Eq(gg.JoinAny([]any{``, ``, ``}, `_`), `__`)
+
+	gtest.Eq(gg.JoinAny([]any{12}, ``), `12`)
+	gtest.Eq(gg.JoinAny([]any{12}, `_`), `12`)
+
+	gtest.Eq(gg.JoinAny([]any{12, 34}, ``), `1234`)
+	gtest.Eq(gg.JoinAny([]any{12, 34}, `_`), `12_34`)
+
+	gtest.Eq(gg.JoinAny([]any{12, 34, 56}, ``), `123456`)
+	gtest.Eq(gg.JoinAny([]any{12, 34, 56}, `_`), `12_34_56`)
+
+	gtest.Eq(gg.JoinAny([]any{12, `str`}, ``), `12str`)
+	gtest.Eq(gg.JoinAny([]any{12, `str`}, `_`), `12_str`)
+
+	gtest.Eq(gg.JoinAny([]any{`one`, ``, `two`, ``, `three`}, ``), `onetwothree`)
+	gtest.Eq(gg.JoinAny([]any{`one`, ``, `two`, ``, `three`}, `_`), `one__two__three`)
+}
+
+func BenchmarkJoinAny(b *testing.B) {
+	src := gg.Map(gg.Span(128), gg.ToAny[int])
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.JoinAny(src, ` `))
+	}
+}
+
+func TestJoinAnyOpt(t *testing.T) {
+	gtest.Catch(t)
+
+	gtest.Zero(gg.JoinAnyOpt(nil, ``))
+	gtest.Zero(gg.JoinAnyOpt([]any{}, ``))
+	gtest.Zero(gg.JoinAnyOpt([]any{}, `_`))
+
+	gtest.Zero(gg.JoinAnyOpt([]any{``}, ``))
+	gtest.Zero(gg.JoinAnyOpt([]any{``, ``}, ``))
+	gtest.Zero(gg.JoinAnyOpt([]any{``, ``, ``}, ``))
+
+	gtest.Zero(gg.JoinAnyOpt([]any{``}, `_`))
+	gtest.Zero(gg.JoinAnyOpt([]any{``, ``}, `_`))
+	gtest.Zero(gg.JoinAnyOpt([]any{``, ``, ``}, `_`))
+
+	gtest.Eq(gg.JoinAnyOpt([]any{12}, ``), `12`)
+	gtest.Eq(gg.JoinAnyOpt([]any{12}, `_`), `12`)
+
+	gtest.Eq(gg.JoinAnyOpt([]any{12, 34}, ``), `1234`)
+	gtest.Eq(gg.JoinAnyOpt([]any{12, 34}, `_`), `12_34`)
+
+	gtest.Eq(gg.JoinAnyOpt([]any{12, 34, 56}, ``), `123456`)
+	gtest.Eq(gg.JoinAnyOpt([]any{12, 34, 56}, `_`), `12_34_56`)
+
+	gtest.Eq(gg.JoinAnyOpt([]any{12, `str`}, ``), `12str`)
+	gtest.Eq(gg.JoinAnyOpt([]any{12, `str`}, `_`), `12_str`)
+
+	gtest.Eq(gg.JoinAnyOpt([]any{`one`, ``, `two`, ``, `three`}, ``), `onetwothree`)
+	gtest.Eq(gg.JoinAnyOpt([]any{`one`, ``, `two`, ``, `three`}, `_`), `one_two_three`)
+}
+
+func BenchmarkJoinAnyOpt(b *testing.B) {
+	src := gg.Map(gg.Span(128), gg.ToAny[int])
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.JoinAnyOpt(src, ` `))
+	}
+}
+
+func Benchmark_strings_Join(b *testing.B) {
+	src := gg.Map(gg.Span(128), gg.String[int])
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(strings.Join(src, ` `))
+	}
+}
+
+func BenchmarkJoin(b *testing.B) {
+	src := gg.Map(gg.Span(128), gg.String[int])
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Join(src, ` `))
+	}
+}
+
+func BenchmarkJoinOpt(b *testing.B) {
+	src := gg.Map(gg.Span(128), gg.String[int])
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.JoinOpt(src, ` `))
+	}
+}
+
 // TODO test Unicode.
 func TestToWords(t *testing.T) {
 	defer gtest.Catch(t)
@@ -142,7 +249,7 @@ func TestWords(t *testing.T) {
 	gtest.Eq(src().Spaced(), `one two three`)
 	gtest.Eq(src().Snake(), `one_two_three`)
 	gtest.Eq(src().Kebab(), `one-two-three`)
-	gtest.Eq(src().Solid(), `onetwothree`)
+	gtest.Eq(src().Dense(), `onetwothree`)
 
 	gtest.Equal(src().Lower(), gg.Words{`one`, `two`, `three`})
 	gtest.Equal(src().Upper(), gg.Words{`ONE`, `TWO`, `THREE`})
@@ -153,27 +260,27 @@ func TestWords(t *testing.T) {
 	gtest.Eq(src().Lower().Spaced(), `one two three`)
 	gtest.Eq(src().Lower().Snake(), `one_two_three`)
 	gtest.Eq(src().Lower().Kebab(), `one-two-three`)
-	gtest.Eq(src().Lower().Solid(), `onetwothree`)
+	gtest.Eq(src().Lower().Dense(), `onetwothree`)
 
 	gtest.Eq(src().Upper().Spaced(), `ONE TWO THREE`)
 	gtest.Eq(src().Upper().Snake(), `ONE_TWO_THREE`)
 	gtest.Eq(src().Upper().Kebab(), `ONE-TWO-THREE`)
-	gtest.Eq(src().Upper().Solid(), `ONETWOTHREE`)
+	gtest.Eq(src().Upper().Dense(), `ONETWOTHREE`)
 
 	gtest.Eq(src().Title().Spaced(), `One Two Three`)
 	gtest.Eq(src().Title().Snake(), `One_Two_Three`)
 	gtest.Eq(src().Title().Kebab(), `One-Two-Three`)
-	gtest.Eq(src().Title().Solid(), `OneTwoThree`)
+	gtest.Eq(src().Title().Dense(), `OneTwoThree`)
 
 	gtest.Eq(src().Sentence().Spaced(), `One two three`)
 	gtest.Eq(src().Sentence().Snake(), `One_two_three`)
 	gtest.Eq(src().Sentence().Kebab(), `One-two-three`)
-	gtest.Eq(src().Sentence().Solid(), `Onetwothree`)
+	gtest.Eq(src().Sentence().Dense(), `Onetwothree`)
 
 	gtest.Eq(src().Camel().Spaced(), `one Two Three`)
 	gtest.Eq(src().Camel().Snake(), `one_Two_Three`)
 	gtest.Eq(src().Camel().Kebab(), `one-Two-Three`)
-	gtest.Eq(src().Camel().Solid(), `oneTwoThree`)
+	gtest.Eq(src().Camel().Dense(), `oneTwoThree`)
 }
 
 func BenchmarkReWord_init(b *testing.B) {
@@ -189,24 +296,6 @@ func BenchmarkReWord_reuse(b *testing.B) {
 
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.ReWord())
-	}
-}
-
-func Benchmark_strings_Join(b *testing.B) {
-	val := gg.Map(gg.Span(128), gg.String[int])
-	b.ResetTimer()
-
-	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(strings.Join(val, ` `))
-	}
-}
-
-func BenchmarkJoinOpt(b *testing.B) {
-	val := gg.Map(gg.Span(128), gg.String[int])
-	b.ResetTimer()
-
-	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.JoinOpt(val, ` `))
 	}
 }
 

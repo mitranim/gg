@@ -2,6 +2,37 @@ package gg
 
 import "sync"
 
+/**
+Tiny shortcut for gradually building a list of funcs which are later to be
+executed concurrently. This type's methods invoke global funcs such as `Conc`.
+*/
+type ConcSlice []func()
+
+// If the given func is non-nil, adds it to the slice for later execution.
+func (self *ConcSlice) Add(fun func()) {
+	if fun != nil {
+		*self = append(*self, fun)
+	}
+}
+
+// Same as calling `Conc` with the given slice of funcs.
+func (self ConcSlice) Run() { Conc(self...) }
+
+// Same as calling `ConcCatch` with the given slice of funcs.
+func (self ConcSlice) RunCatch() []error { return ConcCatch(self...) }
+
+/**
+Runs the given funcs sequentially rather than concurrently. Provided for
+performance debugging.
+*/
+func (self ConcSlice) RunSeq() {
+	for _, fun := range self {
+		if fun != nil {
+			fun()
+		}
+	}
+}
+
 // Concurrently runs the given functions.
 func Conc(val ...func()) { Errs(ConcCatch(val...)).Try() }
 
@@ -19,16 +50,16 @@ func ConcCatch(val ...func()) []error {
 	}
 }
 
-func concCatch(val []func()) []error {
-	out := make([]error, 0, len(val))
+func concCatch(src []func()) []error {
+	out := make([]error, 0, len(src))
 	var gro sync.WaitGroup
 
-	for _, val := range val {
-		if val == nil {
+	for _, fun := range src {
+		if fun == nil {
 			AppendVals(&out, nil)
 		} else {
 			gro.Add(1)
-			go concCatchRun(&gro, val, AppendPtrZero(&out))
+			go concCatchRun(&gro, fun, AppendPtrZero(&out))
 		}
 	}
 

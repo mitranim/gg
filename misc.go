@@ -256,11 +256,19 @@ func Equal[A any](one, two A) bool {
 }
 
 /*
-True if both inputs are not zero values of their type, and are equal to each
-other via `==`.
+True if the inputs are equal via `==`, and neither is a zero value of its type.
+For non-equality, use `NotEqNonZero`.
 */
 func EqNonZero[A comparable](one, two A) bool {
-	return one != Zero[A]() && one == two
+	return one == two && one != Zero[A]()
+}
+
+/*
+True if the inputs are non-equal via `!=`, and at least one is not a zero value
+of its type. For equality, use `EqNonZero`.
+*/
+func NotEqNonZero[A comparable](one, two A) bool {
+	return one != two && one != Zero[A]()
 }
 
 /*

@@ -46,6 +46,12 @@ Mutations may trigger segfaults or cause undefined behavior.
 func StrDat[A Text](src A) *byte { return CastUnsafe[*byte](src) }
 
 /*
+Allocation-free conversion between two types conforming to the `Text`
+constraint, typically variants of `string` and/or `[]byte`.
+*/
+func ToText[B, A Text](val A) B { return CastUnsafe[B](val) }
+
+/*
 Allocation-free conversion. Reinterprets arbitrary text as a string. If the
 string is used with an API that relies on string immutability, for example as a
 map key, the source memory must not be mutated afterwards.
@@ -321,13 +327,17 @@ func (self Words) Title() Words { return MapMut(self, strings.Title) }
 Converts the first word to Titlecase and each other word to lowercase. Mutates
 and returns the receiver.
 */
-func (self Words) Sentence() Words { return self.Lower().MapHead(strings.Title) }
+func (self Words) Sentence() Words {
+	return self.MapHead(strings.Title).MapTail(strings.ToLower)
+}
 
 /*
 Converts the first word to lowercase and each other word to Titlecase. Mutates
 and returns the receiver.
 */
-func (self Words) Camel() Words { return self.Title().MapHead(strings.ToLower) }
+func (self Words) Camel() Words {
+	return self.MapHead(strings.ToLower).MapTail(strings.Title)
+}
 
 // Same as `strings.Join`.
 func (self Words) Join(val string) string { return strings.Join(self, val) }
@@ -339,6 +349,17 @@ the given function on that element. If the receiver is empty, this is a nop.
 func (self Words) MapHead(fun func(string) string) Words {
 	if fun != nil && len(self) > 0 {
 		self[0] = fun(self[0])
+	}
+	return self
+}
+
+/*
+Mutates the receiver by replacing elements, other than the first, with the
+results of the given function.
+*/
+func (self Words) MapTail(fun func(string) string) Words {
+	if len(self) > 0 {
+		MapMut(self[1:], fun)
 	}
 	return self
 }

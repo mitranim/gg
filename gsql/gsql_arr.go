@@ -29,7 +29,7 @@ var (
 	_ = gg.Decoder(gg.Zero[*Arr[any]]())
 )
 
-// Implement `Nullable`. True if the slice is nil.
+// Implement `gg.Nullable`. True if the slice is nil.
 func (self Arr[A]) IsNull() bool { return self == nil }
 
 // Implement `fmt.Stringer`. Returns an SQL encoding of the array.

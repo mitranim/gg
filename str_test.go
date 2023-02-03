@@ -27,6 +27,16 @@ func TestStrDat(t *testing.T) {
 	gtest.Eq(gg.StrDat(sliced), gg.StrDat(init))
 }
 
+func TestToText(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Eq(gg.ToText[string](``), ``)
+	gtest.Eq(gg.ToText[string](`str`), `str`)
+	gtest.Equal(gg.ToText[[]byte](``), []byte(nil))
+	gtest.Equal(gg.ToText[[]byte](`str`), []byte(`str`))
+	gtest.Equal(gg.ToText[string]([]byte(`str`)), `str`)
+}
+
 // TODO dedup with `TestBuf_String`.
 func TestToString(t *testing.T) {
 	defer gtest.Catch(t)

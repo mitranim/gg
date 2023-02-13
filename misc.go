@@ -65,8 +65,8 @@ func IsNull[A Nullable](val A) bool { return val.IsNull() }
 func IsNonNull[A Nullable](val A) bool { return !val.IsNull() }
 
 /*
-Zeroes the memory referenced by the given pointer. If the pointer is nil, this
-is a nop.
+Zeroes the memory referenced by the given pointer. If the pointer is nil, does
+nothing.
 */
 func Clear[A any](val *A) {
 	if val != nil {
@@ -244,8 +244,8 @@ func Eq[A comparable](one, two A) bool { return one == two }
 /*
 Short for "equal". For types that implement `Equaler`, this simply calls their
 equality method. Otherwise falls back on `reflect.DeepEqual`. Compared to
-`reflect.DeepEqual`, this has better type safety and performance, even when
-calling it in fallback mode.
+`reflect.DeepEqual`, this has better type safety, and in many cases this has
+better performance, even when calling `reflect.DeepEqual` in fallback mode.
 */
 func Equal[A any](one, two A) bool {
 	impl, _ := AnyNoEscUnsafe(one).(Equaler[A])
@@ -357,7 +357,7 @@ by using a `range` loop. Usage:
 	for ind := range Iter(size) { ... }
 
 Because `struct{}` is zero-sized, `[]struct{}` is backed by "zerobase" (see Go
-source → "runtime/malloc.go") and does not allocate. The example loops should
+source → "runtime/malloc.go") and does not allocate. Loops using this should
 compile to approximately the same instructions as "normal" counted loops.
 */
 func Iter(size int) []struct{} { return make([]struct{}, size) }

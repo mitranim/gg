@@ -81,7 +81,7 @@ Supported struct tags:
 	  Fields without the `flag` tag are ignored. Flags must be unique.
 
 	* Field with `flag:""` is used for remaining non-flag args.
-	  It must have a type equivalent to `[]string`.
+	  It must have a type convertible to `[]string`.
 
 	* `init`: initial value. Used if the flag was not provided.
 

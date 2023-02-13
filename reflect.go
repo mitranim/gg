@@ -155,9 +155,10 @@ func ValueToString(val r.Value) (string, bool) {
 
 /*
 If the underlying type is compatible with `Text`, unwraps and converts it to the
-given text type. Otherwise returns zero value. Boolean indicates success. If the
-given value is backed by `string` but the output type is backed by `[]byte`,
-or vice versa, this performs a copy. Otherwise this doesn't allocate.
+given text type. Otherwise returns zero value. Boolean indicates success. If
+the given value is backed by `string` byt the output type is backed by `[]byte`,
+or vice versa, this performs a regular Go conversion, which may allocate.
+Otherwise this doesn't allocate.
 */
 func AnyToText[A Text](src any) (A, bool) {
 	return ValueToText[A](r.ValueOf(AnyNoEscUnsafe(src)))

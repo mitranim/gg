@@ -286,9 +286,13 @@ func (self *Slice[A]) AppendVals(val ...A) { AppendVals(self, val...) }
 
 /*
 Appends the given element to the given slice, returning the pointer to the newly
-appended position in the slice.
+appended position in the slice. If the target pointer is nil, does nothing and
+returns nil.
 */
 func AppendPtr[Slice ~[]Elem, Elem any](tar *Slice, val Elem) *Elem {
+	if tar == nil {
+		return nil
+	}
 	*tar = append(*tar, val)
 	return LastPtr(*tar)
 }
@@ -298,7 +302,8 @@ func (self *Slice[A]) AppendPtr(val A) *A { return AppendPtr(self, val) }
 
 /*
 Appends a zero element to the given slice, returning the pointer to the newly
-appended position in the slice.
+appended position in the slice. If the target pointer is nil, does nothing and
+returns nil.
 */
 func AppendPtrZero[Slice ~[]Elem, Elem any](tar *Slice) *Elem {
 	return AppendPtr(tar, Zero[Elem]())

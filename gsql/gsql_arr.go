@@ -103,6 +103,9 @@ func (self Arr[A]) Value() (driver.Value, error) {
 
 // Implement `sql.Scanner`.
 func (self *Arr[A]) Scan(src any) error {
+	// Known inefficiency: when the source is `[]byte`, this may allocate, which
+	// is wasted when the output is transient, but correct when parts of the
+	// output are stored in the result.
 	str, ok := gg.AnyToText[string](src)
 	if ok {
 		return self.Parse(str)

@@ -15,7 +15,10 @@ import (
 )
 
 // Default config used by top-level formatting functions in this package.
-var Default = Conf{Indent: gg.Indent}
+var ConfDefault = Conf{Indent: gg.Indent}
+
+// Config that allows formatting of struct zero fields.
+var ConfFull = Conf{Indent: gg.Indent, ZeroFields: true}
 
 /*
 Formatting config.
@@ -41,6 +44,36 @@ func (self Conf) IsMulti() bool { return self.Indent != `` }
 
 // Inverse of `.ZeroFields`.
 func (self Conf) SkipZeroFields() bool { return !self.ZeroFields }
+
+/*
+Shortcut for printing the input as Go code, using this config, prefixed with the
+given description. Handy for debug-printing.
+*/
+func (self Conf) Prn(desc string, src any) { fmt.Println(desc, self.AnyString(src)) }
+
+// Shortcut for printing the input as Go code, using this config
+func (self Conf) Println(src any) { fmt.Println(self.AnyString(src)) }
+
+// Shortcut for using this config to format the input as Go code.
+func (self Conf) AnyString(src any) string {
+	buf := self.Fmt()
+	buf.Any(src)
+	return buf.String()
+}
+
+// Shortcut for using this config to format the input as Go code.
+func (self Conf) ValueString(src r.Value) string {
+	buf := self.Fmt()
+	buf.Value(src)
+	return buf.String()
+}
+
+// Shortcut for creating a pretty-formatter with this config.
+func (self Conf) Fmt() Fmt {
+	var buf Fmt
+	buf.Conf = self
+	return buf
+}
 
 // Short for "formatter".
 type Fmt struct {
@@ -68,20 +101,20 @@ Formats the input as Go code, using the default config with the given
 indentation level.
 */
 func StringIndent(src any, lvl int) string {
-	var buf Fmt
-	buf.Conf = Default
+	buf := ConfDefault.Fmt()
 	buf.Lvl += lvl
 	buf.Any(src)
 	return buf.String()
 }
 
 /*
-Shortcut for printing a given value as Go code, prefixed with a description.
-Handy for debug-printing.
+Shortcut for printing the input as Go code, prefixed with the given description,
+using the default config. Handy for debug-printing.
 */
-func Prn(desc string, src any) {
-	fmt.Println(desc, String(src))
-}
+func Prn(desc string, src any) { ConfDefault.Prn(desc, src) }
+
+// Shortcut for printing the input as Go code, using the default config.
+func Println(src any) { ConfDefault.Println(src) }
 
 // Corrected version of `strconv.CanBackquote` that allows newlines.
 func CanBackquote[A gg.Text](src A) bool {

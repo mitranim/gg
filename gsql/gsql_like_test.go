@@ -12,8 +12,6 @@ func TestLike(t *testing.T) {
 
 	test := func(src, esc string) {
 		tar := gsql.Like(src)
-
-		gtest.Eq(tar.IsNull(), src == ``)
 		gtest.Eq(tar.String(), src)
 		gtest.Eq(tar.Esc(), esc)
 	}

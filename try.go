@@ -1,44 +1,82 @@
 package gg
 
 /*
-If the error is nil, returns void. If the error is non-nil, idempotently adds a
-stack trace and panics.
+If the error is nil, returns void. If the error is non-nil, panics with that
+error, idempotently adding a stack trace.
 */
 func Try(err error) {
 	if err != nil {
-		panic(ErrTraced(err, 1))
+		panic(ErrTracedAt(err, 1))
 	}
 }
 
 /*
-If the error is nil, returns the given value. If the error is non-nil,
-idempotently adds a stack trace and panics.
+If the error is nil, returns void. If the error is non-nil, panics with that
+error, idempotently adding a stack trace and skipping the given number of stack
+frames.
+*/
+func TryAt(err error, skip int) {
+	if err != nil {
+		panic(ErrTracedAt(err, skip+1))
+	}
+}
+
+/*
+If the error is nil, returns void. If the error is non-nil, panics with that
+exact error. Unlike `Try` and other similar functions, this function does NOT
+generate a stack trace or modify the error in any way. Most of the time, you
+should prefer `Try` and other similar functions. This function is intended
+for "internal" library code, for example to avoid the stack trace check when
+the trace is guaranteed, or to avoid generating the trace when the error is
+meant to be caught before being returned to the caller.
+*/
+func TryErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+/*
+Like `Try`, but for multiple errors. Uses `Errs.Err` to combine the errors.
+If the resulting error is nil, returns void. If the resulting error is non-nil,
+panics with that error, idempotently adding a stack trace.
+*/
+func TryMul(src ...error) {
+	err := ErrMul(src...)
+	if err != nil {
+		panic(ErrTracedAt(err, 1))
+	}
+}
+
+/*
+If the error is nil, returns the given value. If the error is non-nil, panics
+with that error, idempotently adding a stack trace.
 */
 func Try1[A any](val A, err error) A {
 	if err != nil {
-		panic(ErrTraced(err, 1))
+		panic(ErrTracedAt(err, 1))
 	}
 	return val
 }
 
 /*
-If the error is nil, returns the given values. If the error is non-nil,
-idempotently adds a stack trace and panics.
+If the error is nil, returns the given values. If the error is non-nil, panics
+with that error, idempotently adding a stack trace.
 */
 func Try2[A, B any](one A, two B, err error) (A, B) {
 	if err != nil {
-		panic(ErrTraced(err, 1))
+		panic(ErrTracedAt(err, 1))
 	}
 	return one, two
 }
 
 /*
-If the error is nil, returns the given values. If the error is non-nil,
-idempotently adds a stack trace and panics.
+If the error is nil, returns the given values. If the error is non-nil, panics
+with that error, idempotently adding a stack trace.
 */
 func Try3[A, B, C any](one A, two B, three C, err error) (A, B, C) {
 	if err != nil {
-		panic(ErrTraced(err, 1))
+		panic(ErrTracedAt(err, 1))
 	}
 	return one, two, three
 }
@@ -53,7 +91,28 @@ func Rec(out *error) {
 		return
 	}
 
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
+	if err != nil {
+		*out = err
+	}
+}
+
+/*
+Must be deferred. Recovers from panics, writing the resulting error, if any, to
+the given pointer. Should be used together with "try"-style functions. Unlike
+`Rec` and other similar functions, this function does NOT generate a stack
+trace or modify the error in any way. Most of the time, you should prefer `Rec`
+and other similar functions. This function is intended for "internal" library
+code, for example to avoid the stack trace check when the trace is guaranteed,
+or to avoid generating the trace when the error is meant to be caught before
+being returned to the caller.
+*/
+func RecErr(out *error) {
+	if out == nil {
+		return
+	}
+
+	err := AnyErr(recover())
 	if err != nil {
 		*out = err
 	}
@@ -68,7 +127,7 @@ func RecN(out *error, skip int) {
 		return
 	}
 
-	err := ToErrTraced(recover(), skip+1)
+	err := AnyErrTracedAt(recover(), skip+1)
 	if err != nil {
 		*out = err
 	}
@@ -119,7 +178,7 @@ func Catch(fun func()) (err error) {
 
 /*
 Runs the given function with the given input, converting a panic to an error.
-Idempotently adds a stack trace.
+Idempotently adds a stack trace. Compare `Catch01` and `Catch11`.
 */
 func Catch10[A any](fun func(A), val A) (err error) {
 	defer RecN(&err, 1)
@@ -131,7 +190,8 @@ func Catch10[A any](fun func(A), val A) (err error) {
 
 /*
 Runs the given function, returning the function's result along with its panic
-converted to an error. Idempotently adds a stack trace.
+converted to an error. Idempotently adds a stack trace. Compare `Catch10` and
+`Catch11`.
 */
 func Catch01[A any](fun func() A) (val A, err error) {
 	defer RecN(&err, 1)
@@ -144,6 +204,7 @@ func Catch01[A any](fun func() A) (val A, err error) {
 /*
 Runs the given function with the given input, returning the function's result
 along with its panic converted to an error. Idempotently adds a stack trace.
+Compare `Catch10` and `Catch01`.
 */
 func Catch11[A, B any](fun func(A) B, val0 A) (val1 B, err error) {
 	defer RecN(&err, 1)
@@ -223,7 +284,13 @@ simply ensures that there's a stack trace, then re-panics.
 Caution: due to idiosyncrasies of `recover()`, this works ONLY when deferred
 directly. Anything other than `defer gg.Traced()` will NOT work.
 */
-func Traced() { Try(AnyErrTraced(recover())) }
+func Traced() { TryErr(AnyErrTraced(recover())) }
+
+/*
+Must be deferred. Version of `Traced` that skips the given number of stack
+frames when generating a stack trace.
+*/
+func TracedAt(skip int) { Try(AnyErrTracedAt(recover(), skip+1)) }
 
 /*
 Must be deferred. Runs the function only if there's no panic. Idempotently adds
@@ -303,7 +370,7 @@ idempotently adding a stack trace. Usage:
 	defer gg.Detailf(`unable to %v`, `do X`)
 */
 func Detailf(pat string, val ...any) {
-	Try(Wrapf(ToErrAny(recover()), pat, val...))
+	Try(Wrapf(AnyErr(recover()), pat, val...))
 }
 
 /*

@@ -7,51 +7,36 @@ import (
 )
 
 /*
-Takes a function that ought to be called no more than once. Returns a function
-that caches and reuses the result of the original function. Uses `sync.Once`
-internally.
+Creates `Lazy` with the given function. See the type's description for details.
 */
-func Lazy[A any](fun func() A) func() A { return (&lazy[A]{fun: fun}).do }
+func NewLazy[A any](fun func() A) *Lazy[A] { return &Lazy[A]{fun: fun} }
 
 /*
-Variant of `Lazy` that takes an additional argument and passes it to the given
-function when it's executed, which happens no more than once.
+Similar to `sync.Once`, but specialized for creating and caching one value,
+instead of relying on nullary functions and side effects. Created via `NewLazy`.
+Calling `.Get` on the resulting object will idempotently call the given function
+and cache the result, and discard the function. Uses `sync.Once` internally for
+synchronization.
 */
-func Lazy1[A, B any](fun func(B) A, val B) func() A {
-	return Lazy(func() A { return fun(val) })
-}
-
-/*
-Variant of `Lazy` that takes additional arguments and passes them to the given
-function when it's executed, which happens no more than once.
-*/
-func Lazy2[A, B, C any](fun func(B, C) A, val0 B, val1 C) func() A {
-	return Lazy(func() A { return fun(val0, val1) })
+type Lazy[A any] struct {
+	once sync.Once
+	val  A
+	fun  func() A
 }
 
 /*
-Variant of `Lazy` that takes additional arguments and passes them to the given
-function when it's executed, which happens no more than once.
+Returns the inner value after idempotently creating it.
+This method is synchronized and safe for concurrent use.
 */
-func Lazy3[A, B, C, D any](fun func(B, C, D) A, val0 B, val1 C, val2 D) func() A {
-	return Lazy(func() A { return fun(val0, val1, val2) })
-}
-
-type lazy[A any] struct {
-	ref sync.Once
-	val A
-	fun func() A
-}
-
-func (self *lazy[A]) do() A {
-	self.ref.Do(self.init)
+func (self *Lazy[A]) Get() A {
+	self.once.Do(self.init)
 	return self.val
 }
 
-func (self *lazy[A]) init() {
+func (self *Lazy[_]) init() {
 	fun := self.fun
+	self.fun = nil
 	if fun != nil {
-		self.fun = nil
 		self.val = fun()
 	}
 }
@@ -60,7 +45,7 @@ func (self *lazy[A]) init() {
 func CacheOf[
 	Key comparable,
 	Val any,
-	Ptr Initer1[Val, Key],
+	Ptr Initer1Ptr[Val, Key],
 ]() *Cache[Key, Val, Ptr] {
 	return new(Cache[Key, Val, Ptr])
 }
@@ -68,7 +53,7 @@ func CacheOf[
 type Cache[
 	Key comparable,
 	Val any,
-	Ptr Initer1[Val, Key],
+	Ptr Initer1Ptr[Val, Key],
 ] struct {
 	Lock sync.RWMutex
 	Map  map[Key]Ptr
@@ -106,11 +91,11 @@ func (self *Cache[Key, _, _]) Del(key Key) {
 }
 
 // Type-inferring shortcut for creating a `TypeCache` of the given type.
-func TypeCacheOf[Val any, Ptr Initer1[Val, r.Type]]() *TypeCache[Val, Ptr] {
+func TypeCacheOf[Val any, Ptr Initer1Ptr[Val, r.Type]]() *TypeCache[Val, Ptr] {
 	return new(TypeCache[Val, Ptr])
 }
 
-type TypeCache[Val any, Ptr Initer1[Val, r.Type]] struct {
+type TypeCache[Val any, Ptr Initer1Ptr[Val, r.Type]] struct {
 	Lock sync.RWMutex
 	Map  map[r.Type]Ptr
 }

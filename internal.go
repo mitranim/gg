@@ -95,6 +95,10 @@ func isIntString(val string) bool {
 	if len(val) == 0 {
 		return false
 	}
+
+	// Note: here we iterate bytes rather than UTF-8 characters because digits
+	// are always single byte and we abort on the first mismatch. This may be
+	// slightly more efficient than iterating characters.
 	for ind := 0; ind < len(val); ind++ {
 		if !isDigit(val[ind]) {
 			return false
@@ -103,9 +107,9 @@ func isIntString(val string) bool {
 	return true
 }
 
-func hasCliFlag(val string) bool { return len(val) > 0 && val[0] == '-' }
+func isCliFlag(val string) bool { return StrHead(val) == '-' }
 
-func isCliFlagValid(val string) bool { return reCliFlag().MatchString(val) }
+func isCliFlagValid(val string) bool { return reCliFlag.Get().MatchString(val) }
 
 /*
 Must begin with `-` and consist of alphanumeric characters, optionally
@@ -113,12 +117,19 @@ containing `-` between those characters.
 
 TODO test.
 */
-var reCliFlag = Lazy1(regexp.MustCompile, `^-+[\p{L}\d]+(?:[\p{L}\d-]*[\p{L}\d])?$`)
+var reCliFlag = NewLazy(func() *regexp.Regexp {
+	return regexp.MustCompile(`^-+[\p{L}\d]+(?:[\p{L}\d-]*[\p{L}\d])?$`)
+})
 
-func cliFlagSplit(src string) (string, string, bool) {
+func cliFlagSplit(src string) (_ string, _ string, _ bool) {
+	if !isCliFlag(src) {
+		return
+	}
+
 	ind := strings.IndexRune(src, '=')
 	if ind >= 0 {
 		return src[:ind], src[ind+1:], true
 	}
+
 	return src, ``, false
 }

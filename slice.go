@@ -24,7 +24,7 @@ methods that can be passed to higher-order functions. Example:
 	values := []string{`one`, `two`, `three`}
 	indexes := []int{0, 2}
 	result := Map(indexes, ToSlice(values).Get)
-	grepr.Println(result)
+	fmt.Println(grepr.String(result))
 	// []string{`one`, `three`}
 */
 type Slice[A any] []A
@@ -272,8 +272,21 @@ func (self Slice[A]) CloneAppend(val ...A) Slice[A] {
 }
 
 /*
+Appends the given element to the given slice. Similar to built-in `append` but
+syntactically shorter. Also see variadic `AppendVals`.
+*/
+func AppendVal[Slice ~[]Elem, Elem any](tar *Slice, val Elem) {
+	if tar != nil {
+		*tar = append(*tar, val)
+	}
+}
+
+// Same as global `AppendVal`.
+func (self *Slice[A]) AppendVal(val A) { AppendVal(self, val) }
+
+/*
 Appends the given elements to the given slice. Similar to built-in `append` but
-syntactically easier because the destination is not repeated.
+syntactically shorter. Also see `AppendVal`.
 */
 func AppendVals[Slice ~[]Elem, Elem any](tar *Slice, val ...Elem) {
 	if tar != nil {
@@ -1168,6 +1181,15 @@ using indexed data structures such as sets and maps.
 */
 func Has[A comparable](src []A, val A) bool {
 	return Some(src, func(elem A) bool { return elem == val })
+}
+
+/*
+Variant of `Has` that uses `Equal` rather than `==` to compare elements. Should
+be used ONLY for very small inputs: no more than a few tens of elements. For
+larger data, consider using indexed data structures such as sets and maps.
+*/
+func HasEqual[A any](src []A, val A) bool {
+	return Some(src, func(elem A) bool { return Equal(elem, val) })
 }
 
 /*

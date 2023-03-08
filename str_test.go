@@ -9,7 +9,7 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
-func TestStrDat(t *testing.T) {
+func TestTextDat(t *testing.T) {
 	defer gtest.Catch(t)
 
 	const init = `hello world`
@@ -20,11 +20,11 @@ func TestStrDat(t *testing.T) {
 	gtest.Zero(sliced)
 	gtest.Zero(empty)
 
-	gtest.NotZero(gg.StrDat(init))
-	gtest.NotZero(gg.StrDat(sliced))
-	gtest.Zero(gg.StrDat(empty))
+	gtest.NotZero(gg.TextDat(init))
+	gtest.NotZero(gg.TextDat(sliced))
+	gtest.Zero(gg.TextDat(empty))
 
-	gtest.Eq(gg.StrDat(sliced), gg.StrDat(init))
+	gtest.Eq(gg.TextDat(sliced), gg.TextDat(init))
 }
 
 func TestToText(t *testing.T) {
@@ -48,7 +48,7 @@ func TestToString(t *testing.T) {
 		tar := gg.ToString(src)
 
 		gtest.Eq(tar, str)
-		gtest.Eq(gg.StrDat(src), gg.StrDat(tar))
+		gtest.Eq(gg.TextDat(src), gg.TextDat(tar))
 	}
 
 	test(``)
@@ -75,7 +75,7 @@ func TestToBytes(t *testing.T) {
 	tar := gg.ToBytes(src)
 
 	gtest.Eq(string(tar), `abc`)
-	gtest.Eq(gg.StrDat(src), gg.StrDat(tar))
+	gtest.Eq(gg.TextDat(src), gg.TextDat(tar))
 }
 
 func TestStrPop(t *testing.T) {
@@ -294,7 +294,7 @@ func TestWords(t *testing.T) {
 }
 
 func BenchmarkReWord_init(b *testing.B) {
-	src := gg.ReWord().String()
+	src := gg.ReWord.Get().String()
 
 	for ind := 0; ind < b.N; ind++ {
 		regexp.MustCompile(src)
@@ -302,10 +302,10 @@ func BenchmarkReWord_init(b *testing.B) {
 }
 
 func BenchmarkReWord_reuse(b *testing.B) {
-	gg.Nop1(gg.ReWord())
+	gg.Nop1(gg.ReWord.Get())
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.ReWord())
+		gg.Nop1(gg.ReWord.Get())
 	}
 }
 

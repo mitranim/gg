@@ -2,6 +2,34 @@ package gg
 
 import "math"
 
+/*
+Short for "is finite". Missing feature of the standard "math" package.
+True if the input is neither NaN nor infinity.
+*/
+func IsFin[A Float](val A) bool {
+	flo := float64(val)
+	return !math.IsNaN(flo) && !math.IsInf(flo, 0)
+}
+
+// Short for "is natural". True if >= 0. Also see `IsPos`.
+func IsNat[A Num](val A) bool { return val >= 0 }
+
+// Short for "is positive". True if > 0. Also see `IsNat`.
+func IsPos[A Num](val A) bool { return val > 0 }
+
+// Short for "is negative". True if < 0. Also see `IsNat`.
+func IsNeg[A Num](val A) bool { return val < 0 }
+
+/*
+True if the remainder of dividing the first argument by the second argument is
+zero. If the divisor is zero, does not attempt the division and returns false.
+Note that the result is unaffected by the signs of either the dividend or the
+divisor.
+*/
+func IsDivisibleBy[A Int](dividend, divisor A) bool {
+	return divisor != 0 && dividend%divisor == 0
+}
+
 // Same as input + 1.
 func Inc[A Num](val A) A { return val + 1 }
 
@@ -19,15 +47,6 @@ func Pow[A Num](base A, pow int) A {
 		out *= base
 	}
 	return out
-}
-
-/*
-Short for "is finite". Missing feature of the standard "math" package.
-True if the input is neither NaN nor infinity.
-*/
-func IsFin[A Float](val A) bool {
-	flo := float64(val)
-	return !math.IsNaN(flo) && !math.IsInf(flo, 0)
 }
 
 // Factorial without overflow checks. May overflow.

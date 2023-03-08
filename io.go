@@ -72,6 +72,18 @@ func ReadCloseAll(src io.ReadCloser) []byte {
 }
 
 /*
+Shortcut for using `os.Stat` to check if the file at the given path exists,
+and is not a directory.
+*/
+func FileExists(path string) bool {
+	if path == `` {
+		return false
+	}
+	info, _ := os.Stat(path)
+	return info != nil && !info.IsDir()
+}
+
+/*
 Shortcut for `os.ReadFile`. Panics on error. Converts the content to the
 requested text type without an additional allocation.
 */
@@ -112,10 +124,10 @@ func ForkReadCloser(src io.ReadCloser) (_, _ io.ReadCloser) {
 // Shortcut for `os.Getwd` that panics on error.
 func Cwd() string { return Try1(os.Getwd()) }
 
-// If the given closer is non-nil, closes it, ignoring the error.
+// If the given closer is non-nil, closes it. Panics on error.
 func Close(val io.Closer) {
 	if val != nil {
-		_ = val.Close()
+		Try(val.Close())
 	}
 }
 

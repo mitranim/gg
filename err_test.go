@@ -15,18 +15,15 @@ import (
 func TestErr(t *testing.T) {
 	defer gtest.Catch(t)
 
-	err := gg.Err{}.Msgf(`unable to perform %v`, `some operation`).Caused(io.EOF).Traced(0)
+	err := gg.Err{}.Msgf(`unable to perform %v`, `some operation`).Caused(io.EOF).TracedAt(0)
 
 	gtest.Eq(err.Error(), `unable to perform some operation: EOF`)
 
-	gtest.TextHas(
-		err.Stack(),
-		strings.TrimSpace(`
+	gtest.TextHas(err.Stack(), strings.TrimSpace(`
 unable to perform some operation: EOF
 trace:
     TestErr err_test.go
-`),
-	)
+`))
 }
 
 func TestErrTrace(t *testing.T) {
@@ -41,13 +38,13 @@ func TestErrTrace(t *testing.T) {
 	gtest.Equal(gg.ErrTrace(outer), gg.PtrGet(inner.Trace))
 }
 
-func TestToErrAny(t *testing.T) {
+func TestAnyErr(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.Zero(gg.ToErrAny(nil))
-	gtest.EqAny(gg.ToErrAny(`str`), error(gg.ErrStr(`str`)))
-	gtest.EqAny(gg.ToErrAny(gg.ErrStr(`str`)), error(gg.ErrStr(`str`)))
-	gtest.EqAny(gg.ToErrAny(gg.ErrAny{`str`}), error(gg.ErrAny{`str`}))
+	gtest.Zero(gg.AnyErr(nil))
+	gtest.EqAny(gg.AnyErr(`str`), error(gg.ErrStr(`str`)))
+	gtest.EqAny(gg.AnyErr(gg.ErrStr(`str`)), error(gg.ErrStr(`str`)))
+	gtest.EqAny(gg.AnyErr(gg.ErrAny{`str`}), error(gg.ErrAny{`str`}))
 }
 
 func TestErrs_Error(t *testing.T) {
@@ -232,7 +229,7 @@ func BenchmarkErrTraced_error_without_trace(b *testing.B) {
 	gtest.False(gg.IsErrTraced(err))
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.ErrTraced(err, 1))
+		gg.Nop1(gg.ErrTracedAt(err, 1))
 	}
 }
 
@@ -241,7 +238,7 @@ func BenchmarkErrTraced_error_with_trace(b *testing.B) {
 	gtest.True(gg.IsErrTraced(err))
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.ErrTraced(err, 1))
+		gg.Nop1(gg.ErrTracedAt(err, 1))
 	}
 }
 
@@ -302,4 +299,54 @@ func TestErrFind(t *testing.T) {
 
 	test := func(err error) bool { return err == inner }
 	gtest.Equal(gg.ErrFind(outer, test), inner)
+}
+
+func TestErrStack(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.ErrStack(nil))
+
+	t.Run(`without_trace`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Eq(gg.ErrStack(gg.ErrStr(`str`)), `str`)
+		gtest.Eq(gg.ErrStack(gg.Err{Msg: `str`}), `str`)
+		gtest.Eq(gg.ErrStack(fmt.Errorf(`str`)), `str`)
+	})
+
+	t.Run(`traced_without_message`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		err := gg.Err{}.TracedAt(0)
+
+		gtest.Eq(gg.ErrStack(err), gg.Newline+`func2 err_test.go:320`)
+	})
+
+	t.Run(`wrapped_without_message`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Cause: inner}
+
+		gtest.Eq(gg.ErrStack(outer), inner.Stack())
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+inner
+trace:
+    func3 err_test.go:328
+`))
+	})
+
+	t.Run(`wrapped_with_message`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Msg: `outer`, Cause: inner}
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+outer: inner
+trace:
+    func4 err_test.go:343
+`))
+	})
 }

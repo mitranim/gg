@@ -11,6 +11,15 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
+var testArr4_0 = [4]byte{0x00, 0x2e, 0x7a, 0xb0}
+var testArr4_1 = [4]byte{0x4b, 0x38, 0xa9, 0x65}
+var testArr8_0 = [8]byte{0x00, 0x2e, 0x7a, 0xb0, 0xef, 0x3f, 0x44, 0x88}
+var testArr8_1 = [8]byte{0x4b, 0x38, 0xa9, 0x65, 0x13, 0x0d, 0x46, 0x29}
+var testArr16_0 = [16]byte{0x00, 0x2e, 0x7a, 0xb0, 0xef, 0x3f, 0x44, 0x88, 0x95, 0x88, 0xc1, 0xf1, 0x10, 0xeb, 0xc2, 0x08}
+var testArr16_1 = [16]byte{0x4b, 0x38, 0xa9, 0x65, 0x13, 0x0d, 0x46, 0x29, 0xb7, 0x98, 0xd8, 0x69, 0x6f, 0xdf, 0xc7, 0xf2}
+var testArr32_0 = [32]byte{0x00, 0x2e, 0x7a, 0xb0, 0xef, 0x3f, 0x44, 0x88, 0x95, 0x88, 0xc1, 0xf1, 0x10, 0xeb, 0xc2, 0x08, 0xe9, 0x68, 0x33, 0x30, 0xb3, 0xdb, 0x4b, 0x82, 0x8e, 0x1d, 0xb5, 0xe5, 0x1a, 0x90, 0xe4, 0xa2}
+var testArr32_1 = [32]byte{0x4b, 0x38, 0xa9, 0x65, 0x13, 0x0d, 0x46, 0x29, 0xb7, 0x98, 0xd8, 0x69, 0x6f, 0xdf, 0xc7, 0xf2, 0x41, 0x50, 0xd4, 0xc4, 0x4f, 0x45, 0x45, 0x13, 0x81, 0xce, 0x33, 0xcb, 0x28, 0x13, 0x17, 0x32}
+
 func TestIsZero(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -487,15 +496,33 @@ func TestPlus2(t *testing.T) {
 	gtest.Eq(gg.Plus2(`10`, `20`), `1020`)
 }
 
-func Benchmark_eq(b *testing.B) {
+func Benchmark_eq_operator(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(ind == ind*2)
 	}
 }
 
-func BenchmarkEq(b *testing.B) {
+func BenchmarkEq_int(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.Eq(ind, ind*2))
+	}
+}
+
+func BenchmarkEq_array_8(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Eq(testArr8_0, testArr8_1))
+	}
+}
+
+func BenchmarkEq_array_16(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Eq(testArr16_0, testArr16_1))
+	}
+}
+
+func BenchmarkEq_array_32(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Eq(testArr32_0, testArr32_1))
 	}
 }
 
@@ -594,4 +621,87 @@ func TestSnapSlice(t *testing.T) {
 	snap.Done()
 	gtest.Equal(tar, []int{10, 20})
 	gtest.Eq(cap(tar), 4)
+}
+
+func TestIs(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.True(gg.Is[int](10, 10))
+	gtest.False(gg.Is[int](10, 20))
+
+	gtest.True(gg.Is[any](10, 10))
+	gtest.False(gg.Is[any](10, 20))
+
+	var one int = 10
+	var two int = 10
+	gtest.True(gg.Is(one, one))
+	gtest.True(gg.Is(one, two))
+	gtest.True(gg.Is(&one, &one))
+	gtest.False(gg.Is(&one, &two))
+
+	gtest.True(gg.Is([4]byte{}, [4]byte{}))
+	gtest.True(gg.Is([8]byte{}, [8]byte{}))
+	gtest.True(gg.Is([16]byte{}, [16]byte{}))
+	gtest.True(gg.Is([32]byte{}, [32]byte{}))
+
+	gtest.True(gg.Is(testArr4_0, testArr4_0))
+	gtest.False(gg.Is(testArr4_0, testArr4_1))
+
+	gtest.True(gg.Is(testArr8_0, testArr8_0))
+	gtest.False(gg.Is(testArr8_0, testArr8_1))
+
+	gtest.True(gg.Is(testArr16_0, testArr16_0))
+	gtest.False(gg.Is(testArr16_0, testArr16_1))
+
+	gtest.True(gg.Is(testArr32_0, testArr32_0))
+	gtest.False(gg.Is(testArr32_0, testArr32_1))
+
+	// Nil slices must be identical regardless of the element type.
+	gtest.True(gg.Is([]struct{}(nil), []struct{}(nil)))
+	gtest.True(gg.Is([]int(nil), []int(nil)))
+	gtest.True(gg.Is([]string(nil), []string(nil)))
+
+	// Slices of zero-sized types and empty slices of non-zero-sized types are
+	// backed by the same "zerobase" array pointer, which makes them identical.
+	// This may vary between Go implementations and versions.
+	gtest.True(gg.Is([]struct{}{}, []struct{}{}))
+	gtest.True(gg.Is(make([]struct{}, 128), make([]struct{}, 128)))
+	gtest.True(gg.Is([]int{}, []int{}))
+	gtest.True(gg.Is([]string{}, []string{}))
+
+	// Non-empty slices of non-zero-sized types must always be distinct.
+	gtest.False(gg.Is([]int{0}, []int{0}))
+	gtest.False(gg.Is([]string{``}, []string{``}))
+
+	// Even though strings are reference types, string constants may be identical
+	// when equal. The same may occur for interface values created from string
+	// constants. This may vary between Go implementations and versions.
+	gtest.True(gg.Is(``, ``))
+	gtest.True(gg.Is(`one`, `one`))
+	gtest.True(gg.Is[any](`one`, `one`))
+	gtest.False(gg.Is(`one`, `two`))
+	gtest.False(gg.Is[any](`one`, `two`))
+
+	// However, slicing string constants may produce strings which are equal but
+	// not identical. This may vary between Go implementations and versions.
+	gtest.True(`123_one`[3:] == `456_one`[3:])
+	gtest.False(gg.Is(`123_one`[3:], `456_one`[3:]))
+}
+
+func BenchmarkIs_array_8(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Is(testArr8_0, testArr8_1))
+	}
+}
+
+func BenchmarkIs_array_16(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Is(testArr16_0, testArr16_1))
+	}
+}
+
+func BenchmarkIs_array_32(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Is(testArr32_0, testArr32_1))
+	}
 }

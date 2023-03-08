@@ -63,6 +63,12 @@ type FlagsFull struct {
 	Parser StrsParser `flag:"-p"  init:"three" desc:"Parser flag"`
 }
 
+type FlagsWithoutArgs struct {
+	Str  string  `flag:"-s"  init:"one"   desc:"Str flag"`
+	Bool bool    `flag:"-b"  init:"true"  desc:"Bool flag"`
+	Num  float64 `flag:"-n"  init:"12.34" desc:"Num flag"`
+}
+
 var argsMixed = []string{
 	`-s=one`,
 	`-ss=two`, `-ss=three`, `-ss`, `four`,
@@ -530,6 +536,36 @@ func TestFlagParseTo(t *testing.T) {
 
 		test(Src{`-v`, `10`, `-v`, `20`}, Out{{10}, {20}})
 		test(Src{`-v=10`, `-v=20`}, Out{{10}, {20}})
+	})
+
+	t.Run(`without_args`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		type Tar = FlagsWithoutArgs
+
+		parse := func(src ...string) Tar { return gg.FlagParseTo[Tar](src) }
+
+		gtest.Equal(
+			parse(),
+			Tar{Str: `one`, Bool: true, Num: 12.34},
+		)
+
+		gtest.Equal(
+			parse(`-s=two`, `-b=false`, `-n=23.45`),
+			Tar{Str: `two`, Num: 23.45},
+		)
+
+		gtest.PanicStr(`unexpected non-flag args: ["arg"]`, func() {
+			parse(`arg`)
+		})
+
+		gtest.PanicStr(`unexpected non-flag args: ["arg0" "arg1"]`, func() {
+			parse(`arg0`, `arg1`)
+		})
+
+		gtest.PanicStr(`unexpected non-flag args: ["arg0" "arg1"]`, func() {
+			parse(`-s=two`, `-b=false`, `-n=23.45`, `arg0`, `arg1`)
+		})
 	})
 
 	t.Run(`mixed`, func(t *testing.T) {

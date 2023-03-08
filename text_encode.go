@@ -5,6 +5,7 @@ import (
 	"fmt"
 	r "reflect"
 	"strconv"
+	"time"
 )
 
 /*
@@ -46,10 +47,27 @@ string, allowing only INTENTIONALLY stringable values. Rules:
 	* Types that support `fmt.Stringer`, `Appender` or `encoding.TextMarshaler`
 	  are encoded by using the corresponding method.
 
+	* As a special case, `time.Time` is encoded in `time.RFC3339` to make encoding
+	  and decoding automatically reversible, and generally for better
+	  compatibility with machine parsing. This format is already used by
+	  `time.Time.MarshalText`, `time.Time.MarshalJSON`, and the corresponding
+	  unmarshaling methods. The different format used by `time.Time.String` tends
+	  to be an inconvenience, one we rectify here.
+
 	* Any other type causes an error.
 */
 func StringCatch[A any](val A) (string, error) {
 	box := AnyNoEscUnsafe(val)
+
+	// Must be handled before `fmt.Stringer`.
+	//
+	// Note that our `Append` doesn't need this clause because it uses
+	// `time.Time.MarshalText`, which uses our preferred format. Yet
+	// another reason why we need this special case here.
+	inst, ok := box.(time.Time)
+	if ok {
+		return inst.Format(time.RFC3339), nil
+	}
 
 	stringer, _ := box.(fmt.Stringer)
 	if stringer != nil {

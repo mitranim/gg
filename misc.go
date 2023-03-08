@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql/driver"
 	r "reflect"
+	u "unsafe"
 )
 
 var (
@@ -232,11 +233,53 @@ func Max2[A Lesser[A]](one, two A) A {
 	return one
 }
 
-// True if the given number is > 0.
-func IsPos[A Signed](val A) bool { return val > 0 }
+/*
+True if the inputs are byte-for-byte identical. This function is not meant for
+common use. Nearly always, you should use `Eq` or `Equal` instead. This one is
+sometimes useful for testing purposes, such as asserting that two interface
+values refer to the same underlying data. This may lead to brittle code that is
+not portable between different Go implementations. The implementation is naive
+and may be slower than `Eq` or `==`.
+*/
+func Is[A any](one, two A) bool {
+	/**
+	Note. The "ideal" implementation looks like this:
 
-// True if the given number is < 0.
-func IsNeg[A Signed](val A) bool { return val < 0 }
+		const size = u.Sizeof(one)
+		return CastUnsafe[[size]byte](one) == CastUnsafe[[size]byte](two)
+
+	But at the time of writing, in Go 1.19, `unsafe.Sizeof` on a type parameter
+	is considered non-constant. If this changes in the future, we'll switch to
+	the implementation above.
+	*/
+
+	typ := Type[A]()
+	size := typ.Size()
+	const wordSize = u.Sizeof(size)
+
+	switch size {
+	case 0:
+		return true
+
+	case wordSize:
+		return *(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))
+
+	case wordSize * 2:
+		return (*(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))) &&
+			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + wordSize)) ==
+				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + wordSize)))
+
+	default:
+		for off := uintptr(0); off < size; off++ {
+			oneChunk := *(*byte)(u.Pointer(uintptr(u.Pointer(&one)) + off))
+			twoChunk := *(*byte)(u.Pointer(uintptr(u.Pointer(&two)) + off))
+			if oneChunk != twoChunk {
+				return false
+			}
+		}
+		return true
+	}
+}
 
 // Same as `==`. Sometimes useful with higher-order functions.
 func Eq[A comparable](one, two A) bool { return one == two }

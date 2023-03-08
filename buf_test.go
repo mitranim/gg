@@ -18,7 +18,7 @@ func TestBuf_String(t *testing.T) {
 		tar := buf.String()
 
 		gtest.Eq(tar, src)
-		gtest.Eq(gg.StrDat(buf), gg.StrDat(tar))
+		gtest.Eq(gg.TextDat(buf), gg.TextDat(tar))
 	}
 
 	test(``)

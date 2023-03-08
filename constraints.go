@@ -168,14 +168,51 @@ type Decoder interface {
 
 /*
 Implemented by the `Err` type. Used by `ErrTrace` to retrieve stack traces from
-arbitrary error types.
+arbitrary error types. This interface is also implemented by trace-enabled
+errors in "github.com/pkg/errors".
 */
 type StackTraced interface{ StackTrace() []uintptr }
 
-// Used by `Cache`.
-type Initer1[A, B any] interface {
+/*
+The method `.Init` must modify the receiver, initializing any components that
+need initialization, for example using `make` to create inner maps or chans.
+The receiver must be mutable, usually a pointer. See `IniterPtr` for a more
+precise type constraint. Also see `Initer1` which is more commonly used in this
+library.
+*/
+type Initer interface{ Init() }
+
+// Pointer version of `Initer`.
+type IniterPtr[A any] interface {
 	*A
-	Init(B)
+	Initer
+}
+
+/*
+The method `.Init` must modify the receiver, initializing any components that
+need initialization, for example using `make` to create inner maps or chans.
+The receiver must be mutable, usually a pointer. See `Initer1Ptr` for a more
+precise type constraint. Also see nullary `Initer`.
+*/
+type Initer1[A any] interface{ Init(A) }
+
+// Pointer version of `Initer1`.
+type Initer1Ptr[A, B any] interface {
+	*A
+	Initer1[B]
+}
+
+/*
+The method `.Default` must modify the receiver, applying default values to its
+components, usually to struct fields. The receiver must be mutable, usually a
+pointer. See `DefaulterPtr` for a more precise type constraint.
+*/
+type Defaulter interface{ Default() }
+
+// Pointer version of `Defaulter`.
+type DefaulterPtr[A any] interface {
+	*A
+	Defaulter
 }
 
 /*

@@ -323,6 +323,15 @@ func TestCloneDeep(t *testing.T) {
 		)
 	})
 
+	t.Run(`outer_interface`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		src := []string{`one`, `two`}
+		tar := gg.CloneDeep(any(src)).([]string)
+
+		testSliceEqualButDistinct(src, tar)
+	})
+
 	t.Run(`inner_interface`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
@@ -361,14 +370,20 @@ Note: this doesn't verify the deep cloning of slice elements, which must be
 checked separately.
 */
 func testCloneDeepDifferentSlice[A any](src []A) {
-	gtest.Equal(gg.CloneDeep(src), src)
-	gtest.Equal(gg.CloneDeep(src), gg.Clone(src))
+	testSliceEqualButDistinct(src, gg.CloneDeep(src))
+}
 
-	gtest.NotEq(gg.SliceDat(gg.Clone(src)), gg.SliceDat(src))
-	gtest.NotEq(gg.SliceDat(gg.CloneDeep(src)), gg.SliceDat(src))
+func testSliceEqualButDistinct[A any](src, tar []A) {
+	shallow := gg.Clone(src)
 
-	gtest.NotSliceIs(gg.Clone(src), src)
-	gtest.NotSliceIs(gg.CloneDeep(src), src)
+	gtest.Equal(tar, src)
+	gtest.Equal(tar, shallow)
+
+	gtest.NotEq(gg.SliceDat(shallow), gg.SliceDat(src))
+	gtest.NotEq(gg.SliceDat(tar), gg.SliceDat(src))
+
+	gtest.NotSliceIs(shallow, src)
+	gtest.NotSliceIs(tar, src)
 }
 
 func Benchmark_clone_direct_CloneDeep(b *testing.B) {

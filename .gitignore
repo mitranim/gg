@@ -4,7 +4,7 @@
 !/*ignore
 !/go.mod
 !/*.go
-!/*.md
+!/readme.md
 !/makefile
 !/unlicense
 !/grepr
@@ -12,3 +12,4 @@
 !/gtest
 
 stash_*
+*_stash.go

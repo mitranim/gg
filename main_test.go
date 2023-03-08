@@ -138,7 +138,7 @@ func (self *IntsValue) Set(src string) error {
 	return gg.ParseCatch(src, gg.AppendPtrZero(self))
 }
 
-/**
+/*
 Defined as a struct to verify that the flag parser supports slices of arbitrary
 types implementing `flag.Value`, even if they're not typedefs of text types,
 and not something normally compatible with `gg.Parse`.

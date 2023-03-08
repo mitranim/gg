@@ -40,10 +40,27 @@ func IsStrEmpty[A Text](val A) bool { return len(val) == 0 }
 func StrEq[A Text](one, two A) bool { return ToString(one) == ToString(two) }
 
 /*
-Returns the underlying data pointer of the given string or byte slice.
-Mutations may trigger segfaults or cause undefined behavior.
+Returns the pointer to the first byte of the underlying data array for the given
+string or byte slice. Use caution. Mutating the underlying data may trigger
+segfaults or cause undefined behavior.
 */
-func StrDat[A Text](src A) *byte { return CastUnsafe[*byte](src) }
+func TextDat[A Text](val A) *byte { return CastUnsafe[*byte](val) }
+
+/*
+TODO: after updating to Go 1.20, consider using `unsafe.StringData` for strings
+and `unsafe.SliceData` for byte slices. Something like the following
+pseudocode:
+
+func TextDat[A Text](val A) *byte {
+	if string {
+		return u.StringData(val)
+	}
+	if bytes {
+		return u.SliceData(val)
+	}
+	panic(`unreachable`)
+}
+*/
 
 /*
 Allocation-free conversion between two types conforming to the `Text`
@@ -59,13 +76,17 @@ map key, the source memory must not be mutated afterwards.
 func ToString[A Text](val A) string { return CastUnsafe[string](val) }
 
 /*
+TODO: after updating to Go 1.20, consider changing to the following:
+
+func ToString[A Text](val A) string { return u.String(TextDat(val), len(val)) }
+*/
+
+/*
 Allocation-free conversion. Reinterprets arbitrary text as bytes. If the source
 was a string, the output must NOT be mutated. Mutating memory that belongs to a
 string may produce segfaults or undefined behavior.
 */
-func ToBytes[A Text](val A) []byte {
-	return u.Slice(CastUnsafe[*byte](val), len(val))
-}
+func ToBytes[A Text](val A) []byte { return u.Slice(TextDat(val), len(val)) }
 
 /*
 Converts arguments to strings and concatenates the results. See `StringCatch`
@@ -227,11 +248,13 @@ func SplitLines[A Text](src A) []string {
 	if len(src) == 0 {
 		return nil
 	}
-	return RE_NEWLINE().Split(ToString(src), -1)
+	return ReNewline.Get().Split(ToString(src), -1)
 }
 
 // Matches any newline. Supports Windows, Unix, and old MacOS styles.
-var RE_NEWLINE = Lazy1(regexp.MustCompile, `(?:\r\n|\r|\n)`)
+var ReNewline = NewLazy(func() *regexp.Regexp {
+	return regexp.MustCompile(`(?:\r\n|\r|\n)`)
+})
 
 /*
 Searches for the given separator and returns the part of the string before the
@@ -280,17 +303,16 @@ func TrimSpaceSuffix[A Text](src A) A {
 Regexp for splitting arbitrary text into words, Unicode-aware. Used by
 `ToWords`.
 */
-var ReWord = Lazy1(
-	regexp.MustCompile,
-	`\p{Lu}\p{Ll}+\d*|\p{Lu}+\d*|\p{Ll}+\d*`,
-)
+var ReWord = NewLazy(func() *regexp.Regexp {
+	return regexp.MustCompile(`\p{Lu}\p{Ll}+\d*|\p{Lu}+\d*|\p{Ll}+\d*`)
+})
 
 /*
 Splits arbitrary text into words, Unicode-aware. Suitable for conversion between
 typographic cases such as `camelCase` and `snake_case`.
 */
 func ToWords[A Text](val A) Words {
-	return ReWord().FindAllString(ToString(val), -1)
+	return ReWord.Get().FindAllString(ToString(val), -1)
 }
 
 /*
@@ -321,13 +343,17 @@ func (self Words) Lower() Words { return MapMut(self, strings.ToLower) }
 func (self Words) Upper() Words { return MapMut(self, strings.ToUpper) }
 
 // Converts each word to Titlecase. Mutates and returns the receiver.
-func (self Words) Title() Words { return MapMut(self, strings.Title) }
+func (self Words) Title() Words {
+	//nolint:staticcheck
+	return MapMut(self, strings.Title)
+}
 
 /*
 Converts the first word to Titlecase and each other word to lowercase. Mutates
 and returns the receiver.
 */
 func (self Words) Sentence() Words {
+	//nolint:staticcheck
 	return self.MapHead(strings.Title).MapTail(strings.ToLower)
 }
 
@@ -336,6 +362,7 @@ Converts the first word to lowercase and each other word to Titlecase. Mutates
 and returns the receiver.
 */
 func (self Words) Camel() Words {
+	//nolint:staticcheck
 	return self.MapHead(strings.ToLower).MapTail(strings.Title)
 }
 

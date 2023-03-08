@@ -37,6 +37,16 @@ func (self Err) String() string {
 	return buf.String()
 }
 
+// Shortcut for generating an error where the given messages are combined as lines.
+func LinesErr(msg ...any) Err {
+	// Possibly suboptimal but not anyone's bottleneck.
+	return ToErr(1, gg.JoinLinesOpt(gg.Map(msg, gg.String[any])...))
+}
+
+func ToErr(skip int, msg string) Err {
+	return Err{gg.Err{}.Msgd(msg).TracedAt(skip + 1)}
+}
+
 /*
 Must be deferred. Usage:
 
@@ -54,10 +64,6 @@ func Catch(t testing.TB) {
 	if val != nil {
 		t.Fatalf(`%+v`, val)
 	}
-}
-
-func ToErr(skip int, msg string) Err {
-	return Err{gg.Err{}.Msgd(msg).Traced(skip + 1)}
 }
 
 /*
@@ -81,40 +87,94 @@ func False(val bool, opt ...any) {
 }
 
 /*
-Asserts that the inputs are equal via "==", or fails the test, printing the
-optional additional messages and the stack trace.
+Asserts that the inputs are byte-for-byte identical, via `gg.Is`. Otherwise
+fails the test, printing the optional additional messages and the stack trace.
 */
-func Eq[A comparable](act, exp A, opt ...any) {
-	if act != exp {
-		panic(ToErr(1, msgOpt(opt, msgEq(act, exp))))
+func Is[A any](act, exp A, opt ...any) {
+	if gg.Is(act, exp) {
+		return
+	}
+
+	if gg.Equal(act, exp) {
+		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+			`inputs are equal but not identical`,
+			MsgEqInner(act, exp),
+		))))
+	}
+
+	panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
+}
+
+/*
+Asserts that the inputs are NOT byte-for-byte identical, via `gg.Is`. Otherwise
+fails the test, printing the optional additional messages and the stack trace.
+*/
+func NotIs[A any](act, exp A, opt ...any) {
+	if gg.Is(act, exp) {
+		panic(ToErr(1, msgOpt(opt, MsgNotEq(act))))
 	}
 }
 
 /*
-Asserts that the inputs are equal via "==", or fails the test, printing the
+Asserts that the inputs are equal via `==`, or fails the test, printing the
+optional additional messages and the stack trace.
+*/
+func Eq[A comparable](act, exp A, opt ...any) {
+	if act != exp {
+		panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
+	}
+}
+
+/*
+Asserts that the inputs are equal via `==`, or fails the test, printing the
 optional additional messages and the stack trace. Doesn't statically require
 the inputs to be comparable, but may panic if they aren't.
 */
 func EqAny[A any](act, exp A, opt ...any) {
 	if any(act) != any(exp) {
-		panic(ToErr(1, msgOpt(opt, msgEq(act, exp))))
+		panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
 	}
 }
 
-func msgEq(act, exp any) string {
-	return gg.JoinLinesOpt(`unexpected difference`, msgEqInner(act, exp))
+/*
+Asserts that the inputs are not equal via `!=`, or fails the test, printing the
+optional additional messages and the stack trace.
+*/
+func NotEq[A comparable](act, nom A, opt ...any) {
+	if act == nom {
+		panic(ToErr(1, msgOpt(opt, MsgNotEq(act))))
+	}
 }
 
-func msgEqInner(act, exp any) string {
+func MsgEq(act, exp any) string {
+	return gg.JoinLinesOpt(`unexpected difference`, MsgEqInner(act, exp))
+}
+
+// Used internally when generating error messages about failed equality.
+func MsgEqInner(act, exp any) string {
+	return gg.JoinLinesOpt(
+		MsgEqDetailed(act, exp),
+		MsgEqSimple(act, exp),
+	)
+}
+
+func MsgEqDetailed(act, exp any) string {
 	return gg.JoinLinesOpt(
 		msgDet(`actual detailed:`, goStringIndent(act)),
 		msgDet(`expected detailed:`, goStringIndent(exp)),
+	)
+}
+
+func MsgEqSimple(act, exp any) string {
+	return gg.JoinLinesOpt(
 		msgDet(`actual simple:`, gg.StringAny(act)),
 		msgDet(`expected simple:`, gg.StringAny(exp)),
 	)
 }
 
-func goStringIndent[A any](val A) string { return grepr.StringIndent(val, 1) }
+func MsgNotEq[A any](act A) string {
+	return gg.JoinLinesOpt(`unexpected equality`, msgSingle(act))
+}
 
 func msgDet(msg, det string) string {
 	if det == `` {
@@ -123,28 +183,7 @@ func msgDet(msg, det string) string {
 	return gg.JoinLinesOpt(msg, gg.Indent+det)
 }
 
-/*
-Asserts that the inputs are not equal via "!=", or fails the test, printing the
-optional additional messages and the stack trace.
-*/
-func NotEq[A any](act, nom A, opt ...any) {
-	if any(act) == any(nom) {
-		panic(ToErr(1, msgOpt(opt, msgNotEq(act, nom))))
-	}
-}
-
-func msgNotEq[A any](act, nom A) string {
-	return gg.JoinLinesOpt(`unexpected equality`, msgNotEqInner(act, nom))
-}
-
-func msgNotEqInner[A any](act, nom A) string {
-	return gg.JoinLinesOpt(
-		msgDet(`actual detailed:`, goStringIndent(act)),
-		msgDet(`nominal detailed:`, goStringIndent(nom)),
-		msgDet(`actual simple:`, gg.StringAny(act)),
-		msgDet(`nominal simple:`, gg.StringAny(nom)),
-	)
-}
+func goStringIndent[A any](val A) string { return grepr.StringIndent(val, 1) }
 
 /*
 Asserts that the inputs are deeply equal, or fails the test, printing the
@@ -152,7 +191,7 @@ optional additional messages and the stack trace.
 */
 func Equal[A any](act, exp A, opt ...any) {
 	if !gg.Equal(act, exp) {
-		panic(ToErr(1, msgOpt(opt, msgEq(act, exp))))
+		panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
 	}
 }
 
@@ -164,7 +203,7 @@ func EqualSet[A ~[]B, B comparable](act, exp A, opt ...any) {
 	if !gg.Equal(gg.SetFrom(act), gg.SetFrom(exp)) {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected difference in element sets`,
-			msgEqInner(act, exp)),
+			MsgEqInner(act, exp)),
 		)))
 	}
 }
@@ -175,7 +214,7 @@ optional additional messages and the stack trace.
 */
 func NotEqual[A any](act, nom A, opt ...any) {
 	if gg.Equal(act, nom) {
-		panic(ToErr(1, msgOpt(opt, msgNotEq(act, nom))))
+		panic(ToErr(1, msgOpt(opt, MsgNotEq(act))))
 	}
 }
 
@@ -489,10 +528,7 @@ printing the optional additional messages and the stack trace.
 */
 func Has[A ~[]B, B comparable](src A, val B, opt ...any) {
 	if !gg.Has(src, val) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
-			`missing element in slice`,
-			msgSliceElem(src, val),
-		))))
+		panic(ToErr(1, msgOpt(opt, msgSliceElemMissing(src, val))))
 	}
 }
 
@@ -502,14 +538,43 @@ test, printing the optional additional messages and the stack trace.
 */
 func NotHas[A ~[]B, B comparable](src A, val B, opt ...any) {
 	if gg.Has(src, val) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
-			`unexpected element in slice`,
-			msgSliceElem(src, val),
-		))))
+		panic(ToErr(1, msgOpt(opt, msgSliceElemUnexpected(src, val))))
 	}
 }
 
-func msgSliceElem[A ~[]B, B comparable](src A, val B) string {
+/*
+Asserts that the given slice contains the given value, or fails the test,
+printing the optional additional messages and the stack trace. Uses `gg.Equal`
+to compare values. For values that implement `comparable`, use `Has` which is
+simpler and faster.
+*/
+func HasEqual[A ~[]B, B any](src A, val B, opt ...any) {
+	if !gg.HasEqual(src, val) {
+		panic(ToErr(1, msgOpt(opt, msgSliceElemMissing(src, val))))
+	}
+}
+
+/*
+Asserts that the given slice does not contain the given value, or fails the
+test, printing the optional additional messages and the stack trace. Uses
+`gg.Equal` to compare values. For values that implement `comparable`, use
+`HasNot` which is simpler and faster.
+*/
+func NotHasEqual[A ~[]B, B any](src A, val B, opt ...any) {
+	if gg.HasEqual(src, val) {
+		panic(ToErr(1, msgOpt(opt, msgSliceElemUnexpected(src, val))))
+	}
+}
+
+func msgSliceElemMissing[A ~[]B, B any](src A, val B) string {
+	return gg.JoinLinesOpt(`missing element in slice`, msgSliceElem(src, val))
+}
+
+func msgSliceElemUnexpected[A ~[]B, B any](src A, val B) string {
+	return gg.JoinLinesOpt(`unexpected element in slice`, msgSliceElem(src, val))
+}
+
+func msgSliceElem[A ~[]B, B any](src A, val B) string {
 	return gg.JoinLinesOpt(
 		msgDet(`slice detailed:`, goStringIndent(src)),
 		msgDet(`element detailed:`, goStringIndent(val)),

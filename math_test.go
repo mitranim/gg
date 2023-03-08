@@ -8,6 +8,119 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
+func TestIsFin(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.False(gg.IsFin(math.NaN()))
+	gtest.False(gg.IsFin(math.Inf(1)))
+	gtest.False(gg.IsFin(math.Inf(-1)))
+	gtest.True(gg.IsFin(0.0))
+}
+
+func TestIsDivisibleBy(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.False(gg.IsDivisibleBy(0, 0))
+	gtest.False(gg.IsDivisibleBy(1, 0))
+	gtest.False(gg.IsDivisibleBy(2, 0))
+	gtest.False(gg.IsDivisibleBy(-1, 0))
+	gtest.False(gg.IsDivisibleBy(-2, 0))
+
+	gtest.True(gg.IsDivisibleBy(0, 1))
+	gtest.True(gg.IsDivisibleBy(0, 2))
+	gtest.True(gg.IsDivisibleBy(0, -1))
+	gtest.True(gg.IsDivisibleBy(0, -2))
+
+	gtest.True(gg.IsDivisibleBy(1, 1))
+	gtest.True(gg.IsDivisibleBy(2, 1))
+	gtest.True(gg.IsDivisibleBy(3, 1))
+	gtest.True(gg.IsDivisibleBy(-1, 1))
+	gtest.True(gg.IsDivisibleBy(-2, 1))
+	gtest.True(gg.IsDivisibleBy(-3, 1))
+
+	gtest.True(gg.IsDivisibleBy(1, -1))
+	gtest.True(gg.IsDivisibleBy(2, -1))
+	gtest.True(gg.IsDivisibleBy(3, -1))
+	gtest.True(gg.IsDivisibleBy(-1, -1))
+	gtest.True(gg.IsDivisibleBy(-2, -1))
+	gtest.True(gg.IsDivisibleBy(-3, -1))
+
+	gtest.False(gg.IsDivisibleBy(1, -2))
+	gtest.False(gg.IsDivisibleBy(1, -3))
+	gtest.False(gg.IsDivisibleBy(1, 2))
+	gtest.False(gg.IsDivisibleBy(1, 3))
+
+	gtest.False(gg.IsDivisibleBy(4, 0))
+	gtest.True(gg.IsDivisibleBy(4, 1))
+	gtest.True(gg.IsDivisibleBy(4, 2))
+	gtest.False(gg.IsDivisibleBy(4, 3))
+	gtest.True(gg.IsDivisibleBy(4, 4))
+	gtest.False(gg.IsDivisibleBy(4, 5))
+	gtest.False(gg.IsDivisibleBy(4, 6))
+	gtest.False(gg.IsDivisibleBy(4, 7))
+	gtest.False(gg.IsDivisibleBy(4, 8))
+	gtest.False(gg.IsDivisibleBy(4, 9))
+	gtest.False(gg.IsDivisibleBy(4, 10))
+	gtest.False(gg.IsDivisibleBy(4, 11))
+	gtest.False(gg.IsDivisibleBy(4, 12))
+	gtest.False(gg.IsDivisibleBy(4, 13))
+	gtest.False(gg.IsDivisibleBy(4, 14))
+	gtest.False(gg.IsDivisibleBy(4, 15))
+	gtest.False(gg.IsDivisibleBy(4, 16))
+
+	gtest.False(gg.IsDivisibleBy(-4, 0))
+	gtest.True(gg.IsDivisibleBy(-4, 1))
+	gtest.True(gg.IsDivisibleBy(-4, 2))
+	gtest.False(gg.IsDivisibleBy(-4, 3))
+	gtest.True(gg.IsDivisibleBy(-4, 4))
+	gtest.False(gg.IsDivisibleBy(-4, 5))
+	gtest.False(gg.IsDivisibleBy(-4, 6))
+	gtest.False(gg.IsDivisibleBy(-4, 7))
+	gtest.False(gg.IsDivisibleBy(-4, 8))
+	gtest.False(gg.IsDivisibleBy(-4, 9))
+	gtest.False(gg.IsDivisibleBy(-4, 10))
+	gtest.False(gg.IsDivisibleBy(-4, 11))
+	gtest.False(gg.IsDivisibleBy(-4, 12))
+	gtest.False(gg.IsDivisibleBy(-4, 13))
+	gtest.False(gg.IsDivisibleBy(-4, 14))
+	gtest.False(gg.IsDivisibleBy(-4, 15))
+	gtest.False(gg.IsDivisibleBy(-4, 16))
+
+	gtest.True(gg.IsDivisibleBy(4, -1))
+	gtest.True(gg.IsDivisibleBy(4, -2))
+	gtest.False(gg.IsDivisibleBy(4, -3))
+	gtest.True(gg.IsDivisibleBy(4, -4))
+	gtest.False(gg.IsDivisibleBy(4, -5))
+	gtest.False(gg.IsDivisibleBy(4, -6))
+	gtest.False(gg.IsDivisibleBy(4, -7))
+	gtest.False(gg.IsDivisibleBy(4, -8))
+	gtest.False(gg.IsDivisibleBy(4, -9))
+	gtest.False(gg.IsDivisibleBy(4, -10))
+	gtest.False(gg.IsDivisibleBy(4, -11))
+	gtest.False(gg.IsDivisibleBy(4, -12))
+	gtest.False(gg.IsDivisibleBy(4, -13))
+	gtest.False(gg.IsDivisibleBy(4, -14))
+	gtest.False(gg.IsDivisibleBy(4, -15))
+	gtest.False(gg.IsDivisibleBy(4, -16))
+
+	gtest.True(gg.IsDivisibleBy(-4, -1))
+	gtest.True(gg.IsDivisibleBy(-4, -2))
+	gtest.False(gg.IsDivisibleBy(-4, -3))
+	gtest.True(gg.IsDivisibleBy(-4, -4))
+	gtest.False(gg.IsDivisibleBy(-4, -5))
+	gtest.False(gg.IsDivisibleBy(-4, -6))
+	gtest.False(gg.IsDivisibleBy(-4, -7))
+	gtest.False(gg.IsDivisibleBy(-4, -8))
+	gtest.False(gg.IsDivisibleBy(-4, -9))
+	gtest.False(gg.IsDivisibleBy(-4, -10))
+	gtest.False(gg.IsDivisibleBy(-4, -11))
+	gtest.False(gg.IsDivisibleBy(-4, -12))
+	gtest.False(gg.IsDivisibleBy(-4, -13))
+	gtest.False(gg.IsDivisibleBy(-4, -14))
+	gtest.False(gg.IsDivisibleBy(-4, -15))
+	gtest.False(gg.IsDivisibleBy(-4, -16))
+}
+
 func TestInc(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -81,15 +194,6 @@ func testPow2[A gg.Num](src A) {
 
 func testPow3[A gg.Num](src A) {
 	gtest.Eq(gg.Pow(src, 3), src*src*src)
-}
-
-func TestIsFin(t *testing.T) {
-	defer gtest.Catch(t)
-
-	gtest.False(gg.IsFin(math.NaN()))
-	gtest.False(gg.IsFin(math.Inf(1)))
-	gtest.False(gg.IsFin(math.Inf(-1)))
-	gtest.True(gg.IsFin(0.0))
 }
 
 func TestFac(t *testing.T) {

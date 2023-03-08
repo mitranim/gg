@@ -25,7 +25,7 @@ func clonedArray(src r.Value) r.Value {
 	return out
 }
 
-/**
+/*
 Known defect: when cloning, in addition to allocating a new backing array, this
 allocates a slice header, which could theoretically be avoided if we could make
 just a backing array of the required size and replace the array pointer in the

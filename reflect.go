@@ -43,6 +43,14 @@ func TypeKind(val r.Type) r.Kind {
 	return val.Kind()
 }
 
+// Nil-safe version of `reflect.Type.String`. If the input is nil, returns zero.
+func TypeName(val r.Type) string {
+	if val == nil {
+		return ``
+	}
+	return val.String()
+}
+
 /*
 Returns `reflect.Kind` of the given `any`. Compare our generic functions `Kind`
 and `KindOf` which take a concrete type.
@@ -456,12 +464,12 @@ func IsFieldIndirect(val r.StructField) bool { return IsIndirect(val.Type) }
 
 /*
 Returns a deep clone of the given value. Doesn't clone chans and funcs,
-preserving them as-is. If the given value is "direct" (see `IsIndirect`), this
-function doesn't allocate and simply returns the input as-is.
+preserving them as-is. If the given value is "direct" (see `IsIndirect`),
+this function doesn't allocate and simply returns the input as-is.
 */
-func CloneDeep[A any](src A) A {
-	ValueClone(r.ValueOf(AnyNoEscUnsafe(&src)).Elem())
-	return src
+func CloneDeep[A any](val A) A {
+	ValueClone(r.ValueOf(AnyNoEscUnsafe(&val)).Elem())
+	return val
 }
 
 /*

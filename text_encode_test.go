@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
 )
+
+var testTime = time.Date(1234, time.February, 23, 0, 0, 0, 0, time.UTC)
 
 // TODO test invalid.
 func TestString(t *testing.T) {
@@ -40,6 +43,15 @@ func TestString(t *testing.T) {
 	gtest.Eq(gg.String([]byte(`str`)), `str`)
 
 	gtest.Eq(gg.String(&url.URL{Path: `/one`}), `/one`)
+
+	t.Run(`time.Time`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		// Unfortunate default which we choose to override/replace.
+		gtest.Eq(testTime.String(), `1234-02-23 00:00:00 +0000 UTC`)
+
+		gtest.Eq(gg.String(testTime), `1234-02-23T00:00:00Z`)
+	})
 }
 
 func BenchmarkString_string(b *testing.B) {
@@ -81,9 +93,23 @@ func TestAppend(t *testing.T) {
 
 	gtest.Equal(gg.Append(Bui(nil), any(nil)), Bui(nil))
 	gtest.Equal(gg.Append(Bui(``), any(nil)), Bui(``))
-	gtest.Equal(gg.Append(Bui(`str`), any(nil)), Bui(`str`))
+	gtest.Equal(gg.Append(Bui(`pre_`), any(nil)), Bui(`pre_`))
 	gtest.Equal(gg.Append(Bui(nil), 10), Bui(`10`))
-	gtest.Equal(gg.Append(Bui(`str`), 10), Bui(`str10`))
+	gtest.Equal(gg.Append(Bui(`pre_`), 10), Bui(`pre_10`))
+
+	t.Run(`time.Time`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Equal(
+			gg.Append(Bui(nil), testTime),
+			Bui(`1234-02-23T00:00:00Z`),
+		)
+
+		gtest.Equal(
+			gg.Append(Bui(`pre_`), testTime),
+			Bui(`pre_1234-02-23T00:00:00Z`),
+		)
+	})
 }
 
 func Benchmark_string_any_fmt_Sprint(b *testing.B) {

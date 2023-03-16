@@ -552,11 +552,11 @@ func isValueNilable(src r.Value) bool {
 }
 
 func setElideType(buf *Fmt, val bool) gg.Snapshot[bool] {
-	return gg.Swap(&buf.ElideType, val)
+	return gg.PtrSwap(&buf.ElideType, val)
 }
 
 func incLvl(buf *Fmt) gg.Snapshot[int] {
-	return gg.Swap(&buf.Lvl, buf.Lvl+1)
+	return gg.PtrSwap(&buf.Lvl, buf.Lvl+1)
 }
 
 func skipField(buf *Fmt, src r.Value) bool {
@@ -572,6 +572,7 @@ func isNonBackquotable(char rune) bool {
 		(char < ' ' && !(char == '\t' || char == '\n' || char == '\r'))
 }
 
+// TODO take type instead of value.
 func isStructUnit(val r.Value) bool { return val.NumField() == 1 }
 
 func isNonInterface(typ r.Type) bool {

@@ -8,7 +8,7 @@ and capacity preallocation. Always returns non-nil, even if the input is
 empty.
 */
 func SetOf[A comparable](val ...A) Set[A] {
-	return make(Set[A], len(val)).Reset(val...)
+	return make(Set[A], len(val)).Add(val...)
 }
 
 /*
@@ -28,11 +28,7 @@ func SetFrom[Slice ~[]Elem, Elem comparable](val ...Slice) Set[Elem] {
 Creates a set by "mapping" the elements of a given slice via the provided
 function. Always returns non-nil, even if the input is empty.
 */
-func SetMapped[
-	Slice ~[]Elem,
-	Elem any,
-	Val comparable,
-](src Slice, fun func(Elem) Val) Set[Val] {
+func SetMapped[Elem any, Val comparable](src []Elem, fun func(Elem) Val) Set[Val] {
 	buf := make(Set[Val], len(src))
 	if fun != nil {
 		for _, val := range src {
@@ -104,7 +100,11 @@ func (self Set[A]) DelFrom(val ...Set[A]) Set[A] {
 	return self
 }
 
-// Clears and returns the receiver, which may be nil.
+/*
+Clears and returns the receiver, which may be nil. Note that this type is
+implemented as a map, and this method involves iterating the map, which is
+inefficient in Go. In many cases, it's more efficient to make a new set.
+*/
 func (self Set[A]) Clear() Set[A] {
 	for val := range self {
 		delete(self, val)
@@ -166,7 +166,7 @@ func (self Set[A]) GoString() string {
 		return typ + `(nil)`
 	}
 
-	if len(self) == 0 {
+	if !(len(self) > 0) {
 		return typ + `{}`
 	}
 

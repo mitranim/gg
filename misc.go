@@ -255,7 +255,7 @@ func Is[A any](one, two A) bool {
 
 	typ := Type[A]()
 	size := typ.Size()
-	const wordSize = u.Sizeof(size)
+	const wordSize = u.Sizeof(uintptr(0))
 
 	switch size {
 	case 0:
@@ -460,21 +460,21 @@ func Snap[A any](ptr *A) Snapshot[A] { return Snapshot[A]{ptr, *ptr} }
 Snapshots the previous value, sets the next value, and returns a snapshot
 that can restore the previous value. Usage:
 
-	defer Swap(&somePtr, someVal).Done()
+	defer PtrSwap(&somePtr, someVal).Done()
 */
-func Swap[A any](ptr *A, next A) Snapshot[A] {
+func PtrSwap[A any](ptr *A, next A) Snapshot[A] {
 	prev := *ptr
 	*ptr = next
 	return Snapshot[A]{ptr, prev}
 }
 
-// Short for "snapshot". Used by `Swap`.
+// Short for "snapshot". Used by `PtrSwap`.
 type Snapshot[A any] struct {
 	Ptr *A
 	Val A
 }
 
-// If the pointer is non-nil, writes the value to it. See `Swap`.
+// If the pointer is non-nil, writes the value to it. See `PtrSwap`.
 func (self Snapshot[_]) Done() {
 	if self.Ptr != nil {
 		*self.Ptr = self.Val

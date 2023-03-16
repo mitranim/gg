@@ -1,12 +1,14 @@
 .DS_Store
-
 /*
+
 !/*ignore
 !/go.mod
 !/*.go
 !/readme.md
 !/makefile
 !/unlicense
+
+!testdata
 !/grepr
 !/gsql
 !/gtest

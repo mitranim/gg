@@ -84,7 +84,7 @@ func relOpt(base, src string) string {
 }
 
 func isIntString(val string) bool {
-	if len(val) == 0 {
+	if !(len(val) > 0) {
 		return false
 	}
 
@@ -92,7 +92,7 @@ func isIntString(val string) bool {
 		val = val[1:]
 	}
 
-	if len(val) == 0 {
+	if !(len(val) > 0) {
 		return false
 	}
 
@@ -132,4 +132,50 @@ func cliFlagSplit(src string) (_ string, _ string, _ bool) {
 	}
 
 	return src, ``, false
+}
+
+func firstSubmatches(reg *regexp.Regexp, src string) []string {
+	return MapCompact(reg.FindAllStringSubmatch(src, -1), firstSubmatch)
+}
+
+func firstSubmatch(src []string) string { return Get(src, 1) }
+
+/*
+Represents nodes in a linked list. Note that in Go, linked lists tend to be an
+anti-pattern; slices perform better in most scenarios, and don't require an
+additional abstraction. However, there is one valid scenario for linked lists:
+when nodes are pointers to local variables, when those local variables don't
+escape, and when they represent addresses to actual memory regions in stack
+frames. In such scenarios, this may provide us with a resizable data structure
+allocated entirely on the stack, which is useful for book-keeping in recursive
+tree-walking or graph-walking algorithms. We currently do not verify if the
+trick works as expected, as the overheads are minimal regardless.
+*/
+type node[A comparable] struct {
+	tail *node[A]
+	val  A
+}
+
+func (self node[A]) has(val A) bool {
+	return self.val == val || (self.tail != nil && self.tail.has(val))
+}
+
+func (self *node[A]) cons(val A) (out node[A]) {
+	out.tail = self
+	out.val = val
+	return
+}
+
+/*
+Suboptimal: doesn't support preallocating capacity. We only call this in case of
+errors, so the overhead should be insignificant.
+*/
+func (self node[A]) vals() (out []A) {
+	out = append(out, self.val)
+	node := self.tail
+	for node != nil {
+		out = append(out, node.val)
+		node = node.tail
+	}
+	return
 }

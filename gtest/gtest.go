@@ -54,7 +54,7 @@ Must be deferred. Usage:
 		// Catches panics and uses `t.Fatalf`.
 		defer gtest.Catch(t)
 
-		// Test assertion that panics.
+		// Test assertion. Panics and gets caught above.
 		gtest.Eq(10, 20)
 	}
 */
@@ -701,7 +701,7 @@ Asserts that the given slice is not empty, or fails the test, printing the
 optional additional messages and the stack trace.
 */
 func NotEmpty[A ~[]B, B any](src A, opt ...any) {
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty slice`, msgSingle(src)))))
 	}
 }
@@ -711,7 +711,7 @@ Asserts that the given slice is not empty, or fails the test, printing the
 optional additional messages and the stack trace.
 */
 func MapNotEmpty[Src ~map[Key]Val, Key comparable, Val any](src Src, opt ...any) {
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty map`, msgSingle(src)))))
 	}
 }

@@ -79,12 +79,9 @@ Supported struct tags:
 
 	* `flag`: must be "" or a valid flag like "-v" or "--verbose".
 	  Fields without the `flag` tag are ignored. Flags must be unique.
-
 	* Field with `flag:""` is used for remaining non-flag args.
 	  It must have a type convertible to `[]string`.
-
 	* `init`: initial value. Used if the flag was not provided.
-
 	* `desc`: description. Used for help printing.
 
 Parsing rules:

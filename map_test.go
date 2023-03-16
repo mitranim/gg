@@ -138,3 +138,20 @@ func TestMapClear(t *testing.T) {
 	gg.MapClear(tar)
 	gtest.Equal(tar, IntMap{})
 }
+
+/*
+func Benchmark_map_iteration(b *testing.B) {
+	tar := make(map[string]float64)
+	for ind := range gg.Iter(1024) {
+		tar[gg.String(ind)] = float64((ind % 2) * ind)
+	}
+
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		for key, val := range tar {
+			gg.Nop2(key, val)
+		}
+	}
+}
+*/

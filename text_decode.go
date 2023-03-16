@@ -112,7 +112,7 @@ Shortcut for implementing text decoding of types that wrap other types, such as
 `Opt`. Mostly for internal use.
 */
 func ParseClearCatch[Out any, Tar ClearerPtrGetter[Out], Src Text](src Src, tar Tar) error {
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		tar.Clear()
 		return nil
 	}

@@ -12,9 +12,7 @@ import (
 Returns `reflect.Type` of the given type. Differences from `reflect.TypeOf`:
 
 	* Avoids spurious heap escape and copying.
-
 	* Output is always non-nil.
-
 	* When the given type is an interface, including the empty interface `any`,
 	  the output is a non-nil `reflect.Type` describing the given interface.
 */
@@ -24,9 +22,7 @@ func Type[A any]() r.Type { return r.TypeOf((*A)(nil)).Elem() }
 Similar to `reflect.TypeOf`, with the following differences:
 
 	* Avoids spurious heap escape and copying.
-
 	* Output is always non-nil.
-
 	* When the given type is an interface, including the empty interface `any`,
 	  the output is a non-nil `reflect.Type` describing the given interface.
 */
@@ -433,11 +429,8 @@ Special exceptions:
 
 	* Strings are considered to be direct, despite containing a pointer.
 	  Generally in Go, strings are considered to be immutable.
-
 	* Chans are ignored / considered to be direct.
-
 	* Funcs are ignored / considered to be direct.
-
 	* For structs, only public fields are checked.
 */
 func IsIndirect(typ r.Type) bool {

@@ -37,8 +37,8 @@ func SliceDat[Slice ~[]Elem, Elem any](src Slice) *Elem {
 // Same as global `SliceDat`.
 func (self Slice[A]) Dat() *A { return SliceDat(self) }
 
-// True if slice length is 0. The slice may or may not be nil.
-func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) == 0 }
+// Inverse of `HasLen`. The slice may or may not be nil.
+func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return !(len(val) > 0) }
 
 // Same as global `IsEmpty`.
 func (self Slice[_]) IsEmpty() bool { return IsEmpty(self) }
@@ -179,9 +179,13 @@ func (self Slice[_]) Zero() { SliceZero(self) }
 Collapses the slice's length, preserving the capacity.
 Does not modify any elements.
 */
-func SliceTrunc[Slice ~[]Elem, Elem any](tar *Slice) {
-	if tar != nil && *tar != nil {
-		*tar = (*tar)[:0]
+func SliceTrunc[Slice ~[]Elem, Elem any](ptr *Slice) {
+	if ptr == nil {
+		return
+	}
+	tar := *ptr
+	if tar != nil {
+		*ptr = tar[:0]
 	}
 }
 
@@ -207,8 +211,10 @@ If the index is within bounds, returns the value at that index.
 Otherwise returns zero value.
 */
 func Get[A any](src []A, ind int) A {
-	val, _ := Got(src, ind)
-	return val
+	if ind >= 0 && ind < len(src) {
+		return src[ind]
+	}
+	return Zero[A]()
 }
 
 // Same as global `Get`.
@@ -275,9 +281,9 @@ func (self Slice[A]) CloneAppend(val ...A) Slice[A] {
 Appends the given element to the given slice. Similar to built-in `append` but
 syntactically shorter. Also see variadic `AppendVals`.
 */
-func AppendVal[Slice ~[]Elem, Elem any](tar *Slice, val Elem) {
-	if tar != nil {
-		*tar = append(*tar, val)
+func AppendVal[Slice ~[]Elem, Elem any](ptr *Slice, val Elem) {
+	if ptr != nil {
+		*ptr = append(*ptr, val)
 	}
 }
 
@@ -288,9 +294,9 @@ func (self *Slice[A]) AppendVal(val A) { AppendVal(self, val) }
 Appends the given elements to the given slice. Similar to built-in `append` but
 syntactically shorter. Also see `AppendVal`.
 */
-func AppendVals[Slice ~[]Elem, Elem any](tar *Slice, val ...Elem) {
-	if tar != nil {
-		*tar = append(*tar, val...)
+func AppendVals[Slice ~[]Elem, Elem any](ptr *Slice, val ...Elem) {
+	if ptr != nil {
+		*ptr = append(*ptr, val...)
 	}
 }
 
@@ -298,16 +304,37 @@ func AppendVals[Slice ~[]Elem, Elem any](tar *Slice, val ...Elem) {
 func (self *Slice[A]) AppendVals(val ...A) { AppendVals(self, val...) }
 
 /*
+If the target pointer is nil, does nothing and returns -1. Otherwise appends the
+given element to the given slice (like `AppendVal`) and returns the last index
+of the resulting slice. Also see `AppendPtr`.
+*/
+func AppendIndex[Slice ~[]Elem, Elem any](ptr *Slice, val Elem) int {
+	if ptr == nil {
+		return -1
+	}
+
+	tar := *ptr
+	tar = append(tar, val)
+	*ptr = tar
+	return LastIndex(tar)
+}
+
+// Same as global `AppendIndex`.
+func (self *Slice[A]) AppendIndex(val A) int { return AppendIndex(self, val) }
+
+/*
 Appends the given element to the given slice, returning the pointer to the newly
 appended position in the slice. If the target pointer is nil, does nothing and
-returns nil.
+returns nil. Also see `AppendIndex`.
 */
-func AppendPtr[Slice ~[]Elem, Elem any](tar *Slice, val Elem) *Elem {
-	if tar == nil {
+func AppendPtr[Slice ~[]Elem, Elem any](ptr *Slice, val Elem) *Elem {
+	if ptr == nil {
 		return nil
 	}
-	*tar = append(*tar, val)
-	return LastPtr(*tar)
+
+	tar := append(*ptr, val)
+	*ptr = tar
+	return LastPtr(tar)
 }
 
 // Same as global `AppendPtr`.
@@ -318,8 +345,8 @@ Appends a zero element to the given slice, returning the pointer to the newly
 appended position in the slice. If the target pointer is nil, does nothing and
 returns nil.
 */
-func AppendPtrZero[Slice ~[]Elem, Elem any](tar *Slice) *Elem {
-	return AppendPtr(tar, Zero[Elem]())
+func AppendPtrZero[Slice ~[]Elem, Elem any](ptr *Slice) *Elem {
+	return AppendPtr(ptr, Zero[Elem]())
 }
 
 // Same as global `AppendPtrZero`.
@@ -378,9 +405,7 @@ func (self Slice[A]) LastPtr() *A { return LastPtr(self) }
 Returns the index of the last element of the given slice.
 Same as `len(val)-1`. If slice is empty, returns -1.
 */
-func LastIndex[Slice ~[]Elem, Elem any](val Slice) int {
-	return len(val) - 1
-}
+func LastIndex[Slice ~[]Elem, Elem any](val Slice) int { return len(val) - 1 }
 
 // Same as global `LastIndex`.
 func (self Slice[A]) LastIndex() int { return LastIndex(self) }
@@ -403,7 +428,7 @@ Returns the initial part of the given slice: all except the last value.
 If the slice is nil, returns nil.
 */
 func Init[Slice ~[]Elem, Elem any](val Slice) Slice {
-	if len(val) == 0 {
+	if !(len(val) > 0) {
 		return val
 	}
 	return val[:len(val)-1]
@@ -417,7 +442,7 @@ Returns the tail part of the given slice: all except the first value.
 If the slice is nil, returns nil.
 */
 func Tail[Slice ~[]Elem, Elem any](val Slice) Slice {
-	if len(val) == 0 {
+	if !(len(val) > 0) {
 		return val
 	}
 	return val[1:]
@@ -539,7 +564,7 @@ smallest value from among the results, which must be comparable primitives.
 For non-primitives, see `MinBy`.
 */
 func MinPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
-	if len(src) == 0 || fun == nil {
+	if !(len(src) > 0) || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -554,7 +579,7 @@ smallest value from among the results. For primitive types that don't implement
 `Lesser`, see `MinPrimBy`.
 */
 func MinBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
-	if len(src) == 0 || fun == nil {
+	if !(len(src) > 0) || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -569,7 +594,7 @@ largest value from among the results, which must be comparable primitives.
 For non-primitives, see `MaxBy`.
 */
 func MaxPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
-	if len(src) == 0 || fun == nil {
+	if !(len(src) > 0) || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -584,7 +609,7 @@ largest value from among the results. For primitive types that don't implement
 `Lesser`, see `MaxPrimBy`.
 */
 func MaxBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
-	if len(src) == 0 || fun == nil {
+	if !(len(src) > 0) || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -636,16 +661,16 @@ func MapAppend[
 	Tar ~[]TarVal,
 	SrcVal any,
 	TarVal any,
-](tar *Tar, src Src, fun func(SrcVal) TarVal) {
-	if tar == nil || fun == nil {
+](ptr *Tar, src Src, fun func(SrcVal) TarVal) {
+	if ptr == nil || fun == nil {
 		return
 	}
 
-	buf := GrowCap(*tar, len(src))
+	tar := GrowCap(*ptr, len(src))
 	for _, val := range src {
-		buf = append(buf, fun(val))
+		tar = append(tar, fun(val))
 	}
-	*tar = buf
+	*ptr = tar
 }
 
 /*
@@ -829,16 +854,16 @@ func Times[A any](src int, fun func(int) A) []A {
 Similar to `Times` but instead of creating a new slice, appends to an existing
 slice.
 */
-func TimesAppend[Slice ~[]Elem, Elem any](tar *Slice, src int, fun func(int) Elem) {
-	if tar == nil || fun == nil || !(src > 0) {
+func TimesAppend[Slice ~[]Elem, Elem any](ptr *Slice, src int, fun func(int) Elem) {
+	if ptr == nil || fun == nil || !(src > 0) {
 		return
 	}
 
-	buf := GrowCap(*tar, src)
+	tar := GrowCap(*ptr, src)
 	for ind := range Iter(src) {
-		buf = append(buf, fun(ind))
+		tar = append(tar, fun(ind))
 	}
-	*tar = buf
+	*ptr = tar
 }
 
 // Same as global `TimesAppend`.
@@ -888,7 +913,7 @@ Similar to `Fold` but uses the first slice element as the accumulator, falling
 back on zero value. The given function is invoked only for 2 or more elements.
 */
 func Fold1[A any](src []A, fun func(A, A) A) A {
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		return Zero[A]()
 	}
 	return Fold(src[1:], src[0], fun)
@@ -909,14 +934,14 @@ func (self Slice[A]) Filter(fun func(A) bool) Slice[A] {
 Similar to `Filter` but instead of creating a new slice, appends to an existing
 slice.
 */
-func FilterAppend[Tar ~[]Elem, Elem any](tar *Tar, src []Elem, fun func(Elem) bool) {
-	if tar == nil || fun == nil {
+func FilterAppend[Tar ~[]Elem, Elem any](ptr *Tar, src []Elem, fun func(Elem) bool) {
+	if ptr == nil || fun == nil {
 		return
 	}
 
 	for _, val := range src {
 		if fun(val) {
-			*tar = append(*tar, val)
+			*ptr = append(*ptr, val)
 		}
 	}
 }
@@ -944,14 +969,14 @@ func (self Slice[A]) Reject(fun func(A) bool) Slice[A] {
 Similar to `Reject` but instead of creating a new slice, appends to an existing
 slice.
 */
-func RejectAppend[Tar ~[]Elem, Elem any](tar *Tar, src []Elem, fun func(Elem) bool) {
-	if tar == nil || fun == nil {
+func RejectAppend[Tar ~[]Elem, Elem any](ptr *Tar, src []Elem, fun func(Elem) bool) {
+	if ptr == nil || fun == nil {
 		return
 	}
 
 	for _, val := range src {
 		if !fun(val) {
-			*tar = append(*tar, val)
+			*ptr = append(*ptr, val)
 		}
 	}
 }
@@ -1175,21 +1200,24 @@ func Uniq[Slice ~[]Elem, Elem comparable](src Slice) Slice {
 }
 
 /*
-True if the given slice contains the given value. Should be used ONLY for very
-small inputs: no more than a few tens of elements. For larger data, consider
-using indexed data structures such as sets and maps.
-*/
-func Has[A comparable](src []A, val A) bool {
-	return Some(src, func(elem A) bool { return elem == val })
-}
-
-/*
 Variant of `Has` that uses `Equal` rather than `==` to compare elements. Should
 be used ONLY for very small inputs: no more than a few tens of elements. For
 larger data, consider using indexed data structures such as sets and maps.
 */
 func HasEqual[A any](src []A, val A) bool {
 	return Some(src, func(elem A) bool { return Equal(elem, val) })
+}
+
+// Same as global `HasEqual`.
+func (self Slice[A]) HasEqual(val A) bool { return HasEqual(self, val) }
+
+/*
+True if the given slice contains the given value. Should be used ONLY for very
+small inputs: no more than a few tens of elements. For larger data, consider
+using indexed data structures such as sets and maps.
+*/
+func Has[A comparable](src []A, val A) bool {
+	return Some(src, func(elem A) bool { return elem == val })
 }
 
 /*
@@ -1326,7 +1354,7 @@ func (self SortablePrim[_]) Len() int { return len(self) }
 func (self SortablePrim[_]) Less(one, two int) bool { return self[one] < self[two] }
 
 // Implement `sort.Interface`.
-func (self SortablePrim[_]) Swap(one, two int) { self[one], self[two] = self[two], self[one] }
+func (self SortablePrim[_]) Swap(one, two int) { Swap(self, one, two) }
 
 // Sorts the receiver, mutating it.
 func (self SortablePrim[_]) Sort() { sort.Stable(NoEscUnsafe(sort.Interface(self))) }
@@ -1337,7 +1365,7 @@ func (self SortablePrim[A]) Sorted() SortablePrim[A] {
 	return self
 }
 
-// Sorts a slice of comparable primitives. For primitives, see `SortPrim`.
+// Sorts a slice of comparable non-primitives. For primitives, see `SortPrim`.
 func Sort[A Lesser[A]](val []A) { Sortable[A](val).Sort() }
 
 /*
@@ -1358,7 +1386,7 @@ func (self Sortable[_]) Len() int { return len(self) }
 func (self Sortable[_]) Less(one, two int) bool { return self[one].Less(self[two]) }
 
 // Implement `sort.Interface`.
-func (self Sortable[_]) Swap(one, two int) { self[one], self[two] = self[two], self[one] }
+func (self Sortable[_]) Swap(one, two int) { Swap(self, one, two) }
 
 // Sorts the receiver, mutating it.
 func (self Sortable[_]) Sort() { sort.Stable(NoEscUnsafe(sort.Interface(self))) }
@@ -1392,3 +1420,11 @@ func Reversed[Slice ~[]Elem, Elem any](val Slice) Slice {
 
 // Same as global `Reversed`.
 func (self Slice[A]) Reversed() Slice[A] { return Reversed(self) }
+
+// Swaps the two elements at the given indexes in the given slice.
+func Swap[Slice ~[]Elem, Elem any](tar Slice, one, two int) {
+	tar[one], tar[two] = tar[two], tar[one]
+}
+
+// Same as global `Swap`.
+func (self Slice[A]) Swap(one, two int) { Swap(self, one, two) }

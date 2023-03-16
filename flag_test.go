@@ -171,7 +171,7 @@ flag    init     desc
 
 	t.Run(`partial_without_head`, func(t *testing.T) {
 		defer gtest.Catch(t)
-		defer gg.Swap(&gg.FlagFmtDefault.Head, false).Done()
+		defer gg.PtrSwap(&gg.FlagFmtDefault.Head, false).Done()
 
 		testFlagHelp[FlagsPart](`
 -s     one      Str flag
@@ -198,7 +198,7 @@ flag    init     desc
 
 	t.Run(`full_without_head_under`, func(t *testing.T) {
 		defer gtest.Catch(t)
-		defer gg.Swap(&gg.FlagFmtDefault.HeadUnder, ``).Done()
+		defer gg.PtrSwap(&gg.FlagFmtDefault.HeadUnder, ``).Done()
 
 		testFlagHelp[FlagsFull](`
 flag    init     desc
@@ -214,7 +214,7 @@ flag    init     desc
 
 	t.Run(`full_without_head`, func(t *testing.T) {
 		defer gtest.Catch(t)
-		defer gg.Swap(&gg.FlagFmtDefault.Head, false).Done()
+		defer gg.PtrSwap(&gg.FlagFmtDefault.Head, false).Done()
 
 		testFlagHelp[FlagsFull](`
 -s     one      Str flag

@@ -11,13 +11,13 @@ import (
 func TestTimeMilli(t *testing.T) {
 	t.Run(`UTC`, func(t *testing.T) {
 		defer gtest.Catch(t)
-		defer gg.Swap(&time.Local, nil)
+		defer gg.PtrSwap(&time.Local, nil)
 		testTimeMilli(t)
 	})
 
 	t.Run(`non_UTC`, func(t *testing.T) {
 		defer gtest.Catch(t)
-		defer gg.Swap(&time.Local, time.FixedZone(``, 60*60*3))
+		defer gg.PtrSwap(&time.Local, time.FixedZone(``, 60*60*3))
 		testTimeMilli(t)
 	})
 }

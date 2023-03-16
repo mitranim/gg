@@ -16,18 +16,36 @@ to higher-order functions.
 type Dict[Key comparable, Val any] map[Key]Val
 
 /*
-Idempotently initializes the map at the given pointer via `make`, returning the
-result. Pointer must be non-nil. If map was non-nil, it's unchanged. Output is
-always non-nil.
+Idempotent map initialization. If the target pointer is nil, does nothing and
+returns nil. If the map at the target pointer is non-nil, does nothing and
+returns that map. Otherwise allocates the map via `make`, stores it at the
+target pointer, and returns the resulting non-nil map.
 */
-func MapInit[Map ~map[Key]Val, Key comparable, Val any](val *Map) Map {
-	if val == nil {
+func MapInit[Map ~map[Key]Val, Key comparable, Val any](ptr *Map) Map {
+	if ptr == nil {
 		return nil
 	}
-	if *val == nil {
-		*val = make(map[Key]Val)
+	val := *ptr
+	if val == nil {
+		val = make(map[Key]Val)
+		*ptr = val
 	}
-	return *val
+	return val
+}
+
+/*
+Non-idempotent version of `MapInit`. If the target pointer is nil, does nothing
+and returns nil. If the target pointer is non-nil, allocates the map via
+`make`, stores it at the target pointer, and returns the resulting non-nil
+map.
+*/
+func MapMake[Map ~map[Key]Val, Key comparable, Val any](ptr *Map) Map {
+	if ptr == nil {
+		return nil
+	}
+	val := make(map[Key]Val)
+	*ptr = val
+	return val
 }
 
 // Self as global `MapInit`.
@@ -139,7 +157,11 @@ func MapDel[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) {
 // Self as global `MapDel`.
 func (self Dict[Key, _]) Del(key Key) { delete(self, key) }
 
-// Deletes all entries, returning the resulting map. Passing nil is safe.
+/*
+Deletes all entries, returning the resulting map. Passing nil is safe.
+Note that this involves iterating the map, which is inefficient in Go.
+In many cases, it's more efficient to make a new map.
+*/
 func MapClear[Map ~map[Key]Val, Key comparable, Val any](tar Map) {
 	for key := range tar {
 		delete(tar, key)

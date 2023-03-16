@@ -76,7 +76,7 @@ func (self Opt[A]) MarshalText() ([]byte, error) { return MarshalNullCatch[A](se
 
 // Implement `encoding.TextUnmarshaler`, using the same logic as `.Parse`.
 func (self *Opt[A]) UnmarshalText(src []byte) error {
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		self.Clear()
 		return nil
 	}

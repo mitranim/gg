@@ -33,8 +33,8 @@ func StrLast[A Text](val A) byte {
 // True if len > 0.
 func IsStrNonEmpty[A Text](val A) bool { return len(val) > 0 }
 
-// True if len == 0.
-func IsStrEmpty[A Text](val A) bool { return len(val) == 0 }
+// True if len == 0. Inverse of `IsStrNonEmpty`.
+func IsStrEmpty[A Text](val A) bool { return !(len(val) > 0) }
 
 // Compares two text chunks via `==`.
 func StrEq[A Text](one, two A) bool { return ToString(one) == ToString(two) }
@@ -245,9 +245,11 @@ func JoinOpt[A Text](src []A, sep string) string {
 
 // Self-explanatory. Splits the given text into lines.
 func SplitLines[A Text](src A) []string {
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		return nil
 	}
+
+	// Probably vastly suboptimal. Needs tuning.
 	return ReNewline.Get().Split(ToString(src), -1)
 }
 
@@ -291,12 +293,12 @@ func HasNewlineSuffix[A Text](val A) bool {
 
 // Missing/private half of `strings.TrimSpace`. Trims only the prefix.
 func TrimSpacePrefix[A Text](src A) A {
-	return CastUnsafe[A](strings.TrimLeftFunc(ToString(src), unicode.IsSpace))
+	return ToText[A](strings.TrimLeftFunc(ToString(src), unicode.IsSpace))
 }
 
 // Missing/private half of `strings.TrimSpace`. Trims only the suffix.
 func TrimSpaceSuffix[A Text](src A) A {
-	return CastUnsafe[A](strings.TrimRightFunc(ToString(src), unicode.IsSpace))
+	return ToText[A](strings.TrimRightFunc(ToString(src), unicode.IsSpace))
 }
 
 /*

@@ -68,7 +68,7 @@ func (self *Arr[A]) Parse(src string) (err error) {
 
 	self.Clear()
 
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		return nil
 	}
 

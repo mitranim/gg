@@ -8,8 +8,9 @@ TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(SHORT) $(PROF)
 TEST       := test $(TEST_FLAGS) -timeout=2s -run=$(run)
 FEAT       := ./$(or $(feat),...)
 BENCH      := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=128ms
-GOW        := gow -c -v
+GOW        := gow -c -v -e=go,mod,pgsql
 WATCH      := watchexec -r -c -d=0 -n
+DOC_HOST   := localhost:58214
 
 default: test_w
 
@@ -43,6 +44,12 @@ prof_cpu:
 
 prof_mem:
 	go tool pprof -web mem.prof
+
+# Requires `pkgsite`:
+#   go install golang.org/x/pkgsite/cmd/pkgsite@latest
+doc:
+	$(or $(shell which open),echo) http://$(DOC_HOST)/github.com/mitranim/gg
+	pkgsite $(if $(GOREPO),-gorepo=$(GOREPO)) -http=$(DOC_HOST)
 
 # Example: `make release tag=v0.0.1`.
 release:

@@ -37,23 +37,17 @@ Missing feature of the standard library. Converts an arbitrary value to a
 string, allowing only INTENTIONALLY stringable values. Rules:
 
 	* Nil is considered "".
-
 	* A string is returned as-is.
-
 	* A byte slice is cast to a string.
-
 	* Any other primitive value (see constraint `Prim`) is encoded via `strconv`.
-
 	* Types that support `fmt.Stringer`, `Appender` or `encoding.TextMarshaler`
 	  are encoded by using the corresponding method.
-
 	* As a special case, `time.Time` is encoded in `time.RFC3339` to make encoding
 	  and decoding automatically reversible, and generally for better
 	  compatibility with machine parsing. This format is already used by
 	  `time.Time.MarshalText`, `time.Time.MarshalJSON`, and the corresponding
 	  unmarshaling methods. The different format used by `time.Time.String` tends
 	  to be an inconvenience, one we rectify here.
-
 	* Any other type causes an error.
 */
 func StringCatch[A any](val A) (string, error) {

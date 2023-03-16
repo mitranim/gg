@@ -24,7 +24,6 @@ var ConfFull = Conf{Indent: gg.Indent, ZeroFields: true}
 Formatting config.
 
 	* `.Indent` controls indentation. If empty, output is single line.
-
 	* `.ZeroFields`, if set, forces printing of zero fields in structs.
 		By default zero fields are skipped.
 */

@@ -5,7 +5,7 @@ import r "reflect"
 const expectedStructNesting = 8
 
 func cloneArray(src r.Value) {
-	if src.Cap() == 0 || !IsIndirect(src.Type().Elem()) {
+	if !(src.Cap() > 0) || !IsIndirect(src.Type().Elem()) {
 		return
 	}
 
@@ -15,7 +15,7 @@ func cloneArray(src r.Value) {
 }
 
 func clonedArray(src r.Value) r.Value {
-	if src.Cap() == 0 || !IsIndirect(src.Type().Elem()) {
+	if !(src.Cap() > 0) || !IsIndirect(src.Type().Elem()) {
 		return src
 	}
 
@@ -34,7 +34,7 @@ slice header we already have.
 func cloneSlice(src r.Value) { ValueSet(src, clonedSlice(src)) }
 
 func clonedSlice(src r.Value) r.Value {
-	if src.IsNil() || src.Cap() == 0 {
+	if src.IsNil() || !(src.Cap() > 0) {
 		return src
 	}
 

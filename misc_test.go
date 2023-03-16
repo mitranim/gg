@@ -662,7 +662,7 @@ func TestIs(t *testing.T) {
 	gtest.True(gg.Is([]string(nil), []string(nil)))
 
 	// Slices of zero-sized types and empty slices of non-zero-sized types are
-	// backed by the same "zerobase" array pointer, which makes them identical.
+	// backed by the same "zerobase" pointer, which makes them identical.
 	// This may vary between Go implementations and versions.
 	gtest.True(gg.Is([]struct{}{}, []struct{}{}))
 	gtest.True(gg.Is(make([]struct{}, 128), make([]struct{}, 128)))

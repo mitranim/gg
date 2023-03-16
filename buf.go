@@ -31,7 +31,7 @@ Implement `Appender`. Appends its own content to the given buffer.
 If the given buffer has no capacity, returns itself.
 */
 func (self Buf) Append(val []byte) []byte {
-	if cap(val) == 0 {
+	if !(cap(val) > 0) {
 		return self
 	}
 	return append(val, self...)

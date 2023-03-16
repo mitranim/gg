@@ -82,9 +82,9 @@ func concCatch(src []func()) []error {
 	return tar
 }
 
-func concCatchRun(gro *sync.WaitGroup, err *error, fun func()) {
+func concCatchRun(gro *sync.WaitGroup, errPtr *error, fun func()) {
 	defer gro.Add(-1)
-	defer RecErr(err)
+	defer RecErr(errPtr)
 	fun()
 }
 
@@ -130,9 +130,9 @@ func concEachCatch[A any](src []A, fun func(A)) []error {
 	return tar
 }
 
-func concCatchEachRun[A any](gro *sync.WaitGroup, err *error, fun func(A), val A) {
+func concCatchEachRun[A any](gro *sync.WaitGroup, errPtr *error, fun func(A), val A) {
 	defer gro.Add(-1)
-	defer RecErr(err)
+	defer RecErr(errPtr)
 	fun(val)
 }
 
@@ -179,15 +179,15 @@ func concMapCatch[A, B any](src []A, fun func(A) B) ([]B, []error) {
 	return vals, errs
 }
 
-func concCatchMapRun[A, B any](gro *sync.WaitGroup, tar *B, err *error, fun func(A) B, val A) {
+func concCatchMapRun[A, B any](gro *sync.WaitGroup, tar *B, errPtr *error, fun func(A) B, val A) {
 	defer gro.Add(-1)
-	defer RecErr(err)
+	defer RecErr(errPtr)
 	*tar = fun(val)
 }
 
 // Partial application / thunk of `ConcMap`, suitable for `Conc`.
 func ConcMapFunc[A, B any](tar *[]B, src []A, fun func(A) B) func() {
-	if len(src) == 0 || fun == nil {
+	if IsEmpty(src) || fun == nil {
 		return nil
 	}
 	return func() { *tar = ConcMap(src, fun) }
@@ -251,38 +251,53 @@ func (self ConcRaceSlice) RunCatch(ctx context.Context) (err error) {
 }
 
 func (self ConcRaceSlice) run(ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	var gro sync.WaitGroup
-	err := make(chan error, 1)
+	var errChan chan error
 
 	for _, fun := range self {
 		if fun == nil {
 			continue
 		}
-		gro.Add(1)
-		go runConcCtx(&gro, err, fun, ctx)
-	}
-	go closeConcCtx(&gro, err)
 
-	return <-err
+		if errChan == nil {
+			errChan = make(chan error, 1)
+
+			var cancel func()
+			ctx, cancel = context.WithCancel(ctx)
+
+			// Note: unlike `defer` in some other languages, `defer` in Go is
+			// function-scoped, not block-scoped. This will be executed once
+			// we're done waiting on the error channel.
+			defer cancel()
+		}
+
+		gro.Add(1)
+		go runConcCtx(&gro, errChan, fun, ctx)
+	}
+
+	// Happens when every element is nil and len >= 2.
+	if errChan == nil {
+		return nil
+	}
+
+	go closeConcCtx(&gro, errChan)
+	return <-errChan
 }
 
-func runConcCtx(gro *sync.WaitGroup, err chan error, fun func(context.Context), ctx context.Context) {
+func runConcCtx(gro *sync.WaitGroup, errChan chan error, fun func(context.Context), ctx context.Context) {
 	defer gro.Add(-1)
-	defer recSend(err)
+	defer recSend(errChan)
 	fun(ctx)
 }
 
-func closeConcCtx(gro *sync.WaitGroup, err chan error) {
-	defer close(err)
+func closeConcCtx(gro *sync.WaitGroup, errChan chan error) {
+	defer close(errChan)
 	gro.Wait()
 }
 
-func recSend(tar chan error) {
+func recSend(errChan chan error) {
 	err := AnyErr(recover())
 	if err != nil {
-		SendOpt(tar, err)
+		SendOpt(errChan, err)
 	}
 }

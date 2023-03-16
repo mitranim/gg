@@ -72,23 +72,49 @@ func ReadCloseAll(src io.ReadCloser) []byte {
 }
 
 /*
+Shortcut for using `os.Stat` to check if there is an existing file or directory
+at the given path.
+*/
+func PathExists(path string) bool {
+	info := fileInfo(path)
+	return info != nil
+}
+
+/*
+Shortcut for using `os.Stat` to check if there is an existing directory at the
+given path.
+*/
+func DirExists(path string) bool {
+	info := fileInfo(path)
+	return info != nil && info.IsDir()
+}
+
+/*
 Shortcut for using `os.Stat` to check if the file at the given path exists,
 and is not a directory.
 */
 func FileExists(path string) bool {
-	if path == `` {
-		return false
-	}
-	info, _ := os.Stat(path)
+	info := fileInfo(path)
 	return info != nil && !info.IsDir()
 }
+
+func fileInfo(path string) os.FileInfo {
+	if path == `` {
+		return nil
+	}
+	info, _ := os.Stat(path)
+	return info
+}
+
+// Shortcut for `os.ReadDir`. Panics on error.
+func ReadDir(path string) []fs.DirEntry { return Try1(os.ReadDir(path)) }
 
 /*
 Shortcut for `os.ReadFile`. Panics on error. Converts the content to the
 requested text type without an additional allocation.
 */
 func ReadFile[A Text](path string) A {
-	return CastUnsafe[A](Try1(os.ReadFile(path)))
+	return ToText[A](Try1(os.ReadFile(path)))
 }
 
 /*

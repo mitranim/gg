@@ -307,8 +307,8 @@ func (self Errs) LenNil() int { return Count(self, IsErrNil) }
 // True if there are any non-nil errors.
 func (self Errs) HasLen() bool { return self.LenNonNil() > 0 }
 
-// True if there are no non-nil errors.
-func (self Errs) IsEmpty() bool { return self.LenNonNil() == 0 }
+// True if there are no non-nil errors. Inverse of `.HasLen`.
+func (self Errs) IsEmpty() bool { return !self.HasLen() }
 
 // First non-nil error.
 func (self Errs) First() error { return Find(self, IsErrNonNil) }
@@ -586,7 +586,6 @@ Similar to `errors.As`. Differences:
 	* Instead of taking a pointer and returning a boolean, this returns the
 	  unwrapped error value. On success, output is non-zero. On failure, output
 	  is zero.
-
 	* Automatically tries non-pointer and pointer versions of the given type. The
 	  caller should always specify a non-pointer type. This provides nil-safety
 	  for types that implement `error` on the pointer type. The caller doesn't

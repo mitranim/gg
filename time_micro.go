@@ -77,7 +77,7 @@ a Unix millisecond timestamp, or an RFC3339 timestamp. RFC3339 is the default
 time encoding/decoding format in Go and some other languages.
 */
 func (self *TimeMicro) Parse(src string) error {
-	if len(src) == 0 {
+	if !(len(src) > 0) {
 		self.Clear()
 		return nil
 	}

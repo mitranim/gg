@@ -26,6 +26,30 @@ func TestColl(t *testing.T) {
 		coll.Add(SomeModel{`a19b43`, `Kara`})
 
 		gtest.Equal(coll, exp)
+
+		// Must ensure uniqueness.
+		coll.Add(SomeModel{`a19b43`, `Kara`})
+		gtest.Equal(coll, exp)
+
+		// Must replace existing entry.
+		coll.Add(SomeModel{`a19b43`, `Kara_1`})
+		gtest.Equal(coll, SomeColl{
+			Slice: []SomeModel{
+				SomeModel{`ee24ca`, `Mira`},
+				SomeModel{`a19b43`, `Kara_1`},
+			},
+			Index: map[SomeKey]int{`ee24ca`: 0, `a19b43`: 1},
+		})
+	})
+
+	t.Run(`Clear`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		tar := gg.CloneDeep(exp)
+		gtest.NotZero(tar)
+
+		tar.Clear()
+		gtest.Zero(tar)
 	})
 
 	t.Run(`MarshalJSON`, func(t *testing.T) {

@@ -365,9 +365,25 @@ func TransOnly(test func(error) bool, trans func(error) error) {
 
 /*
 Must be deferred. Wraps non-nil panics, prepending the error message and
+idempotently adding a stack trace. The message is converted to a string via
+`Str(msg...)`. Usage:
+
+	defer gg.Detail(`unable to do X`)
+	defer gg.Detail(`unable to do A with B `, someEntity.Id)
+*/
+func Detail(msg ...any) {
+	Try(Wrap(AnyErr(recover()), msg...))
+}
+
+/*
+Must be deferred. Wraps non-nil panics, prepending the error message and
 idempotently adding a stack trace. Usage:
 
 	defer gg.Detailf(`unable to %v`, `do X`)
+
+The first argument must be a hardcoded pattern string compatible with
+`fmt.Sprintf` and other similar functions. If the first argument is an
+expression rather than a hardcoded string, use `Detail` instead.
 */
 func Detailf(pat string, val ...any) {
 	Try(Wrapf(AnyErr(recover()), pat, val...))

@@ -206,6 +206,18 @@ func TestWrapf(t *testing.T) {
 	})
 }
 
+/*
+Internally `Wrap` is very similar to `Wrapf` which has a fuller test.
+Here, we only need to test message generation.
+*/
+func TestWrap(t *testing.T) {
+	defer gtest.Catch(t)
+
+	err := gg.Wrap(gg.ErrAny{`some cause`}, `unable to %v `, `do stuff`).(gg.Err)
+	gtest.Equal(err.Msg, `unable to %v do stuff`)
+	gtest.Equal(err.Cause, error(gg.ErrAny{`some cause`}))
+}
+
 func BenchmarkIsErrTraced_error_without_trace(b *testing.B) {
 	const err = gg.ErrStr(`some error`)
 	gtest.False(gg.IsErrTraced(err))
@@ -319,7 +331,7 @@ func TestErrStack(t *testing.T) {
 
 		err := gg.Err{}.TracedAt(0)
 
-		gtest.Eq(gg.ErrStack(err), gg.Newline+`func2 err_test.go:320`)
+		gtest.Eq(gg.ErrStack(err), gg.Newline+`func2 err_test.go:332`)
 	})
 
 	t.Run(`wrapped_without_message`, func(t *testing.T) {
@@ -333,7 +345,7 @@ func TestErrStack(t *testing.T) {
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 inner
 trace:
-    func3 err_test.go:328
+    func3 err_test.go:340
 `))
 	})
 
@@ -346,7 +358,7 @@ trace:
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 outer: inner
 trace:
-    func4 err_test.go:343
+    func4 err_test.go:355
 `))
 	})
 }

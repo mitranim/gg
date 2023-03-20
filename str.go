@@ -66,7 +66,7 @@ func TextDat[A Text](val A) *byte {
 Allocation-free conversion between two types conforming to the `Text`
 constraint, typically variants of `string` and/or `[]byte`.
 */
-func ToText[B, A Text](val A) B { return CastUnsafe[B](val) }
+func ToText[Out, Src Text](val Src) Out { return CastUnsafe[Out](val) }
 
 /*
 Allocation-free conversion. Reinterprets arbitrary text as a string. If the
@@ -264,7 +264,7 @@ separator, removing that prefix from the original string referenced by the
 pointer. The separator is excluded from both chunks. As a special case, if
 the separator is empty, pops the entire given string.
 */
-func StrPop[A, B ~string](ptr *A, sep B) A {
+func StrPop[Src, Sep ~string](ptr *Src, sep Sep) Src {
 	if ptr == nil {
 		return ``
 	}
@@ -396,4 +396,32 @@ func (self Words) MapTail(fun func(string) string) Words {
 // Uses `utf8.RuneCountInString` to count chars in arbitrary text.
 func CharCount[A Text](val A) int {
 	return utf8.RuneCountInString(ToString(val))
+}
+
+/*
+Similar to `src[start:end]`, but instead of slicing text at byte positions,
+slices text at character positions. Similar to `string([]rune(src)[start:end])`,
+but slightly more performant and more permissive.
+*/
+func StrCut[A Text](src A, start, end int) (_ A) {
+	if !(end > start) {
+		return
+	}
+
+	startInd := 0
+	endInd := len(src)
+	charCount := 0
+
+	for ind := range ToString(src) {
+		if charCount == start {
+			startInd = ind
+		}
+		if charCount == end {
+			endInd = ind
+			break
+		}
+		charCount++
+	}
+
+	return src[startInd:endInd]
 }

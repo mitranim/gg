@@ -6,6 +6,17 @@ import (
 )
 
 /*
+Shortcut for making `GraphDir` with the given path and fully initializing it via
+`.Init`.
+*/
+func GraphDirInit(path string) GraphDir {
+	var out GraphDir
+	out.Path = path
+	out.Init()
+	return out
+}
+
+/*
 Represents a directory where the files form a graph by "importing" each other,
 by using special annotations understood by this tool. Supports reading files
 from the filesystem, validating the dependency graph, and calculating valid
@@ -34,8 +45,8 @@ type GraphDir struct {
 
 /*
 Reads the files in the directory specified by `.Path`, then builds and validates
-the dependency graph. After calling this method, the order of files in
-`.Files.Slice` represents valid execution order.
+the dependency graph. After calling this method, the files in `.Files.Slice`
+represent valid execution order.
 */
 func (self *GraphDir) Init() {
 	defer Detailf(`unable to build dependency graph for %q`, self.Path)

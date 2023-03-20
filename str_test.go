@@ -326,3 +326,84 @@ func TestSplitLines(t *testing.T) {
 	gtest.Equal(Split("\none\ntwo"), []string{``, `one`, `two`})
 	gtest.Equal(Split("\none\ntwo\n"), []string{``, `one`, `two`, ``})
 }
+
+func TestStrCut_ours(t *testing.T) {
+	defer gtest.Catch(t)
+	testStrCut(gg.StrCut[string])
+}
+
+func TestStrCut_alternate(t *testing.T) {
+	defer gtest.Catch(t)
+	testStrCut(StrCutRuneSlice[string])
+}
+
+func testStrCut(fun func(string, int, int) string) {
+	const src = `🐒🐴🦖🦔🐲🐈`
+
+	gtest.Eq(``, fun(src, 0, 0))
+	gtest.Eq(`🐒`, fun(src, 0, 1))
+	gtest.Eq(`🐒🐴`, fun(src, 0, 2))
+	gtest.Eq(`🐒🐴🦖`, fun(src, 0, 3))
+	gtest.Eq(`🐒🐴🦖🦔`, fun(src, 0, 4))
+	gtest.Eq(`🐒🐴🦖🦔🐲`, fun(src, 0, 5))
+	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, 0, 6))
+	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, 0, 7))
+	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, 0, 8))
+
+	gtest.Eq(`🐒`, fun(src, -1, 1))
+	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, -1, 6))
+
+	gtest.Eq(``, fun(src, 1, 0))
+	gtest.Eq(``, fun(src, 1, 1))
+	gtest.Eq(`🐴`, fun(src, 1, 2))
+	gtest.Eq(`🐴🦖🦔🐲🐈`, fun(src, 1, 6))
+}
+
+// Alternate implementation for comparison with ours.
+func StrCutRuneSlice[A ~string](src A, start, end int) A {
+	if !(end > start) {
+		return ``
+	}
+
+	runes := []rune(src)
+	size := len(runes)
+
+	if start < 0 {
+		start = 0
+	} else if start > size {
+		start = size
+	}
+	if end < 0 {
+		end = 0
+	} else if end > size {
+		end = size
+	}
+
+	return A(runes[start:end])
+}
+
+func BenchmarkStrCut_ours(b *testing.B) {
+	const src = `🐒🐴🦖🦔🐲🐈`
+
+	for ind := 0; ind < b.N; ind++ {
+		for start := range gg.Iter(3) {
+			start--
+			for end := range gg.Iter(6) {
+				gg.Nop1(gg.StrCut(src, start, end))
+			}
+		}
+	}
+}
+
+func BenchmarkStrCut_alternate(b *testing.B) {
+	const src = `🐒🐴🦖🦔🐲🐈`
+
+	for ind := 0; ind < b.N; ind++ {
+		for start := range gg.Iter(3) {
+			start--
+			for end := range gg.Iter(6) {
+				gg.Nop1(StrCutRuneSlice(src, start, end))
+			}
+		}
+	}
+}

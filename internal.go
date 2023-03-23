@@ -141,7 +141,7 @@ func firstSubmatches(reg *regexp.Regexp, src string) []string {
 func firstSubmatch(src []string) string { return Get(src, 1) }
 
 /*
-Represents nodes in a linked list. Note that in Go, linked lists tend to be an
+Represents nodes in a linked list. Normally in Go, linked lists tend to be an
 anti-pattern; slices perform better in most scenarios, and don't require an
 additional abstraction. However, there is one valid scenario for linked lists:
 when nodes are pointers to local variables, when those local variables don't
@@ -149,7 +149,7 @@ escape, and when they represent addresses to actual memory regions in stack
 frames. In such scenarios, this may provide us with a resizable data structure
 allocated entirely on the stack, which is useful for book-keeping in recursive
 tree-walking or graph-walking algorithms. We currently do not verify if the
-trick works as expected, as the overheads are minimal regardless.
+trick has the expected efficiency, as the overheads are minimal.
 */
 type node[A comparable] struct {
 	tail *node[A]
@@ -167,8 +167,8 @@ func (self *node[A]) cons(val A) (out node[A]) {
 }
 
 /*
-Suboptimal: doesn't support preallocating capacity. We only call this in case of
-errors, so the overhead should be insignificant.
+Suboptimal: doesn't preallocate capacity. We only call this in case of errors,
+so the overhead should be negligible.
 */
 func (self node[A]) vals() (out []A) {
 	out = append(out, self.val)

@@ -73,7 +73,7 @@ Short for "primary keyed". See type `Coll` which acts as an ordered map where
 each value is indexed on its primary key. Keys must be non-zero. A zero value
 is considered an invalid key.
 */
-type Pked[A comparable] interface{ Pk() A }
+type Pker[A comparable] interface{ Pk() A }
 
 /*
 Implemented by various utility types where zero value is considered null in

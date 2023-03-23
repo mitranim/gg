@@ -1,5 +1,7 @@
 package gg
 
+import "os"
+
 /*
 If the error is nil, returns void. If the error is non-nil, panics with that
 error, idempotently adding a stack trace.
@@ -82,6 +84,55 @@ func Try3[A, B, C any](one A, two B, three C, err error) (A, B, C) {
 }
 
 /*
+Shortcut for use with `recover()`. Useful for writing deferrable functions that
+deal with panics. If the given recovered value is nil, this does nothing.
+Otherwise converts it to an error, idempotently generating a stack trace, and
+panics with the resulting traced error. Usage:
+
+	gg.TryAny(recover())
+*/
+func TryAny(val any) {
+	if val != nil {
+		panic(AnyErrTracedAt(val, 1))
+	}
+}
+
+/*
+Shortcut for use with `recover()`. Useful for writing deferrable functions that
+deal with panics. If the given recovered value is nil, this does nothing.
+Otherwise converts it to an error, idempotently generating a stack trace,
+skipping the given number of frames, and panics with the resulting traced
+error. Usage:
+
+	gg.TryAnyAt(recover(), 1)
+*/
+func TryAnyAt(val any, skip int) {
+	if val != nil {
+		panic(AnyErrTracedAt(val, skip+1))
+	}
+}
+
+/*
+If the given error is nil, does nothing. Otherwise wraps the error with `Wrap`
+and the given message, and panics with the resulting error.
+*/
+func TryWrap(err error, msg ...any) {
+	if err != nil {
+		panic(Wrap(err, msg...))
+	}
+}
+
+/*
+If the given error is nil, does nothing. Otherwise wraps the error with `Wrapf`
+and the given message, and panics with the resulting error.
+*/
+func TryWrapf(err error, pat string, arg ...any) {
+	if err != nil {
+		panic(Wrapf(err, pat, arg...))
+	}
+}
+
+/*
 Must be deferred. Recovers from panics, writing the resulting error, if any, to
 the given pointer. Should be used together with "try"-style functions.
 Idempotently adds a stack trace.
@@ -140,7 +191,7 @@ test. Does NOT check errors that are returned normally, without a panic.
 Idempotently adds a stack trace.
 */
 func RecOnly(ptr *error, test func(error) bool) {
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if err == nil {
 		return
 	}
@@ -158,7 +209,7 @@ Must be deferred. Recovery for background goroutines which are not allowed to
 crash. Calls the provided function ONLY if the error is non-nil.
 */
 func RecWith(fun func(error)) {
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if err != nil && fun != nil {
 		fun(err)
 	}
@@ -247,7 +298,7 @@ Must be deferred. Catches panics; ignores errors that satisfy the provided
 test; re-panics on other non-nil errors. Idempotently adds a stack trace.
 */
 func SkipOnly(test func(error) bool) {
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if err != nil && test != nil && test(err) {
 		return
 	}
@@ -284,7 +335,7 @@ simply ensures that there's a stack trace, then re-panics.
 Caution: due to idiosyncrasies of `recover()`, this works ONLY when deferred
 directly. Anything other than `defer gg.Traced()` will NOT work.
 */
-func Traced() { TryErr(AnyErrTraced(recover())) }
+func Traced() { TryErr(AnyErrTracedAt(recover(), 1)) }
 
 /*
 Must be deferred. Version of `Traced` that skips the given number of stack
@@ -297,7 +348,7 @@ Must be deferred. Runs the function only if there's no panic. Idempotently adds
 a stack trace.
 */
 func Ok(fun func()) {
-	Try(AnyErrTraced(recover()))
+	Try(AnyErrTracedAt(recover(), 1))
 	if fun != nil {
 		fun()
 	}
@@ -308,7 +359,7 @@ Must be deferred. Runs the function ONLY if there's an ongoing panic, and then
 re-panics. Idempotently adds a stack trace.
 */
 func Fail(fun func(error)) {
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if err != nil && fun != nil {
 		fun(err)
 	}
@@ -320,7 +371,7 @@ Must be deferred. Always runs the given function, passing either the current
 panic or nil. If the error is non-nil, re-panics.
 */
 func Finally(fun func(error)) {
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if fun != nil {
 		fun(err)
 	}
@@ -333,7 +384,7 @@ panic, transforms the error by calling the provided function, and then
 re-panics via `Try`. Idempotently adds a stack trace.
 */
 func Trans(fun func(error) error) {
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if err != nil && fun != nil {
 		err = fun(err)
 	}
@@ -356,7 +407,7 @@ Must be deferred. Similar to `Trans`, but transforms only non-nil errors that
 satisfy the given predicate. Idempotently adds a stack trace.
 */
 func TransOnly(test func(error) bool, trans func(error) error) {
-	err := AnyErrTraced(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if err != nil && test != nil && trans != nil && test(err) {
 		err = trans(err)
 	}
@@ -385,18 +436,39 @@ The first argument must be a hardcoded pattern string compatible with
 `fmt.Sprintf` and other similar functions. If the first argument is an
 expression rather than a hardcoded string, use `Detail` instead.
 */
-func Detailf(pat string, val ...any) {
-	Try(Wrapf(AnyErr(recover()), pat, val...))
+func Detailf(pat string, arg ...any) {
+	Try(Wrapf(AnyErr(recover()), pat, arg...))
 }
 
 /*
 Must be deferred. Wraps non-nil panics, prepending the error message, ONLY if
 they satisfy the provided test. Idempotently adds a stack trace.
 */
-func DetailOnlyf(test func(error) bool, pat string, val ...any) {
-	err := AnyErrTraced(recover())
+func DetailOnlyf(test func(error) bool, pat string, arg ...any) {
+	err := AnyErrTracedAt(recover(), 1)
 	if err != nil && test != nil && test(err) {
-		err = Wrapf(err, pat, val...)
+		err = Wrapf(err, pat, arg...)
 	}
 	Try(err)
+}
+
+/*
+Must be deferred in your `main` function. If there is a panic, this prints a
+stack trace and kills the process with exit code 1. This is very similar to the
+default Go behavior, the only difference being how the resulting panic trace is
+formatted. This prevents Go from printing the default, very informative but
+difficult to read panic trace, replacing it with a less informative but much
+easier to read trace. See our types `Err` and `Trace`. Usage example:
+
+	func main() {
+		defer gg.Fatal()
+		// Perform actions that may panic.
+	}
+*/
+func Fatal() {
+	val := recover()
+	if val != nil {
+		Nop2(os.Stderr.Write(AnyToErrTracedAt(val, 1).AppendStack(nil)))
+		os.Exit(1)
+	}
 }

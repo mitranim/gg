@@ -3,7 +3,10 @@ package gg
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
+	"os"
 	r "reflect"
+	"time"
 	u "unsafe"
 )
 
@@ -550,4 +553,67 @@ func With[A any](funs ...func(*A)) (out A) {
 		}
 	}
 	return
+}
+
+/*
+Shortcut for creating `TimeLog` with the current time and with a message generated
+from the inputs via `Str`.
+*/
+func TimeLogNow(msg ...any) TimeLog {
+	return TimeLog{Start: time.Now(), Msg: Str(msg...)}
+}
+
+/*
+Shortcut for logging execution timing to stderr. Usage examples:
+
+	defer gg.TimeLogNow(`some_activity`).LogStart().LogEnd()
+	// perform some activity
+
+	defer gg.TimeLogNow(`some_activity`).LogEnd()
+	// perform some activity
+
+	timer := gg.TimeLogNow(`some_activity`).LogStart()
+	// perform some activity
+	timer.LogEnd()
+
+	timer := gg.TimeLogNow(`some_activity`)
+	// perform some activity
+	timer.LogEnd()
+*/
+type TimeLog struct {
+	Start time.Time
+	Msg   string
+}
+
+/*
+Logs the beginning of the activity denoted by `.Msg`:
+
+	[some_activity] starting
+*/
+func (self TimeLog) LogStart() TimeLog {
+	fmt.Fprintf(os.Stderr, "[%v] starting\n", self.Msg)
+	return self
+}
+
+/*
+Prints the end of the activity denoted by `.Msg`, with time elapsed since the
+beginning:
+
+	[some_activity] done in <duration>
+
+If deferred, this will detect the current panic, if any, and print the following
+instead:
+
+	[some_activity] failed in <duration>
+*/
+func (self TimeLog) LogEnd() TimeLog {
+	since := time.Since(self.Start)
+	err := AnyErrTracedAt(recover(), 1)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[%v] failed in %v\n", self.Msg, since)
+	} else {
+		fmt.Fprintf(os.Stderr, "[%v] done in %v\n", self.Msg, since)
+	}
+	TryErr(err)
+	return self
 }

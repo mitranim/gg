@@ -339,3 +339,9 @@ func GoString[A any](val A) string {
 
 	return fmt.Sprintf(`%#v`, box)
 }
+
+/*
+Shortcut for `strconv.Quote(String(val))`.
+Encodes an arbitrary value to a string and quotes it.
+*/
+func Quote[A any](val A) string { return strconv.Quote(String(val)) }

@@ -118,6 +118,15 @@ func ReadFile[A Text](path string) A {
 }
 
 /*
+Shortcut for `os.WriteFile` with default permissions `os.ModePerm`. Panics on
+error. Takes an arbitrary text type conforming to `Text` and converts it to
+bytes without an additional allocation.
+*/
+func WriteFile[A Text](path string, body A) {
+	Try(os.WriteFile(path, ToBytes(body), os.ModePerm))
+}
+
+/*
 Fully reads the given stream via `io.ReadAll` and returns two "forks". If
 reading fails, panics. If the input is nil, both outputs are nil.
 */
@@ -126,7 +135,7 @@ func ForkReader(src io.Reader) (_, _ io.Reader) {
 		return nil, nil
 	}
 
-	defer Detailf(`failed to read for forking`)
+	defer Detail(`failed to read for forking`)
 	text := ReadAll(src)
 	return NewReadCloser(text), NewReadCloser(text)
 }
@@ -142,7 +151,7 @@ func ForkReadCloser(src io.ReadCloser) (_, _ io.ReadCloser) {
 		return nil, nil
 	}
 
-	defer Detailf(`failed to read for forking`)
+	defer Detail(`failed to read for forking`)
 	text := ReadCloseAll(src)
 	return NewReadCloser(text), NewReadCloser(text)
 }
@@ -157,10 +166,8 @@ func Close(val io.Closer) {
 	}
 }
 
-// Shortcut for `os.MkdirAll` with `os.ModePerm`.
-func MkdirAll(path string) {
-	Try(os.MkdirAll(path, os.ModePerm))
-}
+// Shortcut for `os.MkdirAll` with `os.ModePerm`. Panics on error.
+func MkdirAll(path string) { Try(os.MkdirAll(path, os.ModePerm)) }
 
 // Shortcut for `os.Stat` that panics on error.
 func Stat(path string) fs.FileInfo { return Try1(os.Stat(path)) }

@@ -153,7 +153,7 @@ type GraphFile struct {
 	Deps OrdSet[string]
 }
 
-// Implement `Pked` for compatibility with `Coll`. See `GraphDir.Files`.
+// Implement `Pker` for compatibility with `Coll`. See `GraphDir.Files`.
 func (self GraphFile) Pk() string { return self.Name }
 
 /*

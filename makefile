@@ -1,12 +1,12 @@
 MAKEFLAGS  := --silent --always-make
-PAR        := $(MAKE) -j 128
+MAKE_PAR   := $(MAKE) -j 128
 GO_FLAGS   := -tags=$(tags) -mod=mod
 VERB       := $(if $(filter $(verb),true), -v,)
 SHORT      := $(if $(filter $(short),true), -short,)
 PROF       := $(if $(filter $(prof),true), -cpuprofile=cpu.prof -memprofile=mem.prof,)
 TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(SHORT) $(PROF)
 TEST       := test $(TEST_FLAGS) -timeout=2s -run=$(run)
-FEAT       := ./$(or $(feat),...)
+PKG        := ./$(or $(pkg),...)
 BENCH      := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=128ms
 GOW        := gow -c -v -e=go,mod,pgsql
 WATCH      := watchexec -r -c -d=0 -n
@@ -15,19 +15,19 @@ DOC_HOST   := localhost:58214
 default: test_w
 
 watch:
-	$(PAR) test_w lint_w
+	$(MAKE_PAR) test_w lint_w
 
 test_w:
-	$(GOW) $(TEST) $(FEAT)
+	$(GOW) $(TEST) $(PKG)
 
 test:
-	go $(TEST) $(FEAT)
+	go $(TEST) $(PKG)
 
 bench_w:
-	$(GOW) $(BENCH) $(FEAT)
+	$(GOW) $(BENCH) $(PKG)
 
 bench:
-	go $(BENCH) $(FEAT)
+	go $(BENCH) $(PKG)
 
 lint_w:
 	$(WATCH) -- $(MAKE) lint
@@ -37,7 +37,7 @@ lint:
 	echo [lint] ok
 
 prof:
-	$(PAR) prof_cpu prof_mem
+	$(MAKE_PAR) prof_cpu prof_mem
 
 prof_cpu:
 	go tool pprof -web cpu.prof

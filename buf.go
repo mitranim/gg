@@ -108,6 +108,16 @@ func (self *Buf) AppendByteN(val byte, count int) {
 // Appends `Newline`. Mutates the receiver.
 func (self *Buf) AppendNewline() { self.AppendString(Newline) }
 
+/*
+If the bufffer is non-empty and doesn't end with a newline, appends a newline.
+Otherwise does nothing. Uses `HasNewlineSuffix`. Mutates the receiver.
+*/
+func (self *Buf) AppendNewlineOpt() {
+	if self.Len() > 0 && !HasNewlineSuffix(*self) {
+		self.AppendNewline()
+	}
+}
+
 // Appends `Newline` N times. Mutates the receiver.
 func (self *Buf) AppendNewlines(count int) { self.AppendStringN(Newline, count) }
 
@@ -217,16 +227,16 @@ function. Mutates the receiver.
 func (self *Buf) AppendGoString(val any) { *self = AppendGoString(*self, val) }
 
 // Shortcut for appending a formatted string.
-func (self *Buf) Fprintf(pat string, val ...any) {
-	_, _ = fmt.Fprintf(self, pat, NoEscUnsafe(val)...)
+func (self *Buf) Fprintf(pat string, arg ...any) {
+	_, _ = fmt.Fprintf(self, pat, NoEscUnsafe(arg)...)
 }
 
 // Shortcut for appending a formatted string with an idempotent trailing newline.
-func (self *Buf) Fprintlnf(pat string, val ...any) {
-	str := fmt.Sprintf(pat, NoEscUnsafe(val)...)
-	self.AppendString(str)
-	if !HasNewlineSuffix(str) {
-		self.AppendNewline()
+func (self *Buf) Fprintlnf(pat string, arg ...any) {
+	prev := self.Len()
+	self.Fprintf(pat, arg...)
+	if self.Len() > prev {
+		self.AppendNewlineOpt()
 	}
 }
 

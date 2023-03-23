@@ -285,6 +285,19 @@ func TestMapMut(t *testing.T) {
 	gtest.Equal(src, []int{9, 19, 29})
 }
 
+func TestMapPtr(t *testing.T) {
+	defer gtest.Catch(t)
+
+	src := []int{10, 20, 30}
+	gtest.Equal(gg.MapPtr(src, DoublePtrStr), []string{`20`, `40`, `60`})
+	gtest.Equal(src, []int{20, 40, 60})
+}
+
+func DoublePtrStr(ptr *int) string {
+	*ptr *= 2
+	return gg.String(*ptr)
+}
+
 func TestMap2(t *testing.T) {
 	defer gtest.Catch(t)
 

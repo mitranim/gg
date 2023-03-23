@@ -9,7 +9,7 @@ panic. Usage:
 	defer DbTxDone(conn)
 */
 func DbTxDone[A DbTx](val A) {
-	DbTxDoneWith(val, gg.AnyErrTraced(recover()))
+	DbTxDoneWith(val, gg.AnyErrTracedAt(recover(), 1))
 }
 
 /*
@@ -22,6 +22,6 @@ func DbTxDoneWith[A DbTx](val A, err error) {
 		panic(err)
 	}
 
-	defer gg.Detailf(`failed to commit DB transaction`)
+	defer gg.Detail(`failed to commit DB transaction`)
 	gg.Try(val.Commit())
 }

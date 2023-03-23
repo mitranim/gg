@@ -14,6 +14,12 @@ import (
 	"github.com/mitranim/gg"
 )
 
+/*
+Empty config for single-line formatting. Note that multi-line strings may still
+lead to multi-line output. This may change in the future.
+*/
+var ConfZero Conf
+
 // Default config used by top-level formatting functions in this package.
 var ConfDefault = Conf{Indent: gg.Indent}
 
@@ -84,14 +90,14 @@ type Fmt struct {
 }
 
 // Formats the input into the inner buffer, using the inner config.
-func (self *Fmt) Any(src any) { fmtAny(self, r.ValueOf(src)) }
+func (self *Fmt) Any(src any) { fmtAny(self, r.ValueOf(gg.AnyNoEscUnsafe(src))) }
 
 // Formats the input into the inner buffer, using the inner config.
 func (self *Fmt) Value(src r.Value) { fmtAny(self, src) }
 
 /*
-Similar to `fmt.Sprintf("%#v")` or `gg.GoString`, but more advanced. Formats
-the input as Go code, using the default config.
+Similar to `fmt.Sprintf("%#v")` or `gg.GoString`, but more advanced.
+Formats the input as Go code, using the config `ConfDefault`.
 */
 func String(src any) string { return StringIndent(src, 0) }
 

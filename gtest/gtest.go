@@ -37,14 +37,21 @@ func (self Err) String() string {
 	return buf.String()
 }
 
-// Shortcut for generating an error where the given messages are combined as lines.
-func LinesErr(msg ...any) Err {
-	// Possibly suboptimal but not anyone's bottleneck.
-	return ToErr(1, gg.JoinLinesOpt(gg.Map(msg, gg.String[any])...))
+/*
+Shortcut for generating a test error (of type `Err` provided by this package)
+with the given message, skipping the given amount of stack frames.
+*/
+func ErrAt(skip int, msg ...any) Err {
+	return Err{gg.Err{}.Msgv(msg...).TracedAt(skip + 1)}
 }
 
-func ToErr(skip int, msg string) Err {
-	return Err{gg.Err{}.Msgd(msg).TracedAt(skip + 1)}
+/*
+Shortcut for generating an error where the given messages are combined as
+lines.
+*/
+func ErrLines(msg ...any) Err {
+	// Suboptimal but not anyone's bottleneck.
+	return ErrAt(1, gg.JoinLinesOpt(gg.Map(msg, gg.String[any])...))
 }
 
 /*
@@ -60,7 +67,7 @@ Must be deferred. Usage:
 */
 func Catch(t testing.TB) {
 	t.Helper()
-	val := gg.AnyErrTraced(recover())
+	val := gg.AnyErrTracedAt(recover(), 1)
 	if val != nil {
 		t.Fatalf(`%+v`, val)
 	}
@@ -72,7 +79,7 @@ additional messages and the stack trace.
 */
 func True(val bool, opt ...any) {
 	if !val {
-		panic(ToErr(1, msgOpt(opt, `expected true, got false`)))
+		panic(ErrAt(1, msgOpt(opt, `expected true, got false`)))
 	}
 }
 
@@ -82,7 +89,7 @@ additional messages and the stack trace.
 */
 func False(val bool, opt ...any) {
 	if val {
-		panic(ToErr(1, msgOpt(opt, `expected false, got true`)))
+		panic(ErrAt(1, msgOpt(opt, `expected false, got true`)))
 	}
 }
 
@@ -96,13 +103,13 @@ func Is[A any](act, exp A, opt ...any) {
 	}
 
 	if gg.Equal(act, exp) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`inputs are equal but not identical`,
 			MsgEqInner(act, exp),
 		))))
 	}
 
-	panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
+	panic(ErrAt(1, msgOpt(opt, MsgEq(act, exp))))
 }
 
 /*
@@ -111,7 +118,7 @@ fails the test, printing the optional additional messages and the stack trace.
 */
 func NotIs[A any](act, exp A, opt ...any) {
 	if gg.Is(act, exp) {
-		panic(ToErr(1, msgOpt(opt, MsgNotEq(act))))
+		panic(ErrAt(1, msgOpt(opt, MsgNotEq(act))))
 	}
 }
 
@@ -121,7 +128,7 @@ optional additional messages and the stack trace.
 */
 func Eq[A comparable](act, exp A, opt ...any) {
 	if act != exp {
-		panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
+		panic(ErrAt(1, msgOpt(opt, MsgEq(act, exp))))
 	}
 }
 
@@ -132,7 +139,7 @@ the inputs to be comparable, but may panic if they aren't.
 */
 func EqAny[A any](act, exp A, opt ...any) {
 	if any(act) != any(exp) {
-		panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
+		panic(ErrAt(1, msgOpt(opt, MsgEq(act, exp))))
 	}
 }
 
@@ -142,7 +149,7 @@ optional additional messages and the stack trace.
 */
 func NotEq[A comparable](act, nom A, opt ...any) {
 	if act == nom {
-		panic(ToErr(1, msgOpt(opt, MsgNotEq(act))))
+		panic(ErrAt(1, msgOpt(opt, MsgNotEq(act))))
 	}
 }
 
@@ -191,7 +198,7 @@ optional additional messages and the stack trace.
 */
 func Equal[A any](act, exp A, opt ...any) {
 	if !gg.Equal(act, exp) {
-		panic(ToErr(1, msgOpt(opt, MsgEq(act, exp))))
+		panic(ErrAt(1, msgOpt(opt, MsgEq(act, exp))))
 	}
 }
 
@@ -201,7 +208,7 @@ printing the optional additional messages and the stack trace.
 */
 func EqualSet[A ~[]B, B comparable](act, exp A, opt ...any) {
 	if !gg.Equal(gg.SetFrom(act), gg.SetFrom(exp)) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected difference in element sets`,
 			MsgEqInner(act, exp)),
 		)))
@@ -214,7 +221,7 @@ optional additional messages and the stack trace.
 */
 func NotEqual[A any](act, nom A, opt ...any) {
 	if gg.Equal(act, nom) {
-		panic(ToErr(1, msgOpt(opt, MsgNotEq(act))))
+		panic(ErrAt(1, msgOpt(opt, MsgNotEq(act))))
 	}
 }
 
@@ -226,7 +233,7 @@ printing the optional additional messages and the stack trace.
 */
 func SliceIs[A ~[]B, B any](act, exp A, opt ...any) {
 	if !gg.SliceIs(act, exp) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected difference in slice headers`,
 			msgDet(`actual header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](act))),
 			msgDet(`expected header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](exp))),
@@ -242,7 +249,7 @@ fails the test, printing the optional additional messages and the stack trace.
 */
 func NotSliceIs[A ~[]B, B any](act, nom A, opt ...any) {
 	if gg.SliceIs(act, nom) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected given slice headers to be distinct, but they were equal`,
 			msgDet(`actual header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](act))),
 			msgDet(`nominal header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](nom))),
@@ -256,7 +263,7 @@ optional additional messages and the stack trace.
 */
 func Zero[A any](val A, opt ...any) {
 	if !gg.IsZero(val) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected non-zero value`,
 			msgSingle(val),
 		))))
@@ -269,7 +276,7 @@ optional additional messages and the stack trace.
 */
 func NotZero[A any](val A, opt ...any) {
 	if gg.IsZero(val) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected zero value`,
 			msgSingle(val),
 		))))
@@ -299,11 +306,11 @@ func Panic(test func(error) bool, fun func(), opt ...any) {
 	err := gg.Catch(fun)
 
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, msgPanicNone(fun, test))))
+		panic(ErrAt(1, msgOpt(opt, msgPanicNone(fun, test))))
 	}
 
 	if !test(err) {
-		panic(ToErr(1, msgOpt(opt, msgErrMismatch(fun, test, err))))
+		panic(ErrAt(1, msgOpt(opt, msgErrMismatch(fun, test, err))))
 	}
 }
 
@@ -315,12 +322,12 @@ and the stack trace.
 func PanicStr(exp string, fun func(), opt ...any) {
 	err := gg.Catch(fun)
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, msgPanicNone(fun, nil))))
+		panic(ErrAt(1, msgOpt(opt, msgPanicNone(fun, nil))))
 	}
 
 	msg := err.Error()
 	if !strings.Contains(msg, exp) {
-		panic(ToErr(1, msgOpt(opt, msgErrMsgMismatch(fun, exp, msg))))
+		panic(ErrAt(1, msgOpt(opt, msgErrMsgMismatch(fun, exp, msg))))
 	}
 }
 
@@ -331,16 +338,16 @@ messages and the stack trace.
 */
 func PanicErrIs(exp error, fun func(), opt ...any) {
 	if exp == nil {
-		panic(ToErr(1, msgOpt(opt, `expected error must be non-nil`)))
+		panic(ErrAt(1, msgOpt(opt, `expected error must be non-nil`)))
 	}
 
 	err := gg.Catch(fun)
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, msgPanicNone(fun, nil))))
+		panic(ErrAt(1, msgOpt(opt, msgPanicNone(fun, nil))))
 	}
 
 	if !e.Is(err, exp) {
-		panic(ToErr(1, msgOpt(opt, msgErrIsMismatch(err, exp))))
+		panic(ErrAt(1, msgOpt(opt, msgErrIsMismatch(err, exp))))
 	}
 }
 
@@ -352,7 +359,7 @@ func PanicAny(fun func(), opt ...any) {
 	err := gg.Catch(fun)
 
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, msgPanicNone(fun, nil))))
+		panic(ErrAt(1, msgOpt(opt, msgPanicNone(fun, nil))))
 	}
 }
 
@@ -411,7 +418,7 @@ trace.
 func NoPanic(fun func(), opt ...any) {
 	err := gg.Catch(fun)
 	if err != nil {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected panic`,
 			msgFunErr(fun, err),
 		))))
@@ -425,11 +432,11 @@ and the stack trace.
 */
 func Error(test func(error) bool, err error, opt ...any) {
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, msgErrorNone(test))))
+		panic(ErrAt(1, msgOpt(opt, msgErrorNone(test))))
 	}
 
 	if !test(err) {
-		panic(ToErr(1, msgOpt(opt, msgErrMismatch(nil, test, err))))
+		panic(ErrAt(1, msgOpt(opt, msgErrMismatch(nil, test, err))))
 	}
 }
 
@@ -440,13 +447,13 @@ stack trace.
 */
 func ErrorStr(exp string, err error, opt ...any) {
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, msgErrorNone(nil))))
+		panic(ErrAt(1, msgOpt(opt, msgErrorNone(nil))))
 	}
 
 	msg := err.Error()
 
 	if !strings.Contains(msg, exp) {
-		panic(ToErr(1, msgOpt(opt, msgErrMsgMismatch(nil, exp, msg))))
+		panic(ErrAt(1, msgOpt(opt, msgErrMsgMismatch(nil, exp, msg))))
 	}
 }
 
@@ -457,11 +464,11 @@ the stack trace.
 */
 func ErrorIs(exp, err error, opt ...any) {
 	if exp == nil {
-		panic(ToErr(1, msgOpt(opt, `expected error must be non-nil`)))
+		panic(ErrAt(1, msgOpt(opt, `expected error must be non-nil`)))
 	}
 
 	if !e.Is(err, exp) {
-		panic(ToErr(1, msgOpt(opt, msgErrIsMismatch(err, exp))))
+		panic(ErrAt(1, msgOpt(opt, msgErrIsMismatch(err, exp))))
 	}
 }
 
@@ -471,7 +478,7 @@ optional additional messages and the stack trace.
 */
 func ErrorAny(err error, opt ...any) {
 	if err == nil {
-		panic(ToErr(1, msgOpt(opt, msgErrorNone(nil))))
+		panic(ErrAt(1, msgOpt(opt, msgErrorNone(nil))))
 	}
 }
 
@@ -485,7 +492,7 @@ trace if possible, the optional additional messages, and the stack trace.
 */
 func NoError(err error, opt ...any) {
 	if err != nil {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected error`,
 			msgErr(err),
 		))))
@@ -528,7 +535,7 @@ printing the optional additional messages and the stack trace.
 */
 func Has[A ~[]B, B comparable](src A, val B, opt ...any) {
 	if !gg.Has(src, val) {
-		panic(ToErr(1, msgOpt(opt, msgSliceElemMissing(src, val))))
+		panic(ErrAt(1, msgOpt(opt, msgSliceElemMissing(src, val))))
 	}
 }
 
@@ -538,7 +545,7 @@ test, printing the optional additional messages and the stack trace.
 */
 func NotHas[A ~[]B, B comparable](src A, val B, opt ...any) {
 	if gg.Has(src, val) {
-		panic(ToErr(1, msgOpt(opt, msgSliceElemUnexpected(src, val))))
+		panic(ErrAt(1, msgOpt(opt, msgSliceElemUnexpected(src, val))))
 	}
 }
 
@@ -550,7 +557,7 @@ simpler and faster.
 */
 func HasEqual[A ~[]B, B any](src A, val B, opt ...any) {
 	if !gg.HasEqual(src, val) {
-		panic(ToErr(1, msgOpt(opt, msgSliceElemMissing(src, val))))
+		panic(ErrAt(1, msgOpt(opt, msgSliceElemMissing(src, val))))
 	}
 }
 
@@ -562,7 +569,7 @@ test, printing the optional additional messages and the stack trace. Uses
 */
 func NotHasEqual[A ~[]B, B any](src A, val B, opt ...any) {
 	if gg.HasEqual(src, val) {
-		panic(ToErr(1, msgOpt(opt, msgSliceElemUnexpected(src, val))))
+		panic(ErrAt(1, msgOpt(opt, msgSliceElemUnexpected(src, val))))
 	}
 }
 
@@ -593,7 +600,7 @@ func HasEvery[A ~[]B, B comparable](src, exp A, opt ...any) {
 	missing := gg.Subtract(exp, src)
 
 	if len(missing) > 0 {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected outer slice to contain all elements from inner slice`,
 			msgDet(`outer detailed:`, goStringIndent(src)),
 			msgDet(`inner detailed:`, goStringIndent(exp)),
@@ -612,7 +619,7 @@ fails the test, printing the optional additional messages and the stack trace.
 */
 func HasSome[A ~[]B, B comparable](src, exp A, opt ...any) {
 	if !gg.HasSome(src, exp) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected lack of shared elements in two slices`,
 			msgDet(`left detailed:`, goStringIndent(src)),
 			msgDet(`right detailed:`, goStringIndent(exp)),
@@ -631,7 +638,7 @@ func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {
 	inter := gg.Intersect(src, exp)
 
 	if len(inter) > 0 {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected left slice to contain no elements from right slice`,
 			msgDet(`left detailed:`, goStringIndent(src)),
 			msgDet(`right detailed:`, goStringIndent(exp)),
@@ -650,7 +657,7 @@ the optional additional messages and the stack trace.
 func Uniq[A ~[]B, B comparable](src A, opt ...any) {
 	dup, ok := foundDup(src)
 	if ok {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected duplicate in slice`,
 			msgSingle(dup),
 		))))
@@ -674,7 +681,7 @@ test, printing the optional additional messages and the stack trace.
 */
 func TextHas[A, B gg.Text](src A, exp B, opt ...any) {
 	if !strings.Contains(gg.ToString(src), gg.ToString(exp)) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`text does not contain substring`,
 			msgDet(`full text:`, goStringIndent(gg.ToString(src))),
 			msgDet(`substring:`, goStringIndent(gg.ToString(exp))),
@@ -688,7 +695,7 @@ additional messages and the stack trace.
 */
 func Empty[A ~[]B, B any](src A, opt ...any) {
 	if len(src) != 0 {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected non-empty slice`,
 			msgDet(`detailed:`, goStringIndent(src)),
 			msgDet(`simple:`, gg.StringAny(src)),
@@ -702,7 +709,7 @@ optional additional messages and the stack trace.
 */
 func NotEmpty[A ~[]B, B any](src A, opt ...any) {
 	if !(len(src) > 0) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty slice`, msgSingle(src)))))
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty slice`, msgSingle(src)))))
 	}
 }
 
@@ -712,7 +719,7 @@ optional additional messages and the stack trace.
 */
 func MapNotEmpty[Src ~map[Key]Val, Key comparable, Val any](src Src, opt ...any) {
 	if !(len(src) > 0) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty map`, msgSingle(src)))))
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty map`, msgSingle(src)))))
 	}
 }
 
@@ -722,7 +729,7 @@ printing the optional additional messages and the stack trace.
 */
 func Len[A ~[]B, B any](src A, exp int, opt ...any) {
 	if len(src) != exp {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			fmt.Sprintf(`got slice length %v, expected %v`, len(src), exp),
 			msgSingle(src),
 		))))
@@ -735,7 +742,7 @@ printing the optional additional messages and the stack trace.
 */
 func TextLen[A gg.Text](src A, exp int, opt ...any) {
 	if len(src) != exp {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			fmt.Sprintf(`got text length %v, expected %v`, len(src), exp),
 			msgSingle(src),
 		))))
@@ -757,7 +764,7 @@ see `Less`. Also see `LessEqPrim`.
 */
 func LessPrim[A gg.LesserPrim](one, two A, opt ...any) {
 	if !(one < two) {
-		panic(ToErr(1, msgOpt(opt, msgLess(one, two))))
+		panic(ErrAt(1, msgOpt(opt, msgLess(one, two))))
 	}
 }
 
@@ -767,7 +774,7 @@ messages and the stack trace. For primitives, see `LessPrim`.
 */
 func Less[A gg.Lesser[A]](one, two A, opt ...any) {
 	if !one.Less(two) {
-		panic(ToErr(1, msgOpt(opt, msgLess(one, two))))
+		panic(ErrAt(1, msgOpt(opt, msgLess(one, two))))
 	}
 }
 
@@ -782,7 +789,7 @@ see `LessEq`. Also see `LessPrim`.
 */
 func LessEqPrim[A gg.LesserPrim](one, two A, opt ...any) {
 	if !(one <= two) {
-		panic(ToErr(1, msgOpt(opt, msgLessEq(one, two))))
+		panic(ErrAt(1, msgOpt(opt, msgLessEq(one, two))))
 	}
 }
 
@@ -796,7 +803,7 @@ func LessEq[A interface {
 	comparable
 }](one, two A, opt ...any) {
 	if !(one == two || one.Less(two)) {
-		panic(ToErr(1, msgOpt(opt, msgLessEq(one, two))))
+		panic(ErrAt(1, msgOpt(opt, msgLessEq(one, two))))
 	}
 }
 
@@ -819,7 +826,7 @@ additional messages and the stack trace.
 */
 func Pos[A gg.Signed](src A, opt ...any) {
 	if !gg.IsPos(src) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected > 0, got value out of range`,
 			msgSingle(src),
 		))))
@@ -832,7 +839,7 @@ additional messages and the stack trace.
 */
 func Neg[A gg.Signed](src A, opt ...any) {
 	if !gg.IsNeg(src) {
-		panic(ToErr(1, msgOpt(opt, gg.JoinLinesOpt(
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected < 0, got value out of range`,
 			msgSingle(src),
 		))))

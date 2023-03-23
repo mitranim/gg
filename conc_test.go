@@ -299,7 +299,7 @@ func testIsContextConsistent(vals ...context.Context) {
 
 	for _, val := range vals {
 		if exp != val {
-			panic(gtest.LinesErr(
+			panic(gtest.ErrLines(
 				`unexpected difference between context values`,
 				gtest.MsgEqDetailed(val, exp),
 			))

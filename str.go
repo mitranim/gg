@@ -1,6 +1,7 @@
 package gg
 
 import (
+	"math"
 	"regexp"
 	"strings"
 	"unicode"
@@ -410,18 +411,53 @@ func StrCut[A Text](src A, start, end int) (_ A) {
 
 	startInd := 0
 	endInd := len(src)
-	charCount := 0
+	charInd := 0
 
-	for ind := range ToString(src) {
-		if charCount == start {
-			startInd = ind
+	for byteInd := range ToString(src) {
+		if charInd == start {
+			startInd = byteInd
 		}
-		if charCount == end {
-			endInd = ind
+		if charInd == end {
+			endInd = byteInd
 			break
 		}
-		charCount++
+		charInd++
 	}
 
 	return src[startInd:endInd]
+}
+
+/*
+Truncates the given text to the given total count of Unicode characters
+(not bytes) with an ellipsis, if needed. The total count includes the ellipsis
+character '…'. The limit's can't exceed `math.MaxInt`.
+*/
+func Ellipsis[A Text](src A, limit uint) string {
+	if limit == 0 {
+		return ``
+	}
+
+	var lim int
+	if limit > math.MaxInt {
+		lim = math.MaxInt
+	} else {
+		lim = int(limit)
+	}
+
+	const suf = `…`
+	const sufCharLen = 1
+
+	str := ToString(src)
+	prevInd := 0
+	nextInd := 0
+	charInd := 0
+
+	for nextInd = range str {
+		if charInd+sufCharLen > lim {
+			return str[:prevInd] + suf
+		}
+		prevInd = nextInd
+		charInd++
+	}
+	return str
 }

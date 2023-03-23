@@ -9,7 +9,7 @@ Used internally by `Coll`.
 */
 func ValidPk[
 	Key comparable,
-	Val Pked[Key],
+	Val Pker[Key],
 ](val Val) Key {
 	key := val.Pk()
 	if IsZero(key) {
@@ -22,7 +22,7 @@ func ValidPk[
 Syntactic shortcut for making a `Coll` of the given arguments, with type
 inference.
 */
-func CollOf[Key comparable, Val Pked[Key]](src ...Val) Coll[Key, Val] {
+func CollOf[Key comparable, Val Pker[Key]](src ...Val) Coll[Key, Val] {
 	var tar Coll[Key, Val]
 	tar.Add(src...)
 	return tar
@@ -32,7 +32,7 @@ func CollOf[Key comparable, Val Pked[Key]](src ...Val) Coll[Key, Val] {
 Syntactic shortcut for making a `Coll` from any number of source slices, with
 type inference.
 */
-func CollFrom[Slice ~[]Val, Key comparable, Val Pked[Key]](src ...Slice) Coll[Key, Val] {
+func CollFrom[Slice ~[]Val, Key comparable, Val Pker[Key]](src ...Slice) Coll[Key, Val] {
 	var tar Coll[Key, Val]
 	for _, src := range src {
 		tar.Add(src...)
@@ -50,7 +50,7 @@ does not support deletion.
 */
 type Coll[
 	Key comparable,
-	Val Pked[Key],
+	Val Pker[Key],
 ] struct {
 	Slice []Val `role:"ref"`
 	Index map[Key]int

@@ -10,7 +10,7 @@ Shortcut for mutexes. Usage:
 
 	defer Lock(someLock).Unlock()
 */
-func Lock(val sync.Locker) sync.Locker {
+func Lock[A sync.Locker](val A) A {
 	val.Lock()
 	return val
 }
@@ -19,16 +19,16 @@ func Lock(val sync.Locker) sync.Locker {
 Shortcut for dereferencing a pointer under a lock. Uses `PtrGet`, returning the
 zero value of the given type if the pointer is nil.
 */
-func LockGet[A any](lock sync.Locker, ptr *A) A {
+func LockGet[Lock sync.Locker, Val any](lock Lock, ptr *Val) (_ Val) {
 	if ptr == nil {
-		return Zero[A]()
+		return
 	}
 	defer Lock(lock).Unlock()
 	return *ptr
 }
 
 // Shortcut for writing to a pointer under a lock.
-func LockSet[A any](lock sync.Locker, ptr *A, val A) {
+func LockSet[Lock sync.Locker, Val any](lock Lock, ptr *Val, val Val) {
 	if ptr == nil {
 		return
 	}

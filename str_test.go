@@ -1,6 +1,7 @@
 package gg_test
 
 import (
+	"math"
 	"regexp"
 	"strings"
 	"testing"
@@ -340,23 +341,25 @@ func TestStrCut_alternate(t *testing.T) {
 func testStrCut(fun func(string, int, int) string) {
 	const src = `🐒🐴🦖🦔🐲🐈`
 
-	gtest.Eq(``, fun(src, 0, 0))
-	gtest.Eq(`🐒`, fun(src, 0, 1))
-	gtest.Eq(`🐒🐴`, fun(src, 0, 2))
-	gtest.Eq(`🐒🐴🦖`, fun(src, 0, 3))
-	gtest.Eq(`🐒🐴🦖🦔`, fun(src, 0, 4))
-	gtest.Eq(`🐒🐴🦖🦔🐲`, fun(src, 0, 5))
-	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, 0, 6))
-	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, 0, 7))
-	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, 0, 8))
+	gtest.Zero(fun(src, 0, 0))
+	gtest.Eq(fun(src, 0, 1), `🐒`)
+	gtest.Eq(fun(src, 0, 2), `🐒🐴`)
+	gtest.Eq(fun(src, 0, 3), `🐒🐴🦖`)
+	gtest.Eq(fun(src, 0, 4), `🐒🐴🦖🦔`)
+	gtest.Eq(fun(src, 0, 5), `🐒🐴🦖🦔🐲`)
+	gtest.Eq(fun(src, 0, 6), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(fun(src, 0, 7), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(fun(src, 0, 8), `🐒🐴🦖🦔🐲🐈`)
 
-	gtest.Eq(`🐒`, fun(src, -1, 1))
-	gtest.Eq(`🐒🐴🦖🦔🐲🐈`, fun(src, -1, 6))
+	gtest.Eq(fun(src, -1, 1), `🐒`)
+	gtest.Eq(fun(src, -1, 6), `🐒🐴🦖🦔🐲🐈`)
 
-	gtest.Eq(``, fun(src, 1, 0))
-	gtest.Eq(``, fun(src, 1, 1))
-	gtest.Eq(`🐴`, fun(src, 1, 2))
-	gtest.Eq(`🐴🦖🦔🐲🐈`, fun(src, 1, 6))
+	gtest.Zero(fun(src, 1, 0))
+	gtest.Zero(fun(src, 1, 1))
+	gtest.Eq(fun(src, 1, 2), `🐴`)
+	gtest.Eq(fun(src, 1, 6), `🐴🦖🦔🐲🐈`)
+
+	gtest.Eq(fun(`one two three four`, 4, 13), `two three`)
 }
 
 // Alternate implementation for comparison with ours.
@@ -405,5 +408,81 @@ func BenchmarkStrCut_alternate(b *testing.B) {
 				gg.Nop1(StrCutRuneSlice(src, start, end))
 			}
 		}
+	}
+}
+
+func TestStr(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.Str())
+	gtest.Zero(gg.Str(nil))
+	gtest.Zero(gg.Str(nil, nil))
+	gtest.Zero(gg.Str(``))
+	gtest.Zero(gg.Str(``, nil))
+	gtest.Zero(gg.Str(``, nil, ``))
+	gtest.Zero(gg.Str(``, nil, ``, nil))
+
+	gtest.Eq(gg.Str(0), `0`)
+	gtest.Eq(gg.Str(0, 0), `00`)
+	gtest.Eq(gg.Str(0, 10), `010`)
+	gtest.Eq(gg.Str(0, 10, 20), `01020`)
+	gtest.Eq(gg.Str(`one`), `one`)
+	gtest.Eq(gg.Str(`one`, ``), `one`)
+	gtest.Eq(gg.Str(`one`, ``, `two`), `onetwo`)
+	gtest.Eq(gg.Str(`one`, `_`, `two`), `one_two`)
+	gtest.Eq(gg.Str(10, `_`, 20), `10_20`)
+}
+
+func BenchmarkStr_0(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Str()
+	}
+}
+
+func BenchmarkStr_1(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Str(`one`)
+	}
+}
+
+func BenchmarkStr_2(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Str(`one`, `two`)
+	}
+}
+
+func BenchmarkStr_3(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Str(`one`, `two`, `three`)
+	}
+}
+
+func TestEllipsis(t *testing.T) {
+	defer gtest.Catch(t)
+
+	const src = `🐒🐴🦖🦔🐲🐈`
+
+	gtest.Zero(gg.Ellipsis(src, 0))
+	gtest.Eq(gg.Ellipsis(src, 1), `…`)
+	gtest.Eq(gg.Ellipsis(src, 2), `🐒…`)
+	gtest.Eq(gg.Ellipsis(src, 3), `🐒🐴…`)
+	gtest.Eq(gg.Ellipsis(src, 4), `🐒🐴🦖…`)
+	gtest.Eq(gg.Ellipsis(src, 5), `🐒🐴🦖🦔…`)
+	gtest.Eq(gg.Ellipsis(src, 6), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.Ellipsis(src, 7), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.Ellipsis(src, 8), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.Ellipsis(src, 9), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.Ellipsis(src, math.MaxUint), `🐒🐴🦖🦔🐲🐈`)
+}
+
+func BenchmarkEllipsis_changed(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Ellipsis(`🐒🐴🦖🦔🐲🐈`, 5)
+	}
+}
+
+func BenchmarkEllipsis_unchanged(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Ellipsis(`🐒🐴🦖🦔🐲🐈`, 6)
 	}
 }

@@ -38,12 +38,12 @@ func SliceDat[Slice ~[]Elem, Elem any](src Slice) *Elem {
 func (self Slice[A]) Dat() *A { return SliceDat(self) }
 
 // Inverse of `HasLen`. The slice may or may not be nil.
-func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return !(len(val) > 0) }
+func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) <= 0 }
 
 // Same as global `IsEmpty`.
 func (self Slice[_]) IsEmpty() bool { return IsEmpty(self) }
 
-// True if slice length is above 0.
+// True if slice length is > 0.
 func HasLen[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) > 0 }
 
 // Same as global `HasLen`.
@@ -428,7 +428,7 @@ Returns the initial part of the given slice: all except the last value.
 If the slice is nil, returns nil.
 */
 func Init[Slice ~[]Elem, Elem any](val Slice) Slice {
-	if !(len(val) > 0) {
+	if len(val) <= 0 {
 		return val
 	}
 	return val[:len(val)-1]
@@ -442,7 +442,7 @@ Returns the tail part of the given slice: all except the first value.
 If the slice is nil, returns nil.
 */
 func Tail[Slice ~[]Elem, Elem any](val Slice) Slice {
-	if !(len(val) > 0) {
+	if len(val) <= 0 {
 		return val
 	}
 	return val[1:]
@@ -564,7 +564,7 @@ smallest value from among the results, which must be comparable primitives.
 For non-primitives, see `MinBy`.
 */
 func MinPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
-	if !(len(src) > 0) || fun == nil {
+	if len(src) <= 0 || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -579,7 +579,7 @@ smallest value from among the results. For primitive types that don't implement
 `Lesser`, see `MinPrimBy`.
 */
 func MinBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
-	if !(len(src) > 0) || fun == nil {
+	if len(src) <= 0 || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -594,7 +594,7 @@ largest value from among the results, which must be comparable primitives.
 For non-primitives, see `MaxBy`.
 */
 func MaxPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
-	if !(len(src) > 0) || fun == nil {
+	if len(src) <= 0 || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -609,7 +609,7 @@ largest value from among the results. For primitive types that don't implement
 `Lesser`, see `MaxPrimBy`.
 */
 func MaxBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
-	if !(len(src) > 0) || fun == nil {
+	if len(src) <= 0 || fun == nil {
 		return Zero[Out]()
 	}
 
@@ -931,7 +931,7 @@ Similar to `Fold` but uses the first slice element as the accumulator, falling
 back on zero value. The given function is invoked only for 2 or more elements.
 */
 func Fold1[A any](src []A, fun func(A, A) A) A {
-	if !(len(src) > 0) {
+	if len(src) <= 0 {
 		return Zero[A]()
 	}
 	return Fold(src[1:], src[0], fun)

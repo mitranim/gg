@@ -708,7 +708,7 @@ Asserts that the given slice is not empty, or fails the test, printing the
 optional additional messages and the stack trace.
 */
 func NotEmpty[A ~[]B, B any](src A, opt ...any) {
-	if !(len(src) > 0) {
+	if len(src) <= 0 {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty slice`, msgSingle(src)))))
 	}
 }
@@ -718,7 +718,7 @@ Asserts that the given slice is not empty, or fails the test, printing the
 optional additional messages and the stack trace.
 */
 func MapNotEmpty[Src ~map[Key]Val, Key comparable, Val any](src Src, opt ...any) {
-	if !(len(src) > 0) {
+	if len(src) <= 0 {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(`unexpected empty map`, msgSingle(src)))))
 	}
 }

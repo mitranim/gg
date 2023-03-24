@@ -71,22 +71,22 @@ func TestBuf_AppendAnysln(t *testing.T) {
 	{
 		var buf gg.Buf
 		buf.AppendAnysln()
-		gtest.Str(buf, gg.Newline)
+		gtest.Zero(buf)
 	}
 
 	{
 		var buf gg.Buf
 		buf.AppendAnysln(nil)
-		gtest.Str(buf, gg.Newline)
+		gtest.Zero(buf)
 	}
 
 	{
 		var buf gg.Buf
 		buf.AppendAnysln(nil, ``, nil)
-		gtest.Str(buf, gg.Newline)
+		gtest.Zero(buf)
 
 		buf.AppendAnysln()
-		gtest.Str(buf, gg.Newline+gg.Newline)
+		gtest.Zero(buf)
 	}
 
 	{

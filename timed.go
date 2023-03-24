@@ -1,6 +1,8 @@
 package gg
 
-import "time"
+import (
+	"time"
+)
 
 /*
 Shortcut for creating a `Timed` with the given value, using the current
@@ -28,7 +30,7 @@ func (self Timed[_]) IsNull() bool { return self.Inst.IsZero() }
 func (self Timed[_]) IsNonNull() bool { return !self.Inst.IsZero() }
 
 // Implement `Clearer`. Zeroes the receiver.
-func (self *Timed[A]) Clear() { Clear(self) }
+func (self *Timed[_]) Clear() { Clear(self) }
 
 // Implement `Getter`, returning the underlying value as-is.
 func (self Timed[A]) Get() A { return self.Val }
@@ -64,7 +66,7 @@ Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
 clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
 into the underlying value, and sets the current timestamp on success.
 */
-func (self *Timed[A]) UnmarshalJSON(src []byte) error {
+func (self *Timed[_]) UnmarshalJSON(src []byte) error {
 	if IsJsonEmpty(src) {
 		self.Clear()
 		return nil

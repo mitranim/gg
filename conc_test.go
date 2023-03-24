@@ -290,7 +290,7 @@ type CtxState struct {
 }
 
 func testIsContextConsistent(vals ...context.Context) {
-	if !(len(vals) > 1) {
+	if len(vals) <= 1 {
 		return
 	}
 

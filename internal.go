@@ -84,7 +84,7 @@ func relOpt(base, src string) string {
 }
 
 func isIntString(val string) bool {
-	if !(len(val) > 0) {
+	if len(val) <= 0 {
 		return false
 	}
 
@@ -92,7 +92,7 @@ func isIntString(val string) bool {
 		val = val[1:]
 	}
 
-	if !(len(val) > 0) {
+	if len(val) <= 0 {
 		return false
 	}
 
@@ -146,7 +146,7 @@ anti-pattern; slices perform better in most scenarios, and don't require an
 additional abstraction. However, there is one valid scenario for linked lists:
 when nodes are pointers to local variables, when those local variables don't
 escape, and when they represent addresses to actual memory regions in stack
-frames. In such scenarios, this may provide us with a resizable data structure
+frames. In this case, this may provide us with a resizable data structure
 allocated entirely on the stack, which is useful for book-keeping in recursive
 tree-walking or graph-walking algorithms. We currently do not verify if the
 trick has the expected efficiency, as the overheads are minimal.

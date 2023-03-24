@@ -208,16 +208,13 @@ func (self *Buf) AppendAnys(val ...any) {
 
 /*
 Like `(*Buf).AppendAnys` but ensures a trailing newline, similarly to
-`fmt.Println`. If the last value provides a newline, an additional newline
-is not appended. TODO better name.
+`fmt.Println`. If the last value provides a newline, or if the buffer remains
+empty after appending the text representations of the inputs, an additional
+newline is not appended. TODO better name.
 */
 func (self *Buf) AppendAnysln(val ...any) {
-	len0 := self.Len()
 	self.AppendAnys(val...)
-	len1 := self.Len()
-	if len0 == len1 || (len1 > len0 && !HasNewlineSuffix(*self)) {
-		self.AppendNewline()
-	}
+	self.AppendNewlineOpt()
 }
 
 /*

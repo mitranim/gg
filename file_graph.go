@@ -52,8 +52,7 @@ func (self *GraphDir) Init() {
 	defer Detailf(`unable to build dependency graph for %q`, self.Path)
 	self.read()
 	self.validateExisting()
-	self.validateAcyclic()
-	self.sort()
+	self.walk()
 	self.validateEntryFile()
 }
 
@@ -63,18 +62,19 @@ func (self GraphDir) Names() []string {
 }
 
 /*
-Returns the `GraphFile` indexed by the given key. Panics if the file is not
-found by this key.
+Returns the `GraphFile` indexed by the given key.
+Panics if the file is not found.
 */
 func (self GraphDir) File(key string) GraphFile {
 	val, ok := self.Files.Got(key)
 	if !ok {
 		panic(Errf(`missing file %q`, key))
 	}
-	// Precaution due to use of sorting.
+
 	if val.Name != key {
 		panic(Errf(`invalid index for %q, found %q`, key, val.Name))
 	}
+
 	return val
 }
 
@@ -92,27 +92,36 @@ func (self *GraphDir) read() {
 	}
 }
 
-func (self *GraphDir) validateExisting() {
+// Technically redundant because `graphWalk` also validates this.
+func (self GraphDir) validateExisting() {
 	Each(self.Files.Slice, self.validateExistingDeps)
 }
 
-func (self *GraphDir) validateExistingDeps(file GraphFile) {
+func (self GraphDir) validateExistingDeps(file GraphFile) {
 	defer Detailf(`dependency error for %q`, file.Name)
 
-	for _, dep := range file.Deps.Slice {
+	for _, dep := range file.Deps {
 		Nop1(self.File(dep))
 	}
 }
 
-func (self *GraphDir) validateAcyclic() {
-	var tar graphCycleValidator
-	tar.Dir = self
-	tar.Run()
-}
+func (self *GraphDir) walk() {
+	// Forbids cycles and finds valid execution order.
+	var walk graphWalk
+	walk.Dir = self
+	walk.Run()
 
-func (self *GraphDir) sort() {
-	Sort(self.Files.Slice)
-	self.Files.Reindex()
+	// Internal sanity check. If walk is successful, it must build an equivalent
+	// set of files. We could also compare the actual elements, but this should
+	// be enough to detect mismatches.
+	valid := walk.Valid
+	len0 := self.Files.Len()
+	len1 := valid.Len()
+	if len0 != len1 {
+		panic(Errf(`internal error: mismatch between original files (length %v) and walked files (length %v)`, len0, len1))
+	}
+
+	self.Files = valid
 }
 
 /*
@@ -127,7 +136,7 @@ func (self GraphDir) validateEntryFile() {
 	}
 
 	head := Head(self.Files.Slice)
-	deps := head.Deps.Len()
+	deps := len(head.Deps)
 
 	if deps != 0 {
 		panic(Errf(`expected to begin with a dependency-free entry file, found %q with %v dependencies`, head.Name, deps))
@@ -148,9 +157,9 @@ Represents a file in a graph of files that import each other by using special
 import annotations understood by this tool. See `GraphDir` for explanation.
 */
 type GraphFile struct {
-	Name string
-	Body string
-	Deps OrdSet[string]
+	Name string   // Valid file base name.
+	Body string   // Read from disk by `.Init`.
+	Deps []string // Parsed from `.Body` by `.Init`.
 }
 
 // Implement `Pker` for compatibility with `Coll`. See `GraphDir.Files`.
@@ -178,58 +187,17 @@ func (self GraphFile) validateName() {
 
 // Provisional. Suboptimal.
 func (self *GraphFile) parse() {
-	self.Deps = OrdSetOf(firstSubmatches(reGraphImport.Get(), self.Body)...)
-	self.validateDeps()
+	deps := firstSubmatches(reGraphImport.Get(), self.Body)
+
+	invalid := Reject(deps, isBaseName)
+	if HasLen(invalid) {
+		panic(Errf(`invalid imports in %q, every import must be a base name, found %q`, self.Name, invalid))
+	}
+
+	self.Deps = deps
 }
 
-func (self GraphFile) validateDeps() {
-	invalid := Reject(self.Deps.Slice, isBaseName)
-	if IsEmpty(invalid) {
-		return
-	}
-	panic(Errf(`invalid imports in %q, every import must be a base name, found %q`, self.Name, invalid))
-}
-
-/*
-Implement `Lesser` for sorting. Rules:
-
-	* Direct mutual dependency between two files is forbidden. This doesn't forbid
-	  indirect cycles, which we validate separately.
-	* If one of the files depends on the other, the dependency is "less" and the
-	  dependent is "more".
-	* If one of the files has fewer dependencies than the other, it's "less" than
-	  the other. This also ensures that "pure" dependencies (files which don't
-	  depend on others) are "less".
-	* Otherwise, determine "less" by comparing file names.
-	* If every other condition fails, the receiver is "less" and the input
-	  is "more".
-*/
-func (self GraphFile) Less(other GraphFile) bool {
-	has0 := self.Deps.Has(other.Name)
-	has1 := other.Deps.Has(self.Name)
-	if has0 && has1 {
-		panic(Errf(`dependency cycle between %q and %q`))
-	}
-	if has0 {
-		return false
-	}
-	if has1 {
-		return true
-	}
-
-	len0 := self.Deps.Len()
-	len1 := other.Deps.Len()
-	if len0 < len1 {
-		return true
-	}
-	if len1 < len0 {
-		return false
-	}
-
-	return other.Name > self.Name
-}
-
-func (self GraphFile) isEntry() bool { return self.Deps.IsEmpty() }
+func (self GraphFile) isEntry() bool { return IsEmpty(self.Deps) }
 
 var reGraphImport = NewLazy(func() *regexp.Regexp {
 	return regexp.MustCompile(`(?m)^@import\s+(.*)$`)
@@ -238,34 +206,38 @@ var reGraphImport = NewLazy(func() *regexp.Regexp {
 func isBaseName(val string) bool { return filepath.Base(val) == val }
 
 /*
-Forbids cycles. In other words, ensures that our graph is a "multitree".
-See https://en.wikipedia.org/wiki/Multitree.
+Features:
+
+	* Forbids cycles. In other words, ensures that our graph is a "multitree".
+	  See https://en.wikipedia.org/wiki/Multitree.
+	* Determines valid execution order.
 */
-type graphCycleValidator struct {
+type graphWalk struct {
 	Dir   *GraphDir
-	valid Set[string]
+	Valid Coll[string, GraphFile]
 }
 
-func (self *graphCycleValidator) Run() {
-	for _, file := range self.Dir.Files.Slice {
-		self.walk(nil, file)
+func (self *graphWalk) Run() {
+	for _, val := range self.Dir.Files.Slice {
+		self.walk(nil, val)
 	}
 }
 
-func (self *graphCycleValidator) walk(tail *node[string], file GraphFile) {
-	if self.valid.Has(file.Name) {
+func (self *graphWalk) walk(tail *node[string], file GraphFile) {
+	key := file.Name
+	if self.Valid.Has(key) {
 		return
 	}
 
-	pending := tail != nil && tail.has(file.Name)
-	head := tail.cons(file.Name)
+	pending := tail != nil && tail.has(key)
+	head := tail.cons(key)
 
 	if pending {
 		panic(Errf(`dependency cycle: %q`, Reversed(head.vals())))
 	}
 
-	for _, dep := range file.Deps.Slice {
+	for _, dep := range file.Deps {
 		self.walk(&head, self.Dir.File(dep))
 	}
-	self.valid.Init().Add(file.Name)
+	self.Valid.Add(file)
 }

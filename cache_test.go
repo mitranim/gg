@@ -55,9 +55,9 @@ func TestMem(t *testing.T) {
 	gtest.SliceIs(prev, mem.Get())
 	gtest.SliceIs(prev, mem.Get())
 
-	gtest.NotZero(mem.Timed.Inst)
+	gtest.NotZero(mem.Timed().Inst)
 	mem.Clear()
-	gtest.Zero(mem.Timed)
+	gtest.Zero(mem.Timed())
 
 	next := mem.Get()
 	gtest.Equal(next, []string{`str`})
@@ -66,5 +66,5 @@ func TestMem(t *testing.T) {
 
 	gtest.Equal(prev, next)
 	gtest.NotSliceIs(prev, next)
-	gtest.NotZero(mem.Timed.Inst)
+	gtest.NotZero(mem.Timed().Inst)
 }

@@ -137,11 +137,31 @@ the existing index. Can be useful for external code that directly modifies the
 inner `.Slice`, for example by sorting it. This is NOT used when adding items
 via `.Add`, which modifies the index incrementally rather than all-at-once.
 */
-func (self *Coll[Key, Val]) Reindex() {
+func (self *Coll[_, _]) Reindex() {
 	src := self.Slice
 	self.Clear()
 	self.Slice = src[:0]
 	self.Add(src...)
+}
+
+/*
+Swaps two elements both in `.Slice` and in `.Index`. Useful for sorting.
+`.Index` may be nil, in which case it's unaffected. Slice indices must be
+either equal or valid.
+*/
+func (self Coll[Key, _]) Swap(ind0, ind1 int) {
+	if ind0 == ind1 {
+		return
+	}
+
+	slice := self.Slice
+	val0, val1 := slice[ind0], slice[ind1]
+	slice[ind0], slice[ind1] = val1, val0
+
+	index := self.Index
+	if index != nil {
+		index[ValidPk[Key](val0)], index[ValidPk[Key](val1)] = ind1, ind0
+	}
 }
 
 // Implement `json.Marshaler`. Encodes the inner slice, ignoring the index.

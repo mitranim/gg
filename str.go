@@ -34,8 +34,8 @@ func StrLast[A Text](val A) byte {
 // True if len > 0.
 func IsStrNonEmpty[A Text](val A) bool { return len(val) > 0 }
 
-// True if len == 0. Inverse of `IsStrNonEmpty`.
-func IsStrEmpty[A Text](val A) bool { return !(len(val) > 0) }
+// True if len <= 0. Inverse of `IsStrNonEmpty`.
+func IsStrEmpty[A Text](val A) bool { return len(val) <= 0 }
 
 // Compares two text chunks via `==`.
 func StrEq[A Text](one, two A) bool { return ToString(one) == ToString(two) }
@@ -91,10 +91,30 @@ func ToBytes[A Text](val A) []byte { return u.Slice(TextDat(val), len(val)) }
 
 /*
 Converts arguments to strings and concatenates the results. See `StringCatch`
-for the encoding rules. Also see `JoinDense` for a more limited but more
-efficient version that doesn't involve `any`.
+for the encoding rules. Also see `JoinDense` for a simpler version that doesn't
+involve `any`.
 */
 func Str(src ...any) string { return JoinAny(src, ``) }
+
+/*
+Similar to `Str`. Concatenates string representations of the input values.
+Additionally, if the output is non-empty and doesn't end with a newline
+character, appends `Newline` at the end.
+*/
+func Strln(src ...any) string {
+	switch len(src) {
+	case 0:
+		return ``
+
+	case 1:
+		return AppendNewlineOpt(String(src[0]))
+
+	default:
+		var buf Buf
+		buf.AppendAnysln(src...)
+		return buf.String()
+	}
+}
 
 /*
 Converts arguments to strings and joins the results with a single space. See
@@ -246,7 +266,7 @@ func JoinOpt[A Text](src []A, sep string) string {
 
 // Self-explanatory. Splits the given text into lines.
 func SplitLines[A Text](src A) []string {
-	if !(len(src) > 0) {
+	if len(src) <= 0 {
 		return nil
 	}
 
@@ -290,6 +310,18 @@ func StrPop[Src, Sep ~string](ptr *Src, sep Sep) Src {
 // True if the string ends with a line feed or carriage return.
 func HasNewlineSuffix[A Text](val A) bool {
 	return StrLast(val) == '\n' || StrLast(val) == '\r'
+}
+
+/*
+Appends `Newline` if the given string is non-empty and does not end with a
+newline character. Otherwise returns the string unchanged. Also see
+`Buf.AppendNewlineOpt` and `Strln`.
+*/
+func AppendNewlineOpt[A ~string](val A) A {
+	if len(val) > 0 && !HasNewlineSuffix(val) {
+		return val + A(Newline)
+	}
+	return val
 }
 
 // Missing/private half of `strings.TrimSpace`. Trims only the prefix.

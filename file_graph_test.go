@@ -74,8 +74,8 @@ func TestGraphDir_valid_non_empty(t *testing.T) {
 	testGraphDir(`testdata/graph_valid_non_empty`, []string{
 		`schema.pgsql`,
 		`one.pgsql`,
-		`three.pgsql`,
 		`two.pgsql`,
+		`three.pgsql`,
 		`four.pgsql`,
 	})
 }

@@ -166,7 +166,7 @@ func (self Set[A]) GoString() string {
 		return typ + `(nil)`
 	}
 
-	if !(len(self) > 0) {
+	if len(self) <= 0 {
 		return typ + `{}`
 	}
 

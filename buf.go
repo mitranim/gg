@@ -109,7 +109,7 @@ func (self *Buf) AppendByteN(val byte, count int) {
 func (self *Buf) AppendNewline() { self.AppendString(Newline) }
 
 /*
-If the bufffer is non-empty and doesn't end with a newline, appends a newline.
+If the buffer is non-empty and doesn't end with a newline, appends a newline.
 Otherwise does nothing. Uses `HasNewlineSuffix`. Mutates the receiver.
 */
 func (self *Buf) AppendNewlineOpt() {
@@ -207,14 +207,20 @@ func (self *Buf) AppendAnys(val ...any) {
 }
 
 /*
-Like `(*Buf).AppendAnys` but ensures a trailing newline, similarly to
-`fmt.Println`. If the last value provides a newline, or if the buffer remains
-empty after appending the text representations of the inputs, an additional
-newline is not appended. TODO better name.
+Like `(*Buf).AppendAnys` but ensures a trailing newline in the appended content,
+similarly to `fmt.Println`. As a special case, if the buffer was empty and the
+appended content is empty, no newline is appended. TODO better name.
 */
 func (self *Buf) AppendAnysln(val ...any) {
+	start := self.Len()
 	self.AppendAnys(val...)
-	self.AppendNewlineOpt()
+	end := self.Len()
+
+	if end > start {
+		self.AppendNewlineOpt()
+	} else if end > 0 {
+		self.AppendNewline()
+	}
 }
 
 /*

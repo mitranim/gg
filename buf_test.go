@@ -106,4 +106,19 @@ func TestBuf_AppendAnysln(t *testing.T) {
 		buf.AppendAnysln(`one`+gg.Newline, `two`)
 		gtest.Str(buf, `one`+gg.Newline+`two`+gg.Newline)
 	}
+
+	{
+		var buf gg.Buf
+		buf.AppendAnysln(`one`)
+		gtest.Str(buf, `one`+gg.Newline)
+
+		buf.AppendAnysln()
+		gtest.Str(buf, `one`+gg.Newline+gg.Newline)
+
+		buf.AppendAnysln(`two`)
+		gtest.Str(buf, `one`+gg.Newline+gg.Newline+`two`+gg.Newline)
+
+		buf.AppendAnysln()
+		gtest.Str(buf, `one`+gg.Newline+gg.Newline+`two`+gg.Newline+gg.Newline)
+	}
 }

@@ -26,7 +26,7 @@ func errAppendInner(buf Buf, err error) Buf {
 }
 
 func errAppendTraceIndent(buf Buf, trace Trace) Buf {
-	if trace.HasLen() {
+	if trace.IsNotEmpty() {
 		buf.AppendNewline()
 		buf.AppendString(`trace:`)
 		buf = trace.AppendIndent(buf, 1)
@@ -39,7 +39,7 @@ func isFuncNameAnon(val string) bool {
 	return strings.HasPrefix(val, pre) && hasPrefixDigit(val[len(pre):])
 }
 
-func hasPrefixDigit(val string) bool { return isDigit(StrHead(val)) }
+func hasPrefixDigit(val string) bool { return isDigit(TextHeadByte(val)) }
 
 func isDigit(val byte) bool { return val >= '0' && val <= '9' }
 
@@ -107,7 +107,7 @@ func isIntString(val string) bool {
 	return true
 }
 
-func isCliFlag(val string) bool { return StrHead(val) == '-' }
+func isCliFlag(val string) bool { return TextHeadByte(val) == '-' }
 
 func isCliFlagValid(val string) bool { return reCliFlag.Get().MatchString(val) }
 

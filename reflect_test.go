@@ -33,11 +33,11 @@ func TestType(t *testing.T) {
 }
 
 func testType[A any]() {
-	gtest.EqAny(gg.Type[A](), r.TypeOf(gg.Zero[A]()))
+	gtest.AnyEq(gg.Type[A](), r.TypeOf(gg.Zero[A]()))
 }
 
 func testTypeIface[A any](exp r.Type) {
-	gtest.EqAny(gg.Type[A](), exp)
+	gtest.AnyEq(gg.Type[A](), exp)
 }
 
 func TestTypeOf(t *testing.T) {

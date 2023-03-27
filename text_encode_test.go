@@ -91,22 +91,22 @@ func TestAppend(t *testing.T) {
 
 	type Bui []byte
 
-	gtest.Equal(gg.Append(Bui(nil), any(nil)), Bui(nil))
-	gtest.Equal(gg.Append(Bui(``), any(nil)), Bui(``))
-	gtest.Equal(gg.Append(Bui(`pre_`), any(nil)), Bui(`pre_`))
-	gtest.Equal(gg.Append(Bui(nil), 10), Bui(`10`))
-	gtest.Equal(gg.Append(Bui(`pre_`), 10), Bui(`pre_10`))
+	gtest.Equal(gg.AppendTo(Bui(nil), any(nil)), Bui(nil))
+	gtest.Equal(gg.AppendTo(Bui(``), any(nil)), Bui(``))
+	gtest.Equal(gg.AppendTo(Bui(`pre_`), any(nil)), Bui(`pre_`))
+	gtest.Equal(gg.AppendTo(Bui(nil), 10), Bui(`10`))
+	gtest.Equal(gg.AppendTo(Bui(`pre_`), 10), Bui(`pre_10`))
 
 	t.Run(`time.Time`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
 		gtest.Equal(
-			gg.Append(Bui(nil), testTime),
+			gg.AppendTo(Bui(nil), testTime),
 			Bui(`1234-02-23T00:00:00Z`),
 		)
 
 		gtest.Equal(
-			gg.Append(Bui(`pre_`), testTime),
+			gg.AppendTo(Bui(`pre_`), testTime),
 			Bui(`pre_1234-02-23T00:00:00Z`),
 		)
 	})

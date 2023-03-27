@@ -29,10 +29,10 @@ type Opt[A any] struct {
 func (self Opt[_]) IsNull() bool { return !self.Ok }
 
 // Inverse of `.IsNull`.
-func (self Opt[_]) IsNonNull() bool { return self.Ok }
+func (self Opt[_]) IsNotNull() bool { return self.Ok }
 
 // Implement `Clearer`. Zeroes the receiver.
-func (self *Opt[_]) Clear() { Clear(self) }
+func (self *Opt[_]) Clear() { PtrClear(self) }
 
 // Implement `Getter`, returning the underlying value as-is.
 func (self Opt[A]) Get() A { return self.Val }
@@ -68,8 +68,8 @@ func (self *Opt[A]) Parse(src string) error {
 	return self.with(ParseClearCatch[A](src, self))
 }
 
-// Implement `Appender`, appending the same representation as `.String`.
-func (self Opt[A]) Append(buf []byte) []byte { return AppendNull[A](buf, self) }
+// Implement `AppenderTo`, appending the same representation as `.String`.
+func (self Opt[A]) AppendTo(buf []byte) []byte { return AppendNull[A](buf, self) }
 
 // Implement `encoding.TextMarshaler`, returning the same representation as `.String`.
 func (self Opt[A]) MarshalText() ([]byte, error) { return MarshalNullCatch[A](self) }
@@ -144,7 +144,7 @@ result of calling the function with the previous value, and is considered
 non-"null" even if the value is zero.
 */
 func OptMap[A, B any](src Opt[A], fun func(A) B) (out Opt[B]) {
-	if src.IsNonNull() && fun != nil {
+	if src.IsNotNull() && fun != nil {
 		out.Set(fun(src.Val))
 	}
 	return

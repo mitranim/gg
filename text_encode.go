@@ -40,7 +40,7 @@ string, allowing only INTENTIONALLY stringable values. Rules:
 	* A string is returned as-is.
 	* A byte slice is cast to a string.
 	* Any other primitive value (see constraint `Prim`) is encoded via `strconv`.
-	* Types that support `fmt.Stringer`, `Appender` or `encoding.TextMarshaler`
+	* Types that support `fmt.Stringer`, `AppenderTo` or `encoding.TextMarshaler`
 	  are encoded by using the corresponding method.
 	* As a special case, `time.Time` is encoded in `time.RFC3339` to make encoding
 	  and decoding automatically reversible, and generally for better
@@ -55,7 +55,7 @@ func StringCatch[A any](val A) (string, error) {
 
 	// Must be handled before `fmt.Stringer`.
 	//
-	// Note that our `Append` doesn't need this clause because it uses
+	// Note that our `AppendTo` doesn't need this clause because it uses
 	// `time.Time.MarshalText`, which uses our preferred format. Yet
 	// another reason why we need this special case here.
 	inst, ok := box.(time.Time)
@@ -68,9 +68,9 @@ func StringCatch[A any](val A) (string, error) {
 		return stringer.String(), nil
 	}
 
-	appender, _ := box.(Appender)
+	appender, _ := box.(AppenderTo)
 	if appender != nil {
-		return ToString(appender.Append(nil)), nil
+		return ToString(appender.AppendTo(nil)), nil
 	}
 
 	marshaler, _ := box.(encoding.TextMarshaler)
@@ -164,14 +164,14 @@ func AppendNull[A any, B NullableValGetter[A]](buf []byte, src B) []byte {
 	if src.IsNull() {
 		return buf
 	}
-	return Append(buf, src.Get())
+	return AppendTo(buf, src.Get())
 }
 
 /*
 Appends text representation of the input to the given buffer,
 using `AppendCatch`. Panics on errors.
 */
-func Append[A ~[]byte, B any](buf A, src B) A {
+func AppendTo[A ~[]byte, B any](buf A, src B) A {
 	return Try1(AppendCatch(buf, src))
 }
 
@@ -224,9 +224,9 @@ func AppendCatch[A ~[]byte, B any](buf A, src B) (A, error) {
 		return strconv.AppendFloat(buf, float64(val), 'f', -1, 64), nil
 
 	default:
-		appender, _ := val.(Appender)
+		appender, _ := val.(AppenderTo)
 		if appender != nil {
-			return appender.Append(buf), nil
+			return appender.AppendTo(buf), nil
 		}
 
 		marshaler, _ := val.(encoding.TextMarshaler)
@@ -300,11 +300,11 @@ func MarshalNullCatch[A any, B NullableValGetter[A]](val B) ([]byte, error) {
 }
 
 /*
-Shortcut for stringifying a type that implements `Appender`.
+Shortcut for stringifying a type that implements `AppenderTo`.
 Mostly for internal use.
 */
-func AppenderString[A Appender](val A) string {
-	return ToString(val.Append(nil))
+func AppenderString[A AppenderTo](val A) string {
+	return ToString(val.AppendTo(nil))
 }
 
 /*

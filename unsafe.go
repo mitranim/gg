@@ -3,6 +3,32 @@ package gg
 import u "unsafe"
 
 /*
+Amount of bytes in `uintptr`. At the time of writing, in Go 1.20, this is also
+the amount of bytes in `int` and `uint`.
+*/
+const SizeofWord = u.Sizeof(uintptr(0))
+
+/*
+Amount of bytes in any value of type `~string`. Note that this is the size of
+the string header, not of the underlying data.
+*/
+const SizeofString = u.Sizeof(``)
+
+/*
+Amount of bytes in any slice header, for example of type `[]byte`. Note that the
+size of a slice header is constant and does not reflect the size of the
+underlying data.
+*/
+const SizeofSlice = u.Sizeof([]byte(nil))
+
+/*
+Amount of bytes in our own `SliceHeader`. In the official Go implementation
+(version 1.20 at the time of writing), this is equal to `SizeofSlice`.
+In case of mismatch, using `SliceHeader` for anything is invalid.
+*/
+const SizeofSliceHeader = u.Sizeof(SliceHeader{})
+
+/*
 Memory representation of an arbitrary Go slice. Same as `reflect.SliceHeader`
 but with `unsafe.Pointer` instead of `uintptr`.
 */
@@ -10,6 +36,14 @@ type SliceHeader struct {
 	Dat u.Pointer
 	Len int
 	Cap int
+}
+
+/*
+Takes a regular slice header and converts it to its underlying representation
+`SliceHeader`.
+*/
+func SliceHeaderOf[A any](src []A) SliceHeader {
+	return CastUnsafe[SliceHeader](src)
 }
 
 /*

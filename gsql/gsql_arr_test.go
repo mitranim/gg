@@ -63,7 +63,7 @@ func BenchmarkArr_Append(b *testing.B) {
 	b.ResetTimer()
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(arr.Append(buf))
+		gg.Nop1(arr.AppendTo(buf))
 	}
 }
 

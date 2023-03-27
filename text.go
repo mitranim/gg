@@ -13,10 +13,16 @@ import (
 Same as `len`. Limited to `Text` types but can be passed to higher-order
 functions.
 */
-func StrLen[A Text](val A) int { return len(val) }
+func TextLen[A Text](val A) int { return len(val) }
+
+// True if len <= 0. Inverse of `IsTextNotEmpty`.
+func IsTextEmpty[A Text](val A) bool { return len(val) <= 0 }
+
+// True if len > 0. Inverse of `IsTextEmpty`.
+func IsTextNotEmpty[A Text](val A) bool { return len(val) > 0 }
 
 // Returns the first byte or 0.
-func StrHead[A Text](val A) byte {
+func TextHeadByte[A Text](val A) byte {
 	if len(val) > 0 {
 		return val[0]
 	}
@@ -24,33 +30,48 @@ func StrHead[A Text](val A) byte {
 }
 
 // Returns the last byte or 0.
-func StrLast[A Text](val A) byte {
+func TextLastByte[A Text](val A) byte {
 	if len(val) > 0 {
 		return val[len(val)-1]
 	}
 	return 0
 }
 
-// True if len > 0.
-func IsStrNonEmpty[A Text](val A) bool { return len(val) > 0 }
-
-// True if len <= 0. Inverse of `IsStrNonEmpty`.
-func IsStrEmpty[A Text](val A) bool { return len(val) <= 0 }
-
-// Compares two text chunks via `==`.
-func StrEq[A Text](one, two A) bool { return ToString(one) == ToString(two) }
+/*
+Like `utf8.DecodeRuneInString`, but faster at the time of writing, and without
+`utf8.RuneError`. On decoding error, the result is `(0, 0)`.
+*/
+func TextHeadChar[A Text](src A) (char rune, size int) {
+	for ind, val := range ToText[string](src) {
+		if ind == 0 {
+			char = val
+			size = len(src)
+		} else {
+			size = ind
+			break
+		}
+	}
+	return
+}
 
 /*
-Returns the pointer to the first byte of the underlying data array for the given
-string or byte slice. Use caution. Mutating the underlying data may trigger
-segfaults or cause undefined behavior.
+True if the inputs would be `==` if compared as strings. When used on typedefs
+of `[]byte`, this is the same as `bytes.Equal`.
+*/
+func TextEq[A Text](one, two A) bool { return ToString(one) == ToString(two) }
+
+/*
+Similar to `unsafe.StringData`, but takes arbitrary text as input. Returns the
+pointer to the first byte of the underlying data array for the given string or
+byte slice. Use caution. Mutating the underlying data may trigger segfaults or
+cause undefined behavior.
 */
 func TextDat[A Text](val A) *byte { return CastUnsafe[*byte](val) }
 
 /*
-TODO: after updating to Go 1.20, consider using `unsafe.StringData` for strings
-and `unsafe.SliceData` for byte slices. Something like the following
-pseudocode:
+TODO: in `TextDat`, consider using `unsafe.StringData` for strings and
+`unsafe.SliceData` for byte slices. Something like the following pseudocode.
+May run slower.
 
 func TextDat[A Text](val A) *byte {
 	if string {
@@ -67,7 +88,24 @@ func TextDat[A Text](val A) *byte {
 Allocation-free conversion between two types conforming to the `Text`
 constraint, typically variants of `string` and/or `[]byte`.
 */
-func ToText[Out, Src Text](val Src) Out { return CastUnsafe[Out](val) }
+func ToText[Out, Src Text](val Src) Out {
+	tar := CastUnsafe[Out](val)
+
+	/**
+	Implementation note. We could also write the condition as shown below, but
+	this would be significantly slower than the unsafe trick:
+
+		Kind[Src]() == r.String && Kind[Out]() == r.Slice
+
+	In addition, sizeof lets us ensure that the target can be cast into
+	`SliceHeader` without affecting other memory.
+	*/
+	if u.Sizeof(Zero[Src]()) == SizeofString && u.Sizeof(Zero[Out]()) == SizeofSliceHeader {
+		CastUnsafe[*SliceHeader](&tar).Cap = len(tar)
+	}
+
+	return tar
+}
 
 /*
 Allocation-free conversion. Reinterprets arbitrary text as a string. If the
@@ -77,9 +115,12 @@ map key, the source memory must not be mutated afterwards.
 func ToString[A Text](val A) string { return CastUnsafe[string](val) }
 
 /*
-TODO: after updating to Go 1.20, consider changing to the following:
+Implementation note. `ToString` could be written as shown below. This passes our
+test, but runs marginally slower than our current implementation, and does not
+improve correctness, because `TextDat` also makes assumptions about the
+underlying structure of the string header.
 
-func ToString[A Text](val A) string { return u.String(TextDat(val), len(val)) }
+	func ToString[A Text](val A) string { return u.String(TextDat(val), len(val)) }
 */
 
 /*
@@ -215,7 +256,7 @@ func Join[A Text](src []A, sep string) string {
 
 	default:
 		var buf Buf
-		buf.GrowCap(Sum(src, StrLen[A]) + (len(sep) * (len(src) - 1)))
+		buf.GrowCap(Sum(src, TextLen[A]) + (len(sep) * (len(src) - 1)))
 
 		buf.AppendString(ToString(src[0]))
 		for _, src := range src[1:] {
@@ -264,7 +305,23 @@ func JoinOpt[A Text](src []A, sep string) string {
 	}
 }
 
-// Self-explanatory. Splits the given text into lines.
+/*
+Similar to `strings.SplitN` for N = 1. More efficient: returns a tuple instead
+of allocating a slice. Safer: returns zero values if split doesn't succeed.
+*/
+func Split2[A Text](src A, sep string) (A, A) {
+	ind := strings.Index(ToString(src), sep)
+	if ind >= 0 {
+		return src[:ind], src[ind+len(sep):]
+	}
+	return src, Zero[A]()
+}
+
+/*
+Splits the given text into lines. The resulting strings do not contain any
+newline characters. If the input is empty, the output is nil. The following
+sequences are considered newlines: "\r\n", "\r", "\n".
+*/
 func SplitLines[A Text](src A) []string {
 	if len(src) <= 0 {
 		return nil
@@ -280,26 +337,50 @@ var ReNewline = NewLazy(func() *regexp.Regexp {
 })
 
 /*
-Searches for the given separator and returns the part of the string before the
-separator, removing that prefix from the original string referenced by the
-pointer. The separator is excluded from both chunks. As a special case, if
-the separator is empty, pops the entire given string.
+Similar to `SplitLines`, but splits only on the first newline occurrence,
+returning the first line and the remainder, plus the number of bytes in the
+elided line separator. The following sequences are considered newlines:
+"\r\n", "\r", "\n".
 */
-func StrPop[Src, Sep ~string](ptr *Src, sep Sep) Src {
+func SplitLines2[A Text](src A) (A, A, int) {
+	size := len(src)
+	limit := size - 1
+
+	for ind, char := range ToString(src) {
+		if char == '\r' {
+			if ind < limit && src[ind+1] == '\n' {
+				return src[:ind], src[ind+2:], 2
+			}
+			return src[:ind], src[ind+1:], 1
+		}
+		if char == '\n' {
+			return src[:ind], src[ind+1:], 1
+		}
+	}
+	return src, Zero[A](), 0
+}
+
+/*
+Searches for the given separator and returns the part of the text before the
+separator, removing that prefix from the original text referenced by the
+pointer. The separator is excluded from both chunks. As a special case, if the
+separator is empty, pops the entire source text.
+*/
+func TextPop[Src, Sep Text](ptr *Src, sep Sep) Src {
 	if ptr == nil {
-		return ``
+		return Zero[Src]()
 	}
 
 	src := *ptr
 
 	if len(sep) == 0 {
-		*ptr = ``
+		PtrClear(ptr)
 		return src
 	}
 
-	ind := strings.Index(string(src), string(sep))
+	ind := strings.Index(ToString(src), ToString(sep))
 	if !(ind >= 0 && ind < len(src)) {
-		*ptr = ``
+		PtrClear(ptr)
 		return src
 	}
 
@@ -308,18 +389,21 @@ func StrPop[Src, Sep ~string](ptr *Src, sep Sep) Src {
 }
 
 // True if the string ends with a line feed or carriage return.
-func HasNewlineSuffix[A Text](val A) bool {
-	return StrLast(val) == '\n' || StrLast(val) == '\r'
+func HasNewlineSuffix[A Text](src A) bool {
+	val := TextLastByte(src)
+	return val == '\n' || val == '\r'
 }
 
 /*
-Appends `Newline` if the given string is non-empty and does not end with a
-newline character. Otherwise returns the string unchanged. Also see
+If the given text is non-empty and does not end with a newline character,
+appends `Newline` and returns the result. Otherwise returns the text unchanged.
+If the input type is a typedef of `[]byte` and has enough capacity, it's
+mutated. In other cases, the text is reallocated. Also see
 `Buf.AppendNewlineOpt` and `Strln`.
 */
-func AppendNewlineOpt[A ~string](val A) A {
+func AppendNewlineOpt[A Text](val A) A {
 	if len(val) > 0 && !HasNewlineSuffix(val) {
-		return val + A(Newline)
+		return ToText[A](append([]byte(val), Newline...))
 	}
 	return val
 }
@@ -436,7 +520,7 @@ Similar to `src[start:end]`, but instead of slicing text at byte positions,
 slices text at character positions. Similar to `string([]rune(src)[start:end])`,
 but slightly more performant and more permissive.
 */
-func StrCut[A Text](src A, start, end int) (_ A) {
+func TextCut[A Text](src A, start, end int) (_ A) {
 	if !(end > start) {
 		return
 	}

@@ -262,7 +262,7 @@ func (self *StructDeepPublicFields) Init(src r.Type) {
 
 func (self *StructDeepPublicFields) append(path *[]int, field r.StructField) {
 	defer SnapSlice(path).Done()
-	AppendVals(path, field.Index...)
+	Append(path, field.Index...)
 
 	if IsFieldEmbed(field) {
 		for _, inner := range StructPublicFieldCache.Get(field.Type) {
@@ -273,7 +273,7 @@ func (self *StructDeepPublicFields) append(path *[]int, field r.StructField) {
 	}
 
 	field.Index = Clone(*path)
-	AppendVals(self, field)
+	Append(self, field)
 }
 
 var JsonNameToDbNameCache = TypeCacheOf[JsonNameToDbName]()
@@ -302,7 +302,7 @@ type JsonNameToDbField map[string]r.StructField
 
 func (self *JsonNameToDbField) Init(src r.Type) {
 	for _, field := range StructDeepPublicFieldCache.Get(src) {
-		if IsNonZero(FieldDbName(field)) {
+		if IsNotZero(FieldDbName(field)) {
 			MapSetOpt(MapInit(self), FieldJsonName(field), field)
 		}
 	}
@@ -314,7 +314,7 @@ type DbNameToJsonField map[string]r.StructField
 
 func (self *DbNameToJsonField) Init(src r.Type) {
 	for _, field := range StructDeepPublicFieldCache.Get(src) {
-		if IsNonZero(FieldJsonName(field)) {
+		if IsNotZero(FieldJsonName(field)) {
 			MapSetOpt(MapInit(self), FieldDbName(field), field)
 		}
 	}

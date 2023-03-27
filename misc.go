@@ -54,7 +54,7 @@ func IsZero[A any](val A) bool {
 }
 
 // Inverse of `IsZero`.
-func IsNonZero[A any](val A) bool { return !IsZero(val) }
+func IsNotZero[A any](val A) bool { return !IsZero(val) }
 
 // Returns a zero value of the given type.
 func Zero[A any]() (_ A) { return }
@@ -63,21 +63,22 @@ func Zero[A any]() (_ A) { return }
 func IsNull[A Nullable](val A) bool { return val.IsNull() }
 
 // Inverse of `IsNull`.
-func IsNonNull[A Nullable](val A) bool { return !val.IsNull() }
+func IsNotNull[A Nullable](val A) bool { return !val.IsNull() }
 
 /*
 Zeroes the memory referenced by the given pointer. If the pointer is nil, does
-nothing.
+nothing. Also see the interface `Clearer` and method `.Clear` implemented by
+various types.
 */
-func Clear[A any](val *A) {
+func PtrClear[A any](val *A) {
 	if val != nil {
 		*val = Zero[A]()
 	}
 }
 
-// Calls `Clear` and returns the same pointer.
-func Cleared[A any](val *A) *A {
-	Clear(val)
+// Calls `PtrClear` and returns the same pointer.
+func PtrCleared[A any](val *A) *A {
+	PtrClear(val)
 	return val
 }
 
@@ -255,19 +256,18 @@ func Is[A any](one, two A) bool {
 
 	typ := Type[A]()
 	size := typ.Size()
-	const wordSize = u.Sizeof(uintptr(0))
 
 	switch size {
 	case 0:
 		return true
 
-	case wordSize:
+	case SizeofWord:
 		return *(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))
 
-	case wordSize * 2:
+	case SizeofWord * 2:
 		return (*(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))) &&
-			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + wordSize)) ==
-				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + wordSize)))
+			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + SizeofWord)) ==
+				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + SizeofWord)))
 
 	default:
 		for off := uintptr(0); off < size; off++ {
@@ -300,17 +300,17 @@ func Equal[A any](one, two A) bool {
 
 /*
 True if the inputs are equal via `==`, and neither is a zero value of its type.
-For non-equality, use `NotEqNonZero`.
+For non-equality, use `NotEqNotZero`.
 */
-func EqNonZero[A comparable](one, two A) bool {
+func EqNotZero[A comparable](one, two A) bool {
 	return one == two && one != Zero[A]()
 }
 
 /*
 True if the inputs are non-equal via `!=`, and at least one is not a zero value
-of its type. For equality, use `EqNonZero`.
+of its type. For equality, use `EqNotZero`.
 */
-func NotEqNonZero[A comparable](one, two A) bool {
+func NotEqNotZero[A comparable](one, two A) bool {
 	return one != two && one != Zero[A]()
 }
 
@@ -323,13 +323,13 @@ func SliceIs[A any](one, two []A) bool {
 }
 
 // Returns the first non-zero value from among the inputs.
-func Or[A any](val ...A) A { return Find(val, IsNonZero[A]) }
+func Or[A any](val ...A) A { return Find(val, IsNotZero[A]) }
 
 /*
 Variant of `Or` compatible with `Nullable`. Returns the first non-"null" value
 from among the inputs.
 */
-func NullOr[A Nullable](val ...A) A { return Find(val, IsNonNull[A]) }
+func NullOr[A Nullable](val ...A) A { return Find(val, IsNotNull[A]) }
 
 /*
 Returns true if the given `any` can be usefully converted into a value of the

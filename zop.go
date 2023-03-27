@@ -26,10 +26,10 @@ type Zop[A any] struct {
 func (self Zop[_]) IsNull() bool { return IsZero(self.Val) }
 
 // Inverse of `.IsNull`.
-func (self Zop[_]) IsNonNull() bool { return !IsZero(self.Val) }
+func (self Zop[_]) IsNotNull() bool { return !IsZero(self.Val) }
 
 // Implement `Clearer`. Zeroes the receiver.
-func (self *Zop[_]) Clear() { Clear(&self.Val) }
+func (self *Zop[_]) Clear() { PtrClear(&self.Val) }
 
 // Implement `Getter`, returning the underlying value as-is.
 func (self Zop[A]) Get() A { return self.Val }
@@ -72,7 +72,7 @@ the output is zero. Otherwise the output is the result of calling the function
 with the previous value.
 */
 func ZopMap[A, B any](src Zop[A], fun func(A) B) (out Zop[B]) {
-	if src.IsNonNull() && fun != nil {
+	if src.IsNotNull() && fun != nil {
 		out.Val = fun(src.Val)
 	}
 	return

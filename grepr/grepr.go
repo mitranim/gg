@@ -124,7 +124,7 @@ func Println(src any) { ConfDefault.Println(src) }
 // Corrected version of `strconv.CanBackquote` that allows newlines.
 func CanBackquote[A gg.Text](src A) bool {
 	for _, char := range gg.ToString(src) {
-		if isNonBackquotable(char) {
+		if isNotBackquotable(char) {
 			return false
 		}
 	}

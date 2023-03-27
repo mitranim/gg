@@ -128,7 +128,7 @@ func (self *PtrErrStr) Error() string { return gg.PtrGet((*string)(self)) }
 type StrsParser []string
 
 func (self *StrsParser) Parse(src string) error {
-	gg.AppendVals(self, src)
+	gg.Append(self, src)
 	return nil
 }
 

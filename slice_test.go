@@ -12,7 +12,7 @@ import (
 func ExampleSlice() {
 	values := []string{`one`, `two`, `three`}
 	indexes := []int{0, 2}
-	result := gg.Map(indexes, gg.ToSlice(values).Get)
+	result := gg.Map(indexes, gg.SliceOf(values...).Get)
 
 	fmt.Println(gg.GoString(result))
 
@@ -454,7 +454,7 @@ func TestTimes(t *testing.T) {
 func TestTimesAppend(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.NoPanic(func() {
+	gtest.NotPanic(func() {
 		gg.TimesAppend((*[]string)(nil), -1, nil)
 		gg.TimesAppend((*[]string)(nil), 0, nil)
 		gg.TimesAppend((*[]string)(nil), 1, nil)
@@ -594,7 +594,7 @@ func TestFilterAppend(t *testing.T) {
 
 	type Type = []int
 
-	gtest.NoPanic(func() {
+	gtest.NotPanic(func() {
 		gg.FilterAppend((*Type)(nil), nil, nil)
 		gg.FilterAppend((*Type)(nil), nil, True1[int])
 		gg.FilterAppend((*Type)(nil), Type{}, True1[int])
@@ -655,7 +655,7 @@ func TestRejectAppend(t *testing.T) {
 
 	type Type = []int
 
-	gtest.NoPanic(func() {
+	gtest.NotPanic(func() {
 		gg.RejectAppend((*Type)(nil), nil, nil)
 		gg.RejectAppend((*Type)(nil), nil, False1[int])
 		gg.RejectAppend((*Type)(nil), Type{}, False1[int])
@@ -725,27 +725,27 @@ func TestZeroIndex(t *testing.T) {
 	gtest.Equal(gg.ZeroIndex(Type{10, 0, 20, 0, 30}), []int{1, 3})
 }
 
-func TestNonZeroIndex(t *testing.T) {
+func TestNotZeroIndex(t *testing.T) {
 	defer gtest.Catch(t)
 
 	type Type = []int
 
-	gtest.Zero(gg.NonZeroIndex(Type(nil)))
-	gtest.Zero(gg.NonZeroIndex(Type{}))
-	gtest.Zero(gg.NonZeroIndex(Type{0}))
-	gtest.Zero(gg.NonZeroIndex(Type{0, 0}))
-	gtest.Zero(gg.NonZeroIndex(Type{0, 0, 0}))
+	gtest.Zero(gg.NotZeroIndex(Type(nil)))
+	gtest.Zero(gg.NotZeroIndex(Type{}))
+	gtest.Zero(gg.NotZeroIndex(Type{0}))
+	gtest.Zero(gg.NotZeroIndex(Type{0, 0}))
+	gtest.Zero(gg.NotZeroIndex(Type{0, 0, 0}))
 
-	gtest.Equal(gg.NonZeroIndex(Type{10}), []int{0})
-	gtest.Equal(gg.NonZeroIndex(Type{10, 20}), []int{0, 1})
-	gtest.Equal(gg.NonZeroIndex(Type{10, 20, 30}), []int{0, 1, 2})
+	gtest.Equal(gg.NotZeroIndex(Type{10}), []int{0})
+	gtest.Equal(gg.NotZeroIndex(Type{10, 20}), []int{0, 1})
+	gtest.Equal(gg.NotZeroIndex(Type{10, 20, 30}), []int{0, 1, 2})
 
-	gtest.Equal(gg.NonZeroIndex(Type{10, 0}), []int{0})
-	gtest.Equal(gg.NonZeroIndex(Type{10, 0, 20}), []int{0, 2})
-	gtest.Equal(gg.NonZeroIndex(Type{10, 0, 20, 0}), []int{0, 2})
-	gtest.Equal(gg.NonZeroIndex(Type{10, 0, 20, 0, 30}), []int{0, 2, 4})
+	gtest.Equal(gg.NotZeroIndex(Type{10, 0}), []int{0})
+	gtest.Equal(gg.NotZeroIndex(Type{10, 0, 20}), []int{0, 2})
+	gtest.Equal(gg.NotZeroIndex(Type{10, 0, 20, 0}), []int{0, 2})
+	gtest.Equal(gg.NotZeroIndex(Type{10, 0, 20, 0, 30}), []int{0, 2, 4})
 
-	gtest.Equal(gg.NonZeroIndex(Type{0, 10, 0, 20, 0}), []int{1, 3})
+	gtest.Equal(gg.NotZeroIndex(Type{0, 10, 0, 20, 0}), []int{1, 3})
 }
 
 func TestCompact(t *testing.T) {
@@ -1262,14 +1262,14 @@ func TestPrimSorted(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.Equal(
-		gg.SortedPrim(gg.SliceOf(20, 30, 10, 40)),
-		gg.SliceOf(10, 20, 30, 40),
+		gg.SortedPrim(gg.ToSlice(20, 30, 10, 40)),
+		gg.ToSlice(10, 20, 30, 40),
 	)
 }
 
 func BenchmarkPrimSorted(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.SortedPrim(gg.SliceOf(20, 30, 10, 40)))
+		gg.Nop1(gg.SortedPrim(gg.ToSlice(20, 30, 10, 40)))
 	}
 }
 

@@ -48,7 +48,7 @@ func (self Trace) String() string { return AppenderString(self) }
 Appends a multi-line text representation of the trace, with no leading
 indentation. See `.AppendIndent`.
 */
-func (self Trace) Append(buf []byte) []byte { return self.AppendIndent(buf, 0) }
+func (self Trace) AppendTo(buf []byte) []byte { return self.AppendIndent(buf, 0) }
 
 /*
 Returns a multi-line text representation of the trace with the given leading
@@ -105,8 +105,8 @@ Returns a table-style representation of the trace with no leading indentation.
 */
 func (self Trace) Table() string { return self.TableIndent(0) }
 
-// True if there are any non-empty frames.
-func (self Trace) HasLen() bool { return Some(self, IsNonZero[Caller]) }
+// True if there are any non-zero frames.
+func (self Trace) IsNotEmpty() bool { return Some(self, IsNotZero[Caller]) }
 
 // Converts to `Frames`, which is used for formatting.
 func (self Trace) Frames() Frames { return Map(self, Caller.Frame) }
@@ -149,8 +149,8 @@ file path, and row.
 */
 func (self Caller) String() string { return AppenderString(self) }
 
-func (self Caller) Append(buf []byte) []byte {
-	return self.Frame().Append(buf)
+func (self Caller) AppendTo(buf []byte) []byte {
+	return self.Frame().AppendTo(buf)
 }
 
 func (self Caller) AppendIndent(buf []byte, lvl int) []byte {
@@ -216,7 +216,7 @@ func (self Frame) String() string { return AppenderString(self) }
 Appends a single-line representation of the frame that includes function name,
 file path, and row.
 */
-func (self Frame) Append(inout []byte) []byte {
+func (self Frame) AppendTo(inout []byte) []byte {
 	buf := Buf(inout)
 	if self.Skip() {
 		return buf

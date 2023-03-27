@@ -39,11 +39,11 @@ type OrdSet[Val comparable] struct {
 // Same as `len(self.Slice)`.
 func (self OrdSet[_]) Len() int { return len(self.Slice) }
 
-// True if `.Len` > 0.
-func (self OrdSet[_]) HasLen() bool { return self.Len() > 0 }
+// True if `.Len` <= 0. Inverse of `.IsNotEmpty`.
+func (self OrdSet[_]) IsEmpty() bool { return self.Len() <= 0 }
 
-// Inverse of `.HasLen`.
-func (self OrdSet[_]) IsEmpty() bool { return !self.HasLen() }
+// True if `.Len` > 0. Inverse of `.IsEmpty`.
+func (self OrdSet[_]) IsNotEmpty() bool { return self.Len() > 0 }
 
 // True if the index has the given value. Ignores the inner slice.
 func (self OrdSet[Val]) Has(val Val) bool { return self.Index.Has(val) }
@@ -55,7 +55,7 @@ index, skipping duplicates.
 func (self *OrdSet[Val]) Add(src ...Val) *OrdSet[Val] {
 	for _, val := range src {
 		if !self.Has(val) {
-			AppendVal(&self.Slice, val)
+			Append(&self.Slice, val)
 			self.Index.Init().Add(val)
 		}
 	}

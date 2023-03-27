@@ -21,7 +21,7 @@ func TestNewLazy(t *testing.T) {
 		return count
 	})
 
-	gtest.NoPanic(func() {
+	gtest.NotPanic(func() {
 		gtest.Eq(once.Get(), 1)
 		gtest.Eq(once.Get(), 1)
 		gtest.Eq(once.Get(), 1)

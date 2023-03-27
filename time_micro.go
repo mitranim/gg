@@ -110,8 +110,8 @@ func (self TimeMicro) String() string {
 	return strconv.FormatInt(int64(self), 10)
 }
 
-// Implement `Appender`, using the same representation as `.String`.
-func (self TimeMicro) Append(buf []byte) []byte {
+// Implement `AppenderTo`, using the same representation as `.String`.
+func (self TimeMicro) AppendTo(buf []byte) []byte {
 	if self.IsNull() {
 		return buf
 	}

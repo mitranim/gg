@@ -31,31 +31,110 @@ func TestTextDat(t *testing.T) {
 func TestToText(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.Eq(gg.ToText[string](``), ``)
-	gtest.Eq(gg.ToText[string](`str`), `str`)
-	gtest.Equal(gg.ToText[[]byte](``), []byte(nil))
-	gtest.Equal(gg.ToText[[]byte](`str`), []byte(`str`))
-	gtest.Equal(gg.ToText[string]([]byte(`str`)), `str`)
+	testToString(gg.ToText[string, []byte])
+	testToBytes(gg.ToText[[]byte, string])
+
+	t.Run(`between_byte_slices`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		type Src []byte
+
+		src := Src(`one_two`)[:len(`one`)]
+		gtest.TextEq(src, Src(`one`))
+		gtest.Len(src, 3)
+		gtest.Cap(src, 7)
+
+		type Tar []byte
+
+		gtest.Is(Src(gg.ToText[Tar](src)), src)
+		gtest.Is(gg.ToText[Src](src), src)
+		gtest.Is(gg.ToText[[]byte](src), []byte(src))
+		gtest.Is([]byte(gg.ToText[Tar](src)), []byte(src))
+	})
+}
+
+func testToString(fun func([]byte) string) {
+	test := func(src []byte) {
+		tar := fun(src)
+		gtest.Eq(string(tar), string(src))
+		gtest.Eq(gg.TextDat(src), gg.TextDat(tar))
+	}
+
+	test(nil)
+	test([]byte{})
+	test([]byte(`one`))
+	test([]byte(`two`))
+	test([]byte(`three`))
+}
+
+func testToBytes(fun func(string) []byte) {
+	test := func(src string) {
+		tar := fun(src)
+		gtest.Eq(string(tar), string(src))
+		gtest.Eq(gg.TextDat(src), gg.TextDat(tar))
+		gtest.Len(tar, len(src))
+		gtest.Cap(tar, len(src))
+	}
+
+	test(``)
+	test(`one`)
+	test(`two`)
+	test(`three`)
+}
+
+func BenchmarkToText_string_to_string(b *testing.B) {
+	defer gtest.Catch(b)
+
+	type Src string
+	type Out string
+	src := Src(`742af97969e845408f0261c213a4c01f`)
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.ToText[Out](src)
+	}
+}
+
+func BenchmarkToText_string_to_bytes(b *testing.B) {
+	defer gtest.Catch(b)
+
+	type Src string
+	type Out []byte
+	src := Src(`742af97969e845408f0261c213a4c01f`)
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.ToText[Out](src)
+	}
+}
+
+func BenchmarkToText_bytes_to_string(b *testing.B) {
+	defer gtest.Catch(b)
+
+	type Src []byte
+	type Out string
+	src := Src(`742af97969e845408f0261c213a4c01f`)
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.ToText[Out](src)
+	}
+}
+
+func BenchmarkToText_bytes_to_bytes(b *testing.B) {
+	defer gtest.Catch(b)
+
+	type Src []byte
+	type Out []byte
+	src := Src(`742af97969e845408f0261c213a4c01f`)
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.ToText[Out](src)
+	}
 }
 
 // TODO dedup with `TestBuf_String`.
 func TestToString(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.Eq(gg.ToString([]byte(nil)), ``)
-
-	test := func(str string) {
-		src := []byte(str)
-		tar := gg.ToString(src)
-
-		gtest.Eq(tar, str)
-		gtest.Eq(gg.TextDat(src), gg.TextDat(tar))
-	}
-
-	test(``)
-	test(`a`)
-	test(`ab`)
-	test(`abc`)
+	testToString(gg.ToString[[]byte])
 
 	t.Run(`mutation`, func(t *testing.T) {
 		defer gtest.Catch(t)
@@ -72,28 +151,24 @@ func TestToString(t *testing.T) {
 func TestToBytes(t *testing.T) {
 	defer gtest.Catch(t)
 
-	src := `abc`
-	tar := gg.ToBytes(src)
-
-	gtest.Eq(string(tar), `abc`)
-	gtest.Eq(gg.TextDat(src), gg.TextDat(tar))
+	testToBytes(gg.ToBytes[string])
 }
 
-func TestStrPop(t *testing.T) {
+func TestTextPop(t *testing.T) {
 	defer gtest.Catch(t)
 
 	rem := `{one,two,,three}`
 
-	gtest.Eq(gg.StrPop(&rem, `,`), `{one`)
+	gtest.Eq(gg.TextPop(&rem, `,`), `{one`)
 	gtest.Eq(rem, `two,,three}`)
 
-	gtest.Eq(gg.StrPop(&rem, `,`), `two`)
+	gtest.Eq(gg.TextPop(&rem, `,`), `two`)
 	gtest.Eq(rem, `,three}`)
 
-	gtest.Eq(gg.StrPop(&rem, `,`), ``)
+	gtest.Eq(gg.TextPop(&rem, `,`), ``)
 	gtest.Eq(rem, `three}`)
 
-	gtest.Eq(gg.StrPop(&rem, `,`), `three}`)
+	gtest.Eq(gg.TextPop(&rem, `,`), `three}`)
 	gtest.Eq(rem, ``)
 }
 
@@ -328,17 +403,37 @@ func TestSplitLines(t *testing.T) {
 	gtest.Equal(Split("\none\ntwo\n"), []string{``, `one`, `two`, ``})
 }
 
-func TestStrCut_ours(t *testing.T) {
+func TestSplitLines2(t *testing.T) {
 	defer gtest.Catch(t)
-	testStrCut(gg.StrCut[string])
+
+	test := func(src, oneExp, twoExp string, sizeExp int) {
+		one, two, size := gg.SplitLines2(src)
+		gtest.Eq([2]string{one, two}, [2]string{oneExp, twoExp})
+		gtest.Eq(size, sizeExp)
+	}
+
+	test(``, ``, ``, 0)
+	test("one\n", `one`, ``, 1)
+	test("one\ntwo", `one`, `two`, 1)
+	test("one\r\ntwo", `one`, `two`, 2)
+	test("one\rtwo", `one`, `two`, 1)
+	test("\ntwo", ``, `two`, 1)
+	test("\r\ntwo", ``, `two`, 2)
+	test("\rtwo", ``, `two`, 1)
+	test("one\ntwo\nthree", `one`, "two\nthree", 1)
 }
 
-func TestStrCut_alternate(t *testing.T) {
+func TestTextCut_ours(t *testing.T) {
 	defer gtest.Catch(t)
-	testStrCut(StrCutRuneSlice[string])
+	testTextCut(gg.TextCut[string])
 }
 
-func testStrCut(fun func(string, int, int) string) {
+func TestTextCut_alternate(t *testing.T) {
+	defer gtest.Catch(t)
+	testTextCut(TextCutRuneSlice[string])
+}
+
+func testTextCut(fun func(string, int, int) string) {
 	const src = `🐒🐴🦖🦔🐲🐈`
 
 	gtest.Zero(fun(src, 0, 0))
@@ -363,7 +458,7 @@ func testStrCut(fun func(string, int, int) string) {
 }
 
 // Alternate implementation for comparison with ours.
-func StrCutRuneSlice[A ~string](src A, start, end int) A {
+func TextCutRuneSlice[A ~string](src A, start, end int) A {
 	if !(end > start) {
 		return ``
 	}
@@ -385,27 +480,27 @@ func StrCutRuneSlice[A ~string](src A, start, end int) A {
 	return A(runes[start:end])
 }
 
-func BenchmarkStrCut_ours(b *testing.B) {
+func BenchmarkTextCut_ours(b *testing.B) {
 	const src = `🐒🐴🦖🦔🐲🐈`
 
 	for ind := 0; ind < b.N; ind++ {
 		for start := range gg.Iter(3) {
 			start--
 			for end := range gg.Iter(6) {
-				gg.Nop1(gg.StrCut(src, start, end))
+				gg.Nop1(gg.TextCut(src, start, end))
 			}
 		}
 	}
 }
 
-func BenchmarkStrCut_alternate(b *testing.B) {
+func BenchmarkTextCut_alternate(b *testing.B) {
 	const src = `🐒🐴🦖🦔🐲🐈`
 
 	for ind := 0; ind < b.N; ind++ {
 		for start := range gg.Iter(3) {
 			start--
 			for end := range gg.Iter(6) {
-				gg.Nop1(StrCutRuneSlice(src, start, end))
+				gg.Nop1(TextCutRuneSlice(src, start, end))
 			}
 		}
 	}
@@ -485,4 +580,52 @@ func BenchmarkEllipsis_unchanged(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Ellipsis(`🐒🐴🦖🦔🐲🐈`, 6)
 	}
+}
+
+func TestTextHeadChar(t *testing.T) {
+	defer gtest.Catch(t)
+
+	test := func(src string, valExp rune, sizeExp int) {
+		val, size := gg.TextHeadChar(src)
+		gtest.Eq(val, valExp, `matching char`)
+		gtest.Eq(size, sizeExp, `matching size`)
+	}
+
+	test(``, 0, 0)
+	test(`one`, 'o', 1)
+	test(`🐒🐴🦖🦔🐲🐈`, '🐒', 4)
+}
+
+func TestAppendNewlineOpt(t *testing.T) {
+	defer gtest.Catch(t)
+
+	testAppendNewlineOptSame(``)
+	testAppendNewlineOptSame([]byte(nil))
+	testAppendNewlineOptSame([]byte{})
+	testAppendNewlineOptSame("\n")
+	testAppendNewlineOptSame("one\n")
+	testAppendNewlineOptSame("one\r")
+	testAppendNewlineOptSame("one\r\n")
+	testAppendNewlineOptSame([]byte("\n"))
+	testAppendNewlineOptSame([]byte("one\n"))
+	testAppendNewlineOptSame([]byte("one\r"))
+	testAppendNewlineOptSame([]byte("one\r\n"))
+
+	gtest.TextEq(gg.AppendNewlineOpt(`one`), "one\n")
+	gtest.TextEq(gg.AppendNewlineOpt([]byte(`one`)), []byte("one\n"))
+
+	{
+		src := []byte("one two")
+		tar := src[:len(`one`)]
+		out := gg.AppendNewlineOpt(tar)
+
+		gtest.TextEq(src, []byte("one\ntwo"))
+		gtest.TextEq(out, []byte("one\n"))
+		gtest.Eq(gg.SliceDat(src), gg.SliceDat(tar))
+		gtest.Eq(gg.SliceDat(src), gg.SliceDat(out))
+	}
+}
+
+func testAppendNewlineOptSame[A gg.Text](src A) {
+	gtest.Is(gg.AppendNewlineOpt(src), src)
 }

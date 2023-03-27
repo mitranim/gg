@@ -36,10 +36,10 @@ func (self Arr[A]) IsNull() bool { return self == nil }
 func (self Arr[A]) String() string { return gg.AppenderString(self) }
 
 /*
-Implement `Appender`, appending the array's SQL encoding to the buffer.
+Implement `AppenderTo`, appending the array's SQL encoding to the buffer.
 If the slice is nil, appends nothing.
 */
-func (self Arr[A]) Append(buf []byte) []byte {
+func (self Arr[A]) AppendTo(buf []byte) []byte {
 	if self != nil {
 		buf = append(buf, '{')
 		buf = self.AppendInner(buf)
@@ -48,7 +48,7 @@ func (self Arr[A]) Append(buf []byte) []byte {
 	return buf
 }
 
-// Same as `.Append` but without the enclosing `{}`.
+// Same as `.AppenderTo` but without the enclosing `{}`.
 func (self Arr[A]) AppendInner(buf []byte) []byte {
 	var found bool
 	for _, val := range self {
@@ -56,7 +56,7 @@ func (self Arr[A]) AppendInner(buf []byte) []byte {
 			buf = append(buf, ',')
 		}
 		found = true
-		buf = gg.Append(buf, val)
+		buf = gg.AppendTo(buf, val)
 	}
 	return buf
 }
@@ -79,19 +79,19 @@ func (self *Arr[A]) Parse(src string) (err error) {
 		return nil
 	}
 
-	if !(gg.StrHead(src) == '{' && gg.StrLast(src) == '}') {
+	if !(gg.TextHeadByte(src) == '{' && gg.TextLastByte(src) == '}') {
 		panic(gg.ErrInvalidInput)
 	}
 	src = src[1 : len(src)-1]
 
 	for len(src) > 0 {
-		gg.AppendVals(self, gg.ParseTo[A](popSqlArrSegment(&src)))
+		gg.Append(self, gg.ParseTo[A](popSqlArrSegment(&src)))
 	}
 	return nil
 }
 
 // Truncates the length, keeping the capacity.
-func (self *Arr[A]) Clear() { gg.SliceTrunc(self) }
+func (self *Arr[A]) Clear() { gg.Trunc(self) }
 
 // Implement `driver.Valuer`.
 func (self Arr[A]) Value() (driver.Value, error) {

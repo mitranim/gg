@@ -42,9 +42,9 @@ func TestAnyErr(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.Zero(gg.AnyErr(nil))
-	gtest.EqAny(gg.AnyErr(`str`), error(gg.ErrStr(`str`)))
-	gtest.EqAny(gg.AnyErr(gg.ErrStr(`str`)), error(gg.ErrStr(`str`)))
-	gtest.EqAny(gg.AnyErr(gg.ErrAny{`str`}), error(gg.ErrAny{`str`}))
+	gtest.AnyEq(gg.AnyErr(`str`), error(gg.ErrStr(`str`)))
+	gtest.AnyEq(gg.AnyErr(gg.ErrStr(`str`)), error(gg.ErrStr(`str`)))
+	gtest.AnyEq(gg.AnyErr(gg.ErrAny{`str`}), error(gg.ErrAny{`str`}))
 }
 
 func TestErrs_Error(t *testing.T) {
@@ -189,7 +189,7 @@ func TestWrapf(t *testing.T) {
 
 		gtest.Equal(err.Msg, `unable to do stuff`)
 		gtest.Equal(err.Cause, error(gg.ErrAny{`some cause`}))
-		gtest.True(gg.PtrGet(err.Trace).HasLen())
+		gtest.True(gg.PtrGet(err.Trace).IsNotEmpty())
 	})
 
 	t.Run(`cause_with_stack`, func(t *testing.T) {
@@ -198,11 +198,11 @@ func TestWrapf(t *testing.T) {
 		err := gg.Wrapf(gg.Errf(`some cause`), `unable to %v`, `do stuff`).(gg.Err)
 
 		gtest.Equal(err.Msg, `unable to do stuff`)
-		gtest.False(gg.PtrGet(err.Trace).HasLen())
+		gtest.False(gg.PtrGet(err.Trace).IsNotEmpty())
 
 		cause := err.Cause.(gg.Err)
 		gtest.Equal(cause.Msg, `some cause`)
-		gtest.True(gg.PtrGet(cause.Trace).HasLen())
+		gtest.True(gg.PtrGet(cause.Trace).IsNotEmpty())
 	})
 }
 

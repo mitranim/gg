@@ -3,17 +3,36 @@ package gg
 import "sort"
 
 /*
-Shortcut for making a slice out of the given values.
-Workaround for the lack of type inference in type literals.
+Syntactic shortcut for creating a slice out of the given values. Simply returns
+the slice of arguments as-is. Sometimes allows shorter code. Note that when
+calling this function with an existing slice, you get the EXACT same slice
+back, with no allocation. Also see `SliceOf` which returns `Slice[A]` rather
+than `[]A`.
 */
-func SliceOf[A any](val ...A) []A { return val }
+func ToSlice[A any](val ...A) []A { return val }
 
 /*
-Shortcut for converting an arbitrary slice to `Slice`. Workaround for the
-limitations of type inference in Go generics.
+Syntactic shortcut for making `Slice[A]` out of the given values. Can also be
+used to perform a free type conversion from an existing slice, with no
+allocation. Also see `ToSlice` which returns `[]A` rather than `Slice[A]`.
 */
-func ToSlice[Src ~[]Elem, Elem any](val Src) Slice[Elem] {
-	return Slice[Elem](val)
+func SliceOf[A any](val ...A) Slice[A] { return Slice[A](val) }
+
+/*
+Shortcut for converting an arbitrary number of slices to `Slice[Elem]`. When
+called with exactly one argument, this performs a free type conversion without
+an allocation. When called with 2 or more arguments, this concatenates the
+inputs, allocating a new slice.
+*/
+func SliceFrom[Src ~[]Elem, Elem any](src ...Src) Slice[Elem] {
+	switch len(src) {
+	case 0:
+		return nil
+	case 1:
+		return Slice[Elem](src[0])
+	default:
+		return Slice[Elem](Concat(src...))
+	}
 }
 
 /*
@@ -23,7 +42,7 @@ methods that can be passed to higher-order functions. Example:
 
 	values := []string{`one`, `two`, `three`}
 	indexes := []int{0, 2}
-	result := Map(indexes, ToSlice(values).Get)
+	result := Map(indexes, SliceOf(values...).Get)
 	fmt.Println(grepr.String(result))
 	// []string{`one`, `three`}
 */
@@ -37,17 +56,17 @@ func SliceDat[Slice ~[]Elem, Elem any](src Slice) *Elem {
 // Same as global `SliceDat`.
 func (self Slice[A]) Dat() *A { return SliceDat(self) }
 
-// Inverse of `HasLen`. The slice may or may not be nil.
+// True if len <= 0. Inverse of `.IsNotEmpty`.
 func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) <= 0 }
 
 // Same as global `IsEmpty`.
 func (self Slice[_]) IsEmpty() bool { return IsEmpty(self) }
 
-// True if slice length is > 0.
-func HasLen[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) > 0 }
+// True if len > 0. Inverse of `.IsEmpty`.
+func IsNotEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) > 0 }
 
-// Same as global `HasLen`.
-func (self Slice[_]) HasLen() bool { return HasLen(self) }
+// Same as global `IsNotEmpty`.
+func (self Slice[_]) IsNotEmpty() bool { return IsNotEmpty(self) }
 
 // Same as `len(val)` but can be passed to higher-order functions.
 func Len[Slice ~[]Elem, Elem any](val Slice) int { return len(val) }
@@ -176,10 +195,10 @@ func SliceZero[A any](val []A) {
 func (self Slice[_]) Zero() { SliceZero(self) }
 
 /*
-Collapses the slice's length, preserving the capacity.
-Does not modify any elements.
+Collapses the slice's length, preserving the capacity. Does not modify any
+elements. If the pointer is nil, does nothing.
 */
-func SliceTrunc[Slice ~[]Elem, Elem any](ptr *Slice) {
+func Trunc[Slice ~[]Elem, Elem any](ptr *Slice) {
 	if ptr == nil {
 		return
 	}
@@ -189,8 +208,8 @@ func SliceTrunc[Slice ~[]Elem, Elem any](ptr *Slice) {
 	}
 }
 
-// Same as global `SliceTrunc`.
-func (self *Slice[_]) Trunc() { SliceTrunc(self) }
+// Same as global `Trunc`.
+func (self *Slice[_]) Trunc() { Trunc(self) }
 
 /*
 If the index is within bounds, returns the value at that index and true.
@@ -278,34 +297,21 @@ func (self Slice[A]) CloneAppend(val ...A) Slice[A] {
 }
 
 /*
-Appends the given element to the given slice. Similar to built-in `append` but
-syntactically shorter. Also see variadic `AppendVals`.
-*/
-func AppendVal[Slice ~[]Elem, Elem any](ptr *Slice, val Elem) {
-	if ptr != nil {
-		*ptr = append(*ptr, val)
-	}
-}
-
-// Same as global `AppendVal`.
-func (self *Slice[A]) AppendVal(val A) { AppendVal(self, val) }
-
-/*
 Appends the given elements to the given slice. Similar to built-in `append` but
-syntactically shorter. Also see `AppendVal`.
+syntactically shorter.
 */
-func AppendVals[Slice ~[]Elem, Elem any](ptr *Slice, val ...Elem) {
+func Append[Slice ~[]Elem, Elem any](ptr *Slice, val ...Elem) {
 	if ptr != nil {
 		*ptr = append(*ptr, val...)
 	}
 }
 
-// Same as global `AppendVals`.
-func (self *Slice[A]) AppendVals(val ...A) { AppendVals(self, val...) }
+// Same as global `Append`.
+func (self *Slice[A]) Append(val ...A) { Append(self, val...) }
 
 /*
 If the target pointer is nil, does nothing and returns -1. Otherwise appends the
-given element to the given slice (like `AppendVal`) and returns the last index
+given element to the given slice (like `Append`) and returns the last index
 of the resulting slice. Also see `AppendPtr`.
 */
 func AppendIndex[Slice ~[]Elem, Elem any](ptr *Slice, val Elem) int {
@@ -1042,16 +1048,16 @@ func (self Slice[A]) ZeroIndex() []int { return ZeroIndex(self) }
 Takes a slice and returns the indexes whose elements are non-zero.
 All indexes are within the bounds of the original slice.
 */
-func NonZeroIndex[Slice ~[]Elem, Elem any](src Slice) []int {
-	return FilterIndex(src, IsNonZero[Elem])
+func NotZeroIndex[Slice ~[]Elem, Elem any](src Slice) []int {
+	return FilterIndex(src, IsNotZero[Elem])
 }
 
-// Same as global `NonZeroIndex`.
-func (self Slice[A]) NonZeroIndex() []int { return NonZeroIndex(self) }
+// Same as global `NotZeroIndex`.
+func (self Slice[A]) NotZeroIndex() []int { return NotZeroIndex(self) }
 
 // Returns a version of the given slice without any zero values.
 func Compact[Slice ~[]Elem, Elem any](src Slice) Slice {
-	return Filter(src, IsNonZero[Elem])
+	return Filter(src, IsNotZero[Elem])
 }
 
 // Same as global `Compact`.
@@ -1132,7 +1138,7 @@ func Procure[Out, Src any](src []Src, fun func(Src) Out) Out {
 	if fun != nil {
 		for _, src := range src {
 			val := fun(src)
-			if IsNonZero(val) {
+			if IsNotZero(val) {
 				return val
 			}
 		}
@@ -1178,8 +1184,8 @@ contain exactly one non-empty slice, it's returned as-is without deduplication.
 To ensure uniqueness in all cases, call `Uniq`.
 */
 func Union[Slice ~[]Elem, Elem comparable](val ...Slice) Slice {
-	if Count(val, HasLen[Slice]) == 1 {
-		return Find(val, HasLen[Slice])
+	if Count(val, IsNotEmpty[Slice]) == 1 {
+		return Find(val, IsNotEmpty[Slice])
 	}
 
 	var tar Slice
@@ -1232,11 +1238,20 @@ func (self Slice[A]) HasEqual(val A) bool { return HasEqual(self, val) }
 /*
 True if the given slice contains the given value. Should be used ONLY for very
 small inputs: no more than a few tens of elements. For larger data, consider
-using indexed data structures such as sets and maps.
+using indexed data structures such as sets and maps. Inverse of `NotHas`.
 */
 func Has[A comparable](src []A, val A) bool {
 	return Some(src, func(elem A) bool { return elem == val })
 }
+
+/*
+True if the given slice does not contain the given value. Should be used ONLY
+for very small inputs: no more than a few tens of elements. For larger data,
+consider using indexed data structures such as sets and maps. Inverse of `Has`.
+The awkward name is chosen for symmetry with `gtest.NotHas` where it fits more
+naturally due to conventions for assertion naming.
+*/
+func NotHas[A comparable](src []A, val A) bool { return !Has(src, val) }
 
 /*
 True if the first slice has all elements from the second slice. In other words,

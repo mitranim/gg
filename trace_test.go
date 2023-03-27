@@ -73,7 +73,7 @@ func BenchmarkTrace_capture_append(b *testing.B) {
 	b.ResetTimer()
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(trace0().Append(buf))
+		gg.Nop1(trace0().AppendTo(buf))
 	}
 }
 

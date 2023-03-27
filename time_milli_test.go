@@ -34,7 +34,7 @@ func testTimeMilli(t *testing.T) {
 	t.Run(`Clear`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.NoPanic((*gg.TimeMilli)(nil).Clear)
+		gtest.NotPanic((*gg.TimeMilli)(nil).Clear)
 
 		tar := gg.TimeMilli(10)
 
@@ -103,14 +103,14 @@ func testTimeMilli(t *testing.T) {
 		testTimeMilliString(gg.TimeMilli.String)
 	})
 
-	t.Run(`Append`, func(t *testing.T) {
+	t.Run(`AppenderTo`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
 		testTimeMilliString(gg.AppenderString[gg.TimeMilli])
 
 		test := func(src string, tar gg.TimeMilli, exp string) {
 			gtest.Eq(
-				gg.ToString(tar.Append(gg.ToBytes(src))),
+				gg.ToString(tar.AppendTo(gg.ToBytes(src))),
 				exp,
 			)
 		}

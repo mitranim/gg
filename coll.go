@@ -59,11 +59,11 @@ type Coll[
 // Same as `len(self.Slice)`.
 func (self Coll[_, _]) Len() int { return len(self.Slice) }
 
-// True if `.Len` > 0.
-func (self Coll[_, _]) HasLen() bool { return self.Len() > 0 }
+// True if `.Len` <= 0. Inverse of `.IsNotEmpty`.
+func (self Coll[_, _]) IsEmpty() bool { return self.Len() <= 0 }
 
-// Inverse of `.HasLen`.
-func (self Coll[_, _]) IsEmpty() bool { return !self.HasLen() }
+// True if `.Len` > 0. Inverse of `.IsEmpty`.
+func (self Coll[_, _]) IsNotEmpty() bool { return self.Len() > 0 }
 
 /*
 True if the index has the given key. Doesn't check if the index is within the

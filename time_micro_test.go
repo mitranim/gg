@@ -34,7 +34,7 @@ func testTimeMicro(t *testing.T) {
 	t.Run(`Clear`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.NoPanic((*gg.TimeMicro)(nil).Clear)
+		gtest.NotPanic((*gg.TimeMicro)(nil).Clear)
 
 		tar := gg.TimeMicro(10)
 
@@ -102,14 +102,14 @@ func testTimeMicro(t *testing.T) {
 		testTimeMicroString(gg.TimeMicro.String)
 	})
 
-	t.Run(`Append`, func(t *testing.T) {
+	t.Run(`AppenderTo`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
 		testTimeMicroString(gg.AppenderString[gg.TimeMicro])
 
 		test := func(src string, tar gg.TimeMicro, exp string) {
 			gtest.Eq(
-				gg.ToString(tar.Append(gg.ToBytes(src))),
+				gg.ToString(tar.AppendTo(gg.ToBytes(src))),
 				exp,
 			)
 		}

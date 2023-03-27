@@ -178,7 +178,7 @@ func fmtSlice(buf *Fmt, src r.Value) {
 }
 
 func fmtArray(buf *Fmt, src r.Value) {
-	prev := setElideType(buf, isNonInterface(src.Type().Elem()))
+	prev := setElideType(buf, isNotInterface(src.Type().Elem()))
 	defer prev.Done()
 
 	if !prev.Val {
@@ -258,7 +258,7 @@ func fmtMap(buf *Fmt, src r.Value) {
 		return
 	}
 
-	prev := setElideType(buf, isNonInterface(src.Type().Elem()))
+	prev := setElideType(buf, isNotInterface(src.Type().Elem()))
 	defer prev.Done()
 
 	if !prev.Val {
@@ -563,7 +563,7 @@ func skipField(buf *Fmt, src r.Value) bool {
 	return buf.SkipZeroFields() && src.IsZero()
 }
 
-func isNonBackquotable(char rune) bool {
+func isNotBackquotable(char rune) bool {
 	const bom = '\ufeff'
 
 	return char == utf8.RuneError ||
@@ -575,6 +575,6 @@ func isNonBackquotable(char rune) bool {
 // TODO take type instead of value.
 func isStructUnit(val r.Value) bool { return val.NumField() == 1 }
 
-func isNonInterface(typ r.Type) bool {
+func isNotInterface(typ r.Type) bool {
 	return gg.TypeKind(typ) != r.Interface
 }

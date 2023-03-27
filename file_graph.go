@@ -137,7 +137,6 @@ func (self GraphDir) validateEntryFile() {
 
 	head := Head(self.Files.Slice)
 	deps := len(head.Deps)
-
 	if deps != 0 {
 		panic(Errf(`expected to begin with a dependency-free entry file, found %q with %v dependencies`, head.Name, deps))
 	}
@@ -185,12 +184,17 @@ func (self GraphFile) validateName() {
 	}
 }
 
-// Provisional. Suboptimal.
 func (self *GraphFile) parse() {
+	/**
+	Suboptimal. This is also the slowest part of the `GraphDir` API. Total
+	execution can take several milliseconds in some real-life projects with
+	hundreds of files. A decently-written custom parser may be able to perform
+	several times better.
+	*/
 	deps := firstSubmatches(reGraphImport.Get(), self.Body)
 
 	invalid := Reject(deps, isBaseName)
-	if HasLen(invalid) {
+	if IsNotEmpty(invalid) {
 		panic(Errf(`invalid imports in %q, every import must be a base name, found %q`, self.Name, invalid))
 	}
 

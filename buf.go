@@ -15,7 +15,7 @@ type Buf []byte
 
 var (
 	_ = fmt.Stringer(Zero[Buf]())
-	_ = Appender(Zero[Buf]())
+	_ = AppenderTo(Zero[Buf]())
 	_ = io.Writer(Zero[*Buf]())
 	_ = io.StringWriter(Zero[*Buf]())
 )
@@ -27,10 +27,10 @@ string.
 func (self Buf) String() string { return ToString(self) }
 
 /*
-Implement `Appender`. Appends its own content to the given buffer.
+Implement `AppenderTo`. Appends its own content to the given buffer.
 If the given buffer has no capacity, returns itself.
 */
-func (self Buf) Append(val []byte) []byte {
+func (self Buf) AppendTo(val []byte) []byte {
 	if !(cap(val) > 0) {
 		return self
 	}
@@ -184,9 +184,9 @@ func (self *Buf) AppendError(val error) {
 		return
 	}
 
-	impl, _ := val.(Appender)
+	impl, _ := val.(AppenderTo)
 	if impl != nil {
-		*self = impl.Append(*self)
+		*self = impl.AppendTo(*self)
 		return
 	}
 
@@ -194,10 +194,10 @@ func (self *Buf) AppendError(val error) {
 }
 
 /*
-Appends the text representation of the input, using the `Append` function.
+Appends the text representation of the input, using the `AppendTo` function.
 Mutates the receiver.
 */
-func (self *Buf) AppendAny(val any) { *self = Append(*self, val) }
+func (self *Buf) AppendAny(val any) { *self = AppendTo(*self, val) }
 
 // Like `(*Buf).AppendAny` but variadic. TODO better name.
 func (self *Buf) AppendAnys(val ...any) {

@@ -143,7 +143,7 @@ should also implement `fmt.Stringer`, and in most cases this should be
 semantically equivalent to appending the output of `.String`. However, this
 interface allows significantly more efficient text encoding.
 */
-type Appender interface{ Append([]byte) []byte }
+type AppenderTo interface{ AppendTo([]byte) []byte }
 
 /*
 Combination of interfaces related to text encoding implemented by some types in
@@ -151,7 +151,7 @@ this package.
 */
 type Encoder interface {
 	fmt.Stringer
-	Appender
+	AppenderTo
 	Nullable
 	driver.Valuer
 }

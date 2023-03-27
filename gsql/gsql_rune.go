@@ -31,7 +31,7 @@ type Rune rune
 func (self Rune) IsNull() bool { return self == 0 }
 
 // Inverse of `.IsNull`.
-func (self Rune) IsNonNull() bool { return !self.IsNull() }
+func (self Rune) IsNotNull() bool { return !self.IsNull() }
 
 // Implement `Clearer`. Zeroes the receiver.
 func (self *Rune) Clear() { *self = 0 }
@@ -47,8 +47,8 @@ func (self Rune) String() string {
 	return string(self)
 }
 
-// Implement `Appender`, appending the same representation as `.String`.
-func (self Rune) Append(buf []byte) []byte {
+// Implement `AppenderTo`, appending the same representation as `.String`.
+func (self Rune) AppendTo(buf []byte) []byte {
 	if self.IsNull() {
 		return buf
 	}

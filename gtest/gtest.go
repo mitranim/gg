@@ -137,8 +137,18 @@ Asserts that the inputs are equal via `==`, or fails the test, printing the
 optional additional messages and the stack trace. Doesn't statically require
 the inputs to be comparable, but may panic if they aren't.
 */
-func EqAny[A any](act, exp A, opt ...any) {
+func AnyEq[A any](act, exp A, opt ...any) {
 	if any(act) != any(exp) {
+		panic(ErrAt(1, msgOpt(opt, MsgEq(act, exp))))
+	}
+}
+
+/*
+Asserts that the inputs are equal via `gg.TextEq`, or fails the test, printing
+the optional additional messages and the stack trace.
+*/
+func TextEq[A gg.Text](act, exp A, opt ...any) {
+	if !gg.TextEq(act, exp) {
 		panic(ErrAt(1, msgOpt(opt, MsgEq(act, exp))))
 	}
 }
@@ -191,6 +201,16 @@ func msgDet(msg, det string) string {
 }
 
 func goStringIndent[A any](val A) string { return grepr.StringIndent(val, 1) }
+
+/*
+Asserts that the inputs are not equal via `gg.TextEq`, or fails the test,
+printing the optional additional messages and the stack trace.
+*/
+func NotTextEq[A gg.Text](act, nom A, opt ...any) {
+	if gg.TextEq(act, nom) {
+		panic(ErrAt(1, msgOpt(opt, MsgNotEq(act))))
+	}
+}
 
 /*
 Asserts that the inputs are deeply equal, or fails the test, printing the
@@ -415,7 +435,7 @@ Asserts that the given function doesn't panic, or fails the test, printing the
 error's trace if possible, the optional additional messages, and the stack
 trace.
 */
-func NoPanic(fun func(), opt ...any) {
+func NotPanic(fun func(), opt ...any) {
 	err := gg.Catch(fun)
 	if err != nil {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
@@ -737,6 +757,19 @@ func Len[A ~[]B, B any](src A, exp int, opt ...any) {
 }
 
 /*
+Asserts that the given slice has exactly the given capacity, or fails the test,
+printing the optional additional messages and the stack trace.
+*/
+func Cap[A ~[]B, B any](src A, exp int, opt ...any) {
+	if cap(src) != exp {
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
+			fmt.Sprintf(`got slice capacity %v, expected %v`, cap(src), exp),
+			msgSingle(src),
+		))))
+	}
+}
+
+/*
 Asserts that the given text has exactly the given length, or fails the test,
 printing the optional additional messages and the stack trace.
 */
@@ -753,8 +786,8 @@ func TextLen[A gg.Text](src A, exp int, opt ...any) {
 Asserts that `.String` of the input matches the expected string, or fails the
 test, printing the optional additional messages and the stack trace.
 */
-func Str[A fmt.Stringer](src A, exp string, opt ...any) {
-	Eq(src.String(), exp, opt...)
+func Str[A any](src A, exp string, opt ...any) {
+	Eq(gg.String(src), exp, opt...)
 }
 
 /*

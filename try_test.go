@@ -12,12 +12,12 @@ func TestCatch(t *testing.T) {
 
 	err := gg.Catch(func() { panic(`string_panic`) }).(gg.Err)
 	gtest.Equal(err.Msg, `string_panic`)
-	gtest.True(err.Trace.HasLen())
+	gtest.True(err.Trace.IsNotEmpty())
 
 	err = gg.Catch(func() { panic(gg.ErrStr(`string_error`)) }).(gg.Err)
 	gtest.Zero(err.Msg)
 	gtest.Equal(err.Cause, error(gg.ErrStr(`string_error`)))
-	gtest.True(err.Trace.HasLen())
+	gtest.True(err.Trace.IsNotEmpty())
 }
 
 func TestDetailf(t *testing.T) {
@@ -30,5 +30,5 @@ func TestDetailf(t *testing.T) {
 
 	gtest.Equal(err.Msg, `unable to do stuff`)
 	gtest.Equal(err.Cause, error(gg.ErrStr(`string_panic`)))
-	gtest.True(err.Trace.HasLen())
+	gtest.True(err.Trace.IsNotEmpty())
 }

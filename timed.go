@@ -27,10 +27,10 @@ type Timed[A any] struct {
 func (self Timed[_]) IsNull() bool { return self.Inst.IsZero() }
 
 // Inverse of `.IsNull`.
-func (self Timed[_]) IsNonNull() bool { return !self.Inst.IsZero() }
+func (self Timed[_]) IsNotNull() bool { return !self.Inst.IsZero() }
 
 // Implement `Clearer`. Zeroes the receiver.
-func (self *Timed[_]) Clear() { Clear(self) }
+func (self *Timed[_]) Clear() { PtrClear(self) }
 
 // Implement `Getter`, returning the underlying value as-is.
 func (self Timed[A]) Get() A { return self.Val }
@@ -86,7 +86,7 @@ func (self Timed[_]) IsLive(dur time.Duration) bool {
 
 func (self *Timed[_]) with(err error) error {
 	if err != nil {
-		Clear(&self.Inst)
+		PtrClear(&self.Inst)
 	} else {
 		self.Inst = time.Now()
 	}

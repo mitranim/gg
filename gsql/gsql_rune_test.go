@@ -15,11 +15,11 @@ func TestRune_IsNull(t *testing.T) {
 	gtest.False(s.Rune(1).IsNull())
 }
 
-func TestRune_IsNonNull(t *testing.T) {
+func TestRune_IsNotNull(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.False(s.Rune(0).IsNonNull())
-	gtest.True(s.Rune(1).IsNonNull())
+	gtest.False(s.Rune(0).IsNotNull())
+	gtest.True(s.Rune(1).IsNotNull())
 }
 
 func TestRune_Clear(t *testing.T) {
@@ -56,11 +56,11 @@ func TestRune_Append(t *testing.T) {
 
 	buf := gg.ToBytes(`init_`)
 
-	gtest.Equal(s.Rune(0).Append(buf), buf)
-	gtest.Equal(s.Rune(0).Append(nil), nil)
+	gtest.Equal(s.Rune(0).AppendTo(buf), buf)
+	gtest.Equal(s.Rune(0).AppendTo(nil), nil)
 
-	gtest.Equal(s.Rune('👍').Append(buf), gg.ToBytes(`init_👍`))
-	gtest.Equal(s.Rune('👍').Append(nil), gg.ToBytes(`👍`))
+	gtest.Equal(s.Rune('👍').AppendTo(buf), gg.ToBytes(`init_👍`))
+	gtest.Equal(s.Rune('👍').AppendTo(nil), gg.ToBytes(`👍`))
 }
 
 func TestRune_Parse(t *testing.T) {

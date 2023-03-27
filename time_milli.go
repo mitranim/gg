@@ -110,8 +110,8 @@ func (self TimeMilli) String() string {
 	return strconv.FormatInt(int64(self), 10)
 }
 
-// Implement `Appender`, using the same representation as `.String`.
-func (self TimeMilli) Append(buf []byte) []byte {
+// Implement `AppenderTo`, using the same representation as `.String`.
+func (self TimeMilli) AppendTo(buf []byte) []byte {
 	if self.IsNull() {
 		return buf
 	}

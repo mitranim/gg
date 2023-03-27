@@ -117,7 +117,7 @@ Parses the given CLI args into the destination. May be called multiple times.
 Must be called after `(*FlagParser).Init`, and before `FlagParser.Default`.
 */
 func (self FlagParser) Args(src []string) {
-	for HasLen(src) {
+	for IsNotEmpty(src) {
 		if !isCliFlag(Head(src)) {
 			self.SetArgs(src)
 			return
@@ -321,7 +321,7 @@ func (self *FlagDef) AddField(src r.StructField) {
 	}
 
 	MapInit(&self.Index)[field.Flag] = len(self.Flags)
-	AppendVals(&self.Flags, field)
+	Append(&self.Flags, field)
 }
 
 // For internal use.
@@ -359,7 +359,7 @@ type FlagDefField struct {
 	DescLen int
 }
 
-func (self FlagDefField) IsValid() bool { return IsNonZero(self) }
+func (self FlagDefField) IsValid() bool { return IsNotZero(self) }
 
 func (self *FlagDefField) Set(src r.StructField) {
 	self.StructField = src
@@ -413,14 +413,14 @@ func (self *FlagFmt) Default() {
 
 // Returns a table-like help string for the given definition.
 func (self FlagFmt) String(def FlagDef) string {
-	return ToString(self.Append(nil, def))
+	return ToString(self.AppendTo(nil, def))
 }
 
 /*
 Appends table-like help for the given definition. Known limitation: assumes
 monospace, doesn't support wider characters such as kanji or emoji.
 */
-func (self FlagFmt) Append(src []byte, def FlagDef) []byte {
+func (self FlagFmt) AppendTo(src []byte, def FlagDef) []byte {
 	flags := def.Flags
 	if IsEmpty(flags) {
 		return src

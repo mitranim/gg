@@ -153,23 +153,23 @@ func BenchmarkZero(b *testing.B) {
 	}
 }
 
-func TestClear(t *testing.T) {
+func TestPtrClear(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.NoPanic(func() {
-		gg.Clear((*string)(nil))
+	gtest.NotPanic(func() {
+		gg.PtrClear((*string)(nil))
 	})
 
 	val := `str`
-	gg.Clear(&val)
+	gg.PtrClear(&val)
 	gtest.Equal(val, ``)
 }
 
-func BenchmarkClear(b *testing.B) {
+func BenchmarkPtrClear(b *testing.B) {
 	var val string
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Clear(&val)
+		gg.PtrClear(&val)
 		val = `str`
 	}
 }
@@ -203,7 +203,7 @@ func BenchmarkPtrGet_hit(b *testing.B) {
 func TestPtrSet(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.NoPanic(func() {
+	gtest.NotPanic(func() {
 		gg.PtrSet((*string)(nil), ``)
 		gg.PtrSet((*string)(nil), `str`)
 	})
@@ -220,7 +220,7 @@ func TestPtrSet(t *testing.T) {
 func TestPtrSetOpt(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.NoPanic(func() {
+	gtest.NotPanic(func() {
 		gg.PtrSetOpt((*string)(nil), (*string)(nil))
 		gg.PtrSetOpt(new(string), (*string)(nil))
 		gg.PtrSetOpt((*string)(nil), new(string))

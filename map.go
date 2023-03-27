@@ -141,7 +141,7 @@ Same as `MapSet`, but key and value should be be non-zero.
 If either is zero, this ignores the inputs and does nothing.
 */
 func MapSetOpt[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key, val Val) {
-	if IsNonZero(key) && IsNonZero(val) {
+	if IsNotZero(key) && IsNotZero(val) {
 		MapSet(tar, key, val)
 	}
 }

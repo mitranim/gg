@@ -14,12 +14,6 @@ import (
 	"github.com/mitranim/gg"
 )
 
-/*
-Empty config for single-line formatting. Note that multi-line strings may still
-lead to multi-line output. This may change in the future.
-*/
-var ConfZero Conf
-
 // Default config used by top-level formatting functions in this package.
 var ConfDefault = Conf{Indent: gg.Indent}
 
@@ -32,10 +26,12 @@ Formatting config.
 	* `.Indent` controls indentation. If empty, output is single line.
 	* `.ZeroFields`, if set, forces printing of zero fields in structs.
 		By default zero fields are skipped.
+	* `.Pkg`, if set, indicates the package name to strip from type names.
 */
 type Conf struct {
 	Indent     string
 	ZeroFields bool
+	Pkg        string
 }
 
 /*
@@ -49,29 +45,6 @@ func (self Conf) IsMulti() bool { return self.Indent != `` }
 
 // Inverse of `.ZeroFields`.
 func (self Conf) SkipZeroFields() bool { return !self.ZeroFields }
-
-/*
-Shortcut for printing the input as Go code, using this config, prefixed with the
-given description. Handy for debug-printing.
-*/
-func (self Conf) Prn(desc string, src any) { fmt.Println(desc, self.AnyString(src)) }
-
-// Shortcut for printing the input as Go code, using this config
-func (self Conf) Println(src any) { fmt.Println(self.AnyString(src)) }
-
-// Shortcut for using this config to format the input as Go code.
-func (self Conf) AnyString(src any) string {
-	buf := self.Fmt()
-	buf.Any(src)
-	return buf.String()
-}
-
-// Shortcut for using this config to format the input as Go code.
-func (self Conf) ValueString(src r.Value) string {
-	buf := self.Fmt()
-	buf.Value(src)
-	return buf.String()
-}
 
 // Shortcut for creating a pretty-formatter with this config.
 func (self Conf) Fmt() Fmt {
@@ -89,44 +62,75 @@ type Fmt struct {
 	Visited   gg.Set[u.Pointer]
 }
 
-// Formats the input into the inner buffer, using the inner config.
-func (self *Fmt) Any(src any) { fmtAny(self, r.ValueOf(gg.AnyNoEscUnsafe(src))) }
-
-// Formats the input into the inner buffer, using the inner config.
-func (self *Fmt) Value(src r.Value) { fmtAny(self, src) }
+/*
+Similar to `fmt.Sprintf("%#v")` or `gg.GoString`, but more advanced.
+Formats the input as Go code, using the config `ConfDefault`, returning
+the resulting string.
+*/
+func String[A any](src A) string { return StringIndent(src, 0) }
 
 /*
 Similar to `fmt.Sprintf("%#v")` or `gg.GoString`, but more advanced.
-Formats the input as Go code, using the config `ConfDefault`.
+Formats the input as Go code, using the config `ConfDefault`, returning
+the resulting bytes.
 */
-func String(src any) string { return StringIndent(src, 0) }
+func Bytes[A any](src A) []byte { return BytesIndent(src, 0) }
+
+/*
+Formats the input as Go code, using the given config, returning the
+resulting string.
+*/
+func StringC[A any](conf Conf, src A) string { return StringIndentC(conf, src, 0) }
+
+/*
+Formats the input as Go code, using the given config, returning the
+resulting bytes.
+*/
+func BytesC[A any](conf Conf, src A) []byte { return BytesIndentC(conf, src, 0) }
 
 /*
 Formats the input as Go code, using the default config with the given
-indentation level.
+indentation level, returning the resulting string.
 */
-func StringIndent(src any, lvl int) string {
-	buf := ConfDefault.Fmt()
+func StringIndent[A any](src A, lvl int) string {
+	return StringIndentC(ConfDefault, src, lvl)
+}
+
+/*
+Formats the input as Go code, using the default config with the given
+indentation level, returning the resulting bytes.
+*/
+func BytesIndent[A any](src A, lvl int) []byte {
+	return BytesIndentC(ConfDefault, src, lvl)
+}
+
+/*
+Formats the input as Go code, using the given config with the given indentation
+level, returning the resulting string.
+*/
+func StringIndentC[A any](conf Conf, src A, lvl int) string {
+	return gg.ToString(BytesIndentC(conf, src, lvl))
+}
+
+/*
+Formats the input as Go code, using the given config with the given indentation
+level, returning the resulting bytes.
+*/
+func BytesIndentC[A any](conf Conf, src A, lvl int) []byte {
+	buf := conf.Fmt()
 	buf.Lvl += lvl
-	buf.Any(src)
-	return buf.String()
+	buf.fmtAny(gg.Type[A](), r.ValueOf(gg.AnyNoEscUnsafe(src)))
+	return buf.Buf
 }
 
 /*
 Shortcut for printing the input as Go code, prefixed with the given description,
 using the default config. Handy for debug-printing.
 */
-func Prn(desc string, src any) { ConfDefault.Prn(desc, src) }
+func Prn[A any](desc string, src A) { fmt.Println(desc, String(src)) }
 
 // Shortcut for printing the input as Go code, using the default config.
-func Println(src any) { ConfDefault.Println(src) }
+func Println[A any](src A) { fmt.Println(String(src)) }
 
-// Corrected version of `strconv.CanBackquote` that allows newlines.
-func CanBackquote[A gg.Text](src A) bool {
-	for _, char := range gg.ToString(src) {
-		if isNotBackquotable(char) {
-			return false
-		}
-	}
-	return true
-}
+// Shortcut for printing the input as Go code, using the given config.
+func PrintlnC[A any](conf Conf, src A) { fmt.Println(StringC(conf, src)) }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	u "unsafe"
 
 	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
@@ -18,12 +19,6 @@ func ExampleSlice() {
 
 	// Output:
 	// []string{"one", "three"}
-}
-
-func BenchmarkSliceDat(b *testing.B) {
-	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.SliceDat([]byte(`hello world`)))
-	}
 }
 
 func TestLens(t *testing.T) {
@@ -65,7 +60,7 @@ func TestGrowLen(t *testing.T) {
 			gtest.Equal(src, expSrc)
 			gtest.Equal(tar, expTar)
 			gtest.Eq(cap(tar), cap(src))
-			gtest.Eq(gg.SliceDat(src), gg.SliceDat(tar))
+			gtest.Eq(u.SliceData(src), u.SliceData(tar))
 		}
 
 		test(0, []int{10, 20}, []int{10, 20, 30, 40, 0, 0, 0, 0})
@@ -83,7 +78,7 @@ func TestGrowLen(t *testing.T) {
 		gtest.Equal(src, []int{10, 20})
 		gtest.Equal(tar, []int{10, 20, 0, 0, 0})
 		gtest.Equal(src[:4], []int{10, 20, 30, 40})
-		gtest.NotEq(gg.SliceDat(src), gg.SliceDat(tar))
+		gtest.NotEq(u.SliceData(src), u.SliceData(tar))
 	})
 }
 
@@ -120,7 +115,7 @@ func TestGrowCap(t *testing.T) {
 		gtest.Equal(tar, src)
 		gtest.Equal(tar, []int{10, 20})
 
-		gtest.Eq(gg.SliceDat(src), gg.SliceDat(tar))
+		gtest.Eq(u.SliceData(src), u.SliceData(tar))
 		gtest.Eq(len(tar), len(src))
 		gtest.Eq(cap(tar), cap(src))
 	})
@@ -136,14 +131,14 @@ func TestTruncLen(t *testing.T) {
 		gtest.Equal(out, exp)
 
 		gtest.Eq(
-			gg.CastUnsafe[gg.SliceHeader](out).Dat,
-			gg.CastUnsafe[gg.SliceHeader](src).Dat,
+			u.SliceData(out),
+			u.SliceData(src),
 			`reslicing must preserve data pointer`,
 		)
 
 		gtest.Eq(
-			gg.CastUnsafe[gg.SliceHeader](out).Cap,
-			gg.CastUnsafe[gg.SliceHeader](src).Cap,
+			cap(out),
+			cap(src),
 			`reslicing must preserve capacity`,
 		)
 	}
@@ -931,35 +926,35 @@ func TestExclude(t *testing.T) {
 	gtest.Equal(gg.Exclude(Type{10, 20, 30}, 30), Type{10, 20})
 }
 
-func TestSubtract(t *testing.T) {
+func TestExcludeFrom(t *testing.T) {
 	defer gtest.Catch(t)
 
 	type Type = []int
 
-	gtest.Zero(gg.Subtract(Type(nil)))
-	gtest.Zero(gg.Subtract(Type{}))
+	gtest.Zero(gg.ExcludeFrom(Type(nil)))
+	gtest.Zero(gg.ExcludeFrom(Type{}))
 
-	gtest.Zero(gg.Subtract(Type{10}, Type{10}))
+	gtest.Zero(gg.ExcludeFrom(Type{10}, Type{10}))
 
-	gtest.Zero(gg.Subtract(Type{10, 20}, Type{10, 20}))
-	gtest.Zero(gg.Subtract(Type{10, 20}, Type{10, 20, 30}))
-	gtest.Zero(gg.Subtract(Type{10, 20}, Type{10, 20}, Type{30}))
-	gtest.Zero(gg.Subtract(Type{10, 20}, Type{10}, Type{20, 30}))
-	gtest.Zero(gg.Subtract(Type{10, 20}, Type{10}, Type{20}))
-	gtest.Zero(gg.Subtract(Type{10, 20}, Type{10}, Type{20}, Type{30}))
+	gtest.Zero(gg.ExcludeFrom(Type{10, 20}, Type{10, 20}))
+	gtest.Zero(gg.ExcludeFrom(Type{10, 20}, Type{10, 20, 30}))
+	gtest.Zero(gg.ExcludeFrom(Type{10, 20}, Type{10, 20}, Type{30}))
+	gtest.Zero(gg.ExcludeFrom(Type{10, 20}, Type{10}, Type{20, 30}))
+	gtest.Zero(gg.ExcludeFrom(Type{10, 20}, Type{10}, Type{20}))
+	gtest.Zero(gg.ExcludeFrom(Type{10, 20}, Type{10}, Type{20}, Type{30}))
 
 	gtest.Equal(
-		gg.Subtract(Type{10, 20, 30}, Type{10}),
+		gg.ExcludeFrom(Type{10, 20, 30}, Type{10}),
 		Type{20, 30},
 	)
 
 	gtest.Equal(
-		gg.Subtract(Type{10, 20, 30}, Type{20}),
+		gg.ExcludeFrom(Type{10, 20, 30}, Type{20}),
 		Type{10, 30},
 	)
 
 	gtest.Equal(
-		gg.Subtract(Type{10, 20, 30}, Type{20}, Type{10}),
+		gg.ExcludeFrom(Type{10, 20, 30}, Type{20}, Type{10}),
 		Type{30},
 	)
 }
@@ -969,7 +964,7 @@ func BenchmarkSubtract(b *testing.B) {
 	sub := [][]int{{10, 20}, {50}}
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.Subtract(base, sub...))
+		gg.Nop1(gg.ExcludeFrom(base, sub...))
 	}
 }
 
@@ -1070,6 +1065,17 @@ func TestHas(t *testing.T) {
 	gtest.True(gg.Has(Type{10, 20, 30}, 20))
 	gtest.True(gg.Has(Type{10, 20, 30}, 30))
 	gtest.True(gg.Has(Type{0, 10, 0, 20}, 0))
+}
+
+func BenchmarkHas(b *testing.B) {
+	defer gtest.Catch(b)
+
+	tar := gg.Times(128, gg.Inc[int])
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Has(tar, 256))
+	}
 }
 
 func TestHasEvery(t *testing.T) {
@@ -1176,6 +1182,9 @@ func TestNone(t *testing.T) {
 	defer gtest.Catch(t)
 
 	type Type = []int
+
+	gtest.True(gg.None(Type(nil), nil))
+	gtest.True(gg.None(Type{10, 20}, nil))
 
 	gtest.True(gg.None(Type(nil), False1[int]))
 	gtest.True(gg.None(Type{}, False1[int]))

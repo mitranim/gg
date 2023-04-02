@@ -29,6 +29,13 @@ In case of mismatch, using `SliceHeader` for anything is invalid.
 const SizeofSliceHeader = u.Sizeof(SliceHeader{})
 
 /*
+Returns `unsafe.Sizeof` for the given type. Equivalent to `reflect.Type.Size`
+for the same type. Due to Go's limitations, the result is not a constant, thus
+you should prefer direct use of `unsafe.Sizeof` which returns a constant.
+*/
+func Sizeof[A any]() uintptr { return u.Sizeof(Zero[A]()) }
+
+/*
 Memory representation of an arbitrary Go slice. Same as `reflect.SliceHeader`
 but with `unsafe.Pointer` instead of `uintptr`.
 */
@@ -66,3 +73,16 @@ Self-explanatory. Slightly cleaner and less error prone than direct use of
 unsafe pointers.
 */
 func CastUnsafe[Out, Src any](val Src) Out { return *(*Out)(u.Pointer(&val)) }
+
+/*
+Reinterprets existing memory as a byte slice. The resulting byte slice is backed
+by the given pointer. Mutations of the resulting slice are reflected in the
+source memory. Length and capacity are equal to the size of the referenced
+memory. If the pointer is nil, the output is nil.
+*/
+func AsBytes[A any](tar *A) []byte {
+	if tar == nil {
+		return nil
+	}
+	return u.Slice(CastUnsafe[*byte](tar), Sizeof[A]())
+}

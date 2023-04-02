@@ -88,6 +88,11 @@ type FatStruct struct {
 	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, Name string
 }
 
+type FatStructNonComparable struct {
+	FatStruct
+	_ []byte
+}
+
 func ComparerOf[A gg.LesserPrim](val A) Comparer[A] { return Comparer[A]{val} }
 
 type Comparer[A gg.LesserPrim] [1]A

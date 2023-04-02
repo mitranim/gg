@@ -2,117 +2,142 @@ package grepr
 
 import (
 	"fmt"
+	"math"
 	r "reflect"
+	"regexp"
 	"strconv"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/mitranim/gg"
 )
 
-func fmtAny(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) || fmtedGoString(buf, src) {
+var (
+	typeRtype      = gg.Type[r.Type]()
+	typeBool       = gg.Type[bool]()
+	typeInt        = gg.Type[int]()
+	typeString     = gg.Type[string]()
+	typFloat64     = gg.Type[float64]()
+	typeComplex64  = gg.Type[complex64]()
+	typeComplex128 = gg.Type[complex128]()
+	typeGoStringer = gg.Type[fmt.GoStringer]()
+)
+
+func (self *Fmt) fmtAny(typ r.Type, src r.Value) {
+	if self.fmtedNil(typ, src) || self.fmtedGoString(src) {
 		return
 	}
 
-	if src.Type() == gg.Type[r.Type]() {
-		fmtType(buf, src)
+	if typ == typeRtype {
+		self.fmtReflectType(src)
 		return
 	}
 
 	switch src.Kind() {
 	case r.Invalid:
-		fmtNil(buf)
+		self.fmtNil(typ, src)
 	case r.Bool:
-		buf.AppendBool(src.Bool())
+		self.fmtBool(typ, src)
 	case r.Int8:
-		buf.AppendInt64(src.Int())
+		self.fmtInt64(typ, src)
 	case r.Int16:
-		buf.AppendInt64(src.Int())
+		self.fmtInt64(typ, src)
 	case r.Int32:
-		buf.AppendInt64(src.Int())
+		self.fmtInt64(typ, src)
 	case r.Int64:
-		buf.AppendInt64(src.Int())
+		self.fmtInt64(typ, src)
 	case r.Int:
-		buf.AppendInt64(src.Int())
+		self.fmtInt64(typ, src)
 	case r.Uint8:
-		fmtUintHex(buf, src.Uint())
+		self.fmtByteHex(typ, src)
 	case r.Uint16:
-		buf.AppendUint64(src.Uint())
+		self.fmtUint64(typ, src)
 	case r.Uint32:
-		buf.AppendUint64(src.Uint())
+		self.fmtUint64(typ, src)
 	case r.Uint64:
-		buf.AppendUint64(src.Uint())
+		self.fmtUint64(typ, src)
 	case r.Uint:
-		buf.AppendUint64(src.Uint())
+		self.fmtUint64(typ, src)
 	case r.Uintptr:
-		fmtUintHex(buf, uintptr(src.Uint()))
+		self.fmtUintHex(typ, src)
 	case r.Float32:
-		buf.AppendFloat64(src.Float())
+		self.fmtFloat64(typ, src)
 	case r.Float64:
-		buf.AppendFloat64(src.Float())
+		self.fmtFloat64(typ, src)
 	case r.Complex64:
-		fmtComplex(buf, src.Complex())
+		self.fmtComplex(typ, src)
 	case r.Complex128:
-		fmtComplex(buf, src.Complex())
+		self.fmtComplex(typ, src)
 	case r.Array:
-		fmtArray(buf, src)
+		self.fmtArray(src)
 	case r.Slice:
-		fmtSlice(buf, src)
+		self.fmtSlice(typ, src)
 	case r.Chan:
-		fmtChan(buf, src)
+		self.fmtChan(typ, src)
 	case r.Func:
-		fmtFunc(buf, src)
+		self.fmtFunc(typ, src)
 	case r.Interface:
-		fmtIface(buf, src)
+		self.fmtIface(typ, src)
 	case r.Map:
-		fmtMap(buf, src)
+		self.fmtMap(typ, src)
 	case r.Pointer:
-		fmtPointer(buf, src)
+		self.fmtPointer(typ, src)
 	case r.UnsafePointer:
-		fmtUintHex(buf, src.Pointer())
+		self.fmtUnsafePointer(typ, src)
 	case r.String:
-		fmtString(buf, src.String())
+		self.fmtString(typ, src)
 	case r.Struct:
-		fmtStruct(buf, src)
+		self.fmtStruct(src)
 	default:
 		panic(gg.Errf(`unrecognized reflect kind %q`, src.Kind()))
 	}
 }
 
-func fmtedVisited(buf *Fmt, src r.Value) bool {
+func (self *Fmt) fmtedPointerVisited(typ r.Type, src r.Value) bool {
 	if src.IsNil() {
-		fmtNil(buf)
+		self.fmtNil(typ, src)
 		return true
 	}
 
 	ptr := src.UnsafePointer()
-	_, ok := buf.Visited[ptr]
+	_, ok := self.Visited[ptr]
 	if ok {
-		fmtVisited(buf, src)
+		self.fmtPointerVisited(src)
 		return true
 	}
 
-	buf.Visited.Init().Add(ptr)
+	self.Visited.Init().Add(ptr)
 	return false
 }
 
-func fmtVisited(buf *Fmt, src r.Value) {
-	buf.AppendString(`/* visited */ (`)
-	fmtTypeName(buf, src.Type())
-	buf.AppendString(`)(`)
-	fmtUintHex(buf, src.Pointer())
-	buf.AppendString(`)`)
+func (self *Fmt) fmtPointerVisited(src r.Value) {
+	self.AppendString(`/* visited */ `)
+	self.fmtTypeName(src.Type())
+	self.AppendByte('(')
+	self.fmtUint64Hex(uint64(src.Pointer()))
+	self.AppendByte(')')
 }
 
-func fmtedNil(buf *Fmt, src r.Value) bool {
-	if !src.IsValid() || isValueNil(src) {
-		fmtNil(buf)
+func (self *Fmt) fmtedNil(typ r.Type, src r.Value) bool {
+	if !src.IsValid() || gg.IsValueNil(src) {
+		self.fmtNil(typ, src)
 		return true
 	}
 	return false
 }
 
-func fmtNil(buf *Fmt) { buf.AppendString(`nil`) }
+func (self *Fmt) fmtNil(typ r.Type, src r.Value) {
+	srcTyp := gg.ValueType(src)
+
+	// TODO simplify.
+	if !(isTypeInterface(typ) && isValueNilInterface(src) ||
+		typ == srcTyp && gg.IsTypeNilable(typ)) {
+		defer self.fmtConvOpen(derefIface(src).Type()).fmtConvClose()
+	}
+
+	self.AppendString(`nil`)
+}
 
 /*
 TODO: consider custom interface such as `.AppendGoString`, possibly with
@@ -121,319 +146,438 @@ indentation support.
 TODO: if, rather than implementing `.GoString` directly, the input inherits the
 method from an embedded type, we should do nothing and return false.
 */
-func fmtedGoString(buf *Fmt, src r.Value) bool {
-	if src.CanConvert(gg.Type[fmt.GoStringer]()) {
-		buf.AppendString(src.Interface().(fmt.GoStringer).GoString())
-		return true
+func (self *Fmt) fmtedGoString(src r.Value) bool {
+	if !src.Type().Implements(typeGoStringer) {
+		return false
 	}
-	return false
+	self.AppendString(src.Interface().(fmt.GoStringer).GoString())
+	return true
 }
 
-func fmtComplex(buf *Fmt, src complex128) {
-	buf.AppendByte('(')
-	buf.AppendFloat64(real(src))
-	img := imag(src)
-	if !(img < 0) {
-		buf.AppendByte('+')
-	}
-	buf.AppendFloat64(img)
-	buf.AppendByte('i')
-	buf.AppendByte(')')
-}
-
-func fmtUintHex[A uint64 | uintptr](buf *Fmt, src A) {
-	buf.AppendString(`0x`)
-	buf.Buf = strconv.AppendUint(buf.Buf, uint64(src), 16)
+func (self *Fmt) fmtBool(typ r.Type, src r.Value) {
+	defer self.fmtConvOpt(typ, src.Type(), typeBool).fmtConvClose()
+	self.AppendBool(src.Bool())
 }
 
 /*
-TODO: if the type is not exactly `string` and the value is not used in a
-strongly typed context, wrap the literal in a cast.
-
-TODO: same for other literals: bools, ints, floats, bytes, runes, complex.
+Adapted from `strconv.FormatComplex` with minor changes. We don't bother
+printing the real part when it's zero, and we avoid the scientific notation
+when formatting floats.
 */
-func fmtString(buf *Fmt, src string) {
-	if buf.IsMulti() && CanBackquote(src) {
-		buf.AppendByte('`')
-		buf.AppendString(src)
-		buf.AppendByte('`')
+func (self *Fmt) fmtComplex(typ r.Type, src r.Value) {
+	done := self.fmtConvOpt(typ, src.Type(), typeComplex128)
+	if done != nil {
+		defer done.fmtConvClose()
 	} else {
-		buf.Buf = strconv.AppendQuote(buf.Buf, src)
+		self.AppendByte('(')
+		defer self.AppendByte(')')
+	}
+
+	val := src.Complex()
+	realPart := real(val)
+	imagPart := imag(val)
+
+	if realPart == 0 {
+		self.AppendFloat64(imagPart)
+		self.AppendByte('i')
+		return
+	}
+
+	self.AppendFloat64(realPart)
+	if !(imagPart < 0) {
+		self.AppendByte('+')
+	}
+
+	self.AppendFloat64(imagPart)
+	self.AppendByte('i')
+}
+
+func (self *Fmt) fmtInt64(typ r.Type, src r.Value) {
+	defer self.fmtConvOpt(typ, src.Type(), typeInt).fmtConvClose()
+	self.AppendInt64(src.Int())
+}
+
+func (self *Fmt) fmtUint64(typ r.Type, src r.Value) {
+	defer self.fmtConvOpt(typ, src.Type()).fmtConvClose()
+	self.AppendUint64(src.Uint())
+}
+
+func (self *Fmt) fmtByteHex(typ r.Type, src r.Value) {
+	defer self.fmtConvOpt(typ, src.Type()).fmtConvClose()
+	self.AppendString(`0x`)
+	self.AppendByteHex(byte(src.Uint()))
+}
+
+func (self *Fmt) fmtUintHex(typ r.Type, src r.Value) {
+	defer self.fmtConvOpt(typ, src.Type()).fmtConvClose()
+	self.fmtUint64Hex(src.Uint())
+}
+
+func (self *Fmt) fmtFloat64(typ r.Type, src r.Value) {
+	val := src.Float()
+	srcTyp := src.Type()
+	if isTypeInterface(typ) && (srcTyp != typFloat64 || !(math.Remainder(val, 1) > 0)) {
+		defer self.fmtConvOpen(srcTyp).fmtConvClose()
+	}
+
+	if val < 0 {
+		if math.IsInf(val, -1) {
+			self.AppendString(`math.Inf(-1)`)
+			return
+		}
+		self.AppendFloat64(val)
+		return
+	}
+
+	if val >= 0 {
+		if math.IsInf(val, 1) {
+			self.AppendString(`math.Inf(0)`)
+			return
+		}
+		self.AppendFloat64(val)
+		return
+	}
+
+	self.AppendString(`math.NaN()`)
+}
+
+func (self *Fmt) fmtString(typ r.Type, src r.Value) {
+	defer self.fmtConvOpt(typ, src.Type(), typeString).fmtConvClose()
+	text := src.String()
+	self.fmtStringInner(text, textPrintability(text))
+}
+
+func (self *Fmt) fmtStringInner(src string, prn printability) {
+	/**
+	For the most part we're more restrictive than `strconv.CanBackquote`, but
+	unlike `strconv.CanBackquote` we allow '\n' in backquoted strings. We want
+	to avoid loss of information when a multiline string is displayed in a
+	terminal and copied to an editor. `strconv.CanBackquote` allows too many
+	characters which may fail to display properly. This includes the tabulation
+	character '\t', which is usually converted to spaces, and a variety of
+	Unicode code points without corresponding graphical symbols. On the other
+	hand, we want to support multiline strings in the common case, without edge
+	case breakage. We assume that terminals, and other means of displaying the
+	output of a program that may be using `grepr`, do not convert printed '\n'
+	to '\r' or "\r\n", but may convert printed '\r' or "\r\n" to '\n', as Unix
+	line endings tend to be preferred by any tooling used by Go developers. This
+	allows us to support displaying strings as multiline in the common case,
+	while avoiding information loss in the case of strings with '\r'.
+	*/
+	if !prn.errors && !prn.unprintables && !prn.backquotes && !prn.carriageReturns && (!prn.lineFeeds || self.IsMulti()) {
+		self.AppendByte('`')
+		self.AppendString(src)
+		self.AppendByte('`')
+	} else {
+		self.Buf = strconv.AppendQuote(self.Buf, src)
 	}
 }
 
-func fmtSlice(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) {
+func (self *Fmt) fmtSlice(typ r.Type, src r.Value) {
+	if self.fmtedNil(typ, src) {
 		return
 	}
 
 	if gg.IsValueBytes(src) {
-		// TODO: elide type name when elidable AND when not printing as a string.
-		fmtTypeName(buf, src.Type())
-		fmtBytesInner(buf, src.Bytes())
+		self.fmtBytes(typ, src)
 		return
 	}
 
-	fmtArray(buf, src)
+	self.fmtArray(src)
 }
 
-func fmtArray(buf *Fmt, src r.Value) {
-	prev := setElideType(buf, isNotInterface(src.Type().Elem()))
-	defer prev.Done()
+func (self *Fmt) fmtArray(src r.Value) {
+	typ := src.Type()
 
-	if !prev.Val {
-		fmtTypeName(buf, src.Type())
-	}
+	self.fmtTypeNameOpt(typ)
+	defer self.setElideType(!isTypeInterface(typ.Elem())).Done()
 
-	if src.Len() == 0 {
-		buf.AppendString(`{}`)
+	if src.Len() == 0 || src.IsZero() {
+		self.AppendString(`{}`)
 		return
 	}
 
-	if buf.IsSingle() {
-		fmtArraySingle(buf, src)
+	if self.IsSingle() {
+		self.fmtArraySingle(typ, src)
 		return
 	}
 
-	fmtArrayMulti(buf, src)
+	self.fmtArrayMulti(typ, src)
 }
 
-func fmtArraySingle(buf *Fmt, src r.Value) {
-	buf.AppendByte('{')
+func (self *Fmt) fmtArraySingle(typ r.Type, src r.Value) {
+	typElem := typ.Elem()
+
+	self.AppendByte('{')
 	for ind := range gg.Iter(src.Len()) {
 		if ind > 0 {
-			buf.AppendString(`, `)
+			self.AppendString(`, `)
 		}
-		fmtAny(buf, src.Index(ind))
+		self.fmtAny(typElem, src.Index(ind))
 	}
-	buf.AppendByte('}')
+	self.AppendByte('}')
 }
 
-func fmtArrayMulti(buf *Fmt, src r.Value) {
-	buf.AppendByte('{')
-	buf.AppendNewline()
-	snap := incLvl(buf)
+func (self *Fmt) fmtArrayMulti(typ r.Type, src r.Value) {
+	typElem := typ.Elem()
+
+	self.AppendByte('{')
+	self.AppendNewline()
+	snap := self.lvlInc()
 
 	for ind := range gg.Iter(src.Len()) {
-		fmtIndent(buf)
-		fmtAny(buf, src.Index(ind))
-		buf.AppendByte(',')
-		buf.AppendNewline()
+		self.fmtIndent()
+		self.fmtAny(typElem, src.Index(ind))
+		self.AppendByte(',')
+		self.AppendNewline()
 	}
 
 	snap.Done()
-	fmtIndent(buf)
-	buf.AppendByte('}')
+	self.fmtIndent()
+	self.AppendByte('}')
+}
+
+func (self *Fmt) fmtBytes(typ r.Type, src r.Value) {
+	if self.fmtedNil(typ, src) {
+		return
+	}
+
+	text := src.Bytes()
+
+	if len(text) > 0 {
+		prn := textPrintability(text)
+
+		if !prn.errors && !prn.unprintables {
+			self.fmtTypeName(src.Type())
+			self.AppendByte('(')
+			self.fmtStringInner(gg.ToString(text), prn)
+			self.AppendByte(')')
+			return
+		}
+	}
+
+	self.fmtBytesHex(src.Type(), text)
 }
 
 /*
-TODO:
-
-	* Looks like text -> append like string.
-	* Otherwise -> append like bytes.
+Similar to `.fmtArray`, but much faster and always single-line. TODO consider
+supporting column width in `Conf`, which would allow us to print bytes in
+rows.
 */
-func fmtBytesInner(buf *Fmt, src []byte) {
-	buf.AppendByte('(')
-	fmtString(buf, gg.ToString(src))
-	buf.AppendByte(')')
+func (self *Fmt) fmtBytesHex(typ r.Type, src []byte) {
+	self.fmtTypeNameOpt(typ)
+	self.AppendByte('{')
+	for ind, val := range src {
+		if ind > 0 {
+			self.AppendString(`, `)
+		}
+		self.AppendString(`0x`)
+		self.AppendByteHex(val)
+	}
+	self.AppendByte('}')
 }
 
-func fmtChan(buf *Fmt, src r.Value) {
-	fmtUnfmtable(buf, src)
+func (self *Fmt) fmtChan(typ r.Type, src r.Value) {
+	self.fmtUnfmtable(typ, src)
 }
 
-func fmtFunc(buf *Fmt, src r.Value) {
-	fmtUnfmtable(buf, src)
+func (self *Fmt) fmtFunc(typ r.Type, src r.Value) {
+	self.fmtUnfmtable(typ, src)
 }
 
-func fmtIface(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) {
+func (self *Fmt) fmtIface(typ r.Type, src r.Value) {
+	if self.fmtedNil(typ, src) {
 		return
 	}
-	fmtAny(buf, src.Elem())
+	self.fmtAny(typ, src.Elem())
 }
 
-func fmtMap(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) {
+func (self *Fmt) fmtMap(typ r.Type, src r.Value) {
+	if self.fmtedNil(typ, src) {
 		return
 	}
 
-	prev := setElideType(buf, isNotInterface(src.Type().Elem()))
-	defer prev.Done()
+	srcTyp := src.Type()
 
-	if !prev.Val {
-		fmtTypeName(buf, src.Type())
-	}
+	self.fmtTypeNameOpt(srcTyp)
+	defer self.setElideType(!isTypeInterface(srcTyp.Elem())).Done()
 
 	if src.Len() == 0 {
-		buf.AppendString(`{}`)
+		self.AppendString(`{}`)
 		return
 	}
 
-	if buf.IsSingle() {
-		fmtMapSingle(buf, src)
+	if self.IsSingle() {
+		self.fmtMapSingle(src)
 		return
 	}
 
-	fmtMapMulti(buf, src)
+	self.fmtMapMulti(src)
 }
 
-func fmtMapSingle(buf *Fmt, src r.Value) {
-	buf.AppendByte('{')
+func (self *Fmt) fmtMapSingle(src r.Value) {
+	typ := src.Type()
+	typKey := typ.Key()
+	typVal := typ.Elem()
+
+	self.AppendByte('{')
 
 	iter := src.MapRange()
 	var found bool
 
 	for iter.Next() {
 		if found {
-			buf.AppendString(`, `)
+			self.AppendString(`, `)
 		}
 		found = true
 
-		fmtAny(buf, iter.Key())
-		buf.AppendString(`: `)
-		fmtAny(buf, iter.Value())
+		self.fmtAny(typKey, iter.Key())
+		self.AppendString(`: `)
+		self.fmtAny(typVal, iter.Value())
 	}
 
-	buf.AppendByte('}')
+	self.AppendByte('}')
 }
 
-func fmtMapMulti(buf *Fmt, src r.Value) {
-	buf.AppendByte('{')
-	buf.AppendNewline()
+func (self *Fmt) fmtMapMulti(src r.Value) {
+	typ := src.Type()
+	typKey := typ.Key()
+	typVal := typ.Elem()
+
+	self.AppendByte('{')
+	self.AppendNewline()
 
 	iter := src.MapRange()
-	snap := incLvl(buf)
+	snap := self.lvlInc()
 
 	for iter.Next() {
-		fmtIndent(buf)
-		fmtAny(buf, iter.Key())
-		buf.AppendString(`: `)
-		fmtAny(buf, iter.Value())
-		buf.AppendByte(',')
-		buf.AppendNewline()
+		self.fmtIndent()
+		self.fmtAny(typKey, iter.Key())
+		self.AppendString(`: `)
+		self.fmtAny(typVal, iter.Value())
+		self.AppendByte(',')
+		self.AppendNewline()
 	}
 
 	snap.Done()
-	fmtIndent(buf)
-	buf.AppendByte('}')
+	self.fmtIndent()
+	self.AppendByte('}')
 }
 
-func fmtPointer(buf *Fmt, src r.Value) {
-	if fmtedVisited(buf, src) {
+func (self *Fmt) fmtPointer(typ r.Type, src r.Value) {
+	if self.fmtedNil(typ, src) || self.fmtedPointerVisited(typ, src) {
 		return
 	}
 
-	defer setElideType(buf, false).Done()
+	defer self.setElideType(false).Done()
 	src = src.Elem()
 
 	if canAmpersand(src.Kind()) {
-		buf.AppendByte('&')
-		fmtAny(buf, src)
+		self.AppendByte('&')
+		self.fmtAny(typ, src)
 		return
 	}
 
-	buf.AppendString(`gg.Ptr`)
-	fmtTypeArg(buf, src.Type())
-	buf.AppendByte('(')
-	fmtAny(buf, src)
-	buf.AppendByte(')')
+	self.fmtIdent(`gg`, `Ptr`)
+	self.fmtTypeArg(src.Type())
+	self.AppendByte('(')
+	self.fmtAny(typ, src)
+	self.AppendByte(')')
 }
 
-func fmtStruct(buf *Fmt, src r.Value) {
-	prev := setElideType(buf, false)
-	defer prev.Done()
+func (self *Fmt) fmtUnsafePointer(typ r.Type, src r.Value) {
+	defer self.fmtConvOpt(typ, src.Type()).fmtConvClose()
+	self.fmtUint64Hex(uint64(src.Pointer()))
+}
 
-	if !prev.Val {
-		fmtTypeName(buf, src.Type())
-	}
+func (self *Fmt) fmtStruct(src r.Value) {
+	self.fmtTypeNameOpt(src.Type())
+	defer self.setElideType(false).Done()
 
 	if src.NumField() == 0 {
-		buf.AppendString(`{}`)
+		self.AppendString(`{}`)
 		return
 	}
 
-	if buf.IsSingle() {
-		fmtStructSingle(buf, src)
+	if self.IsSingle() {
+		self.fmtStructSingle(src)
 		return
 	}
 
-	fmtStructMulti(buf, src)
+	self.fmtStructMulti(src)
 }
 
-func fmtStructField(buf *Fmt, src r.Value, field r.StructField) {
-	buf.AppendString(field.Name)
-	buf.AppendString(`: `)
-	fmtAny(buf, src)
+func (self *Fmt) fmtStructField(src r.Value, field r.StructField) {
+	self.AppendString(field.Name)
+	self.AppendString(`: `)
+	self.fmtAny(field.Type, src)
 }
 
-func fmtStructSingle(buf *Fmt, src r.Value) {
-	if isStructUnit(src) {
-		fmtStructSingleAnon(buf, src)
+func (self *Fmt) fmtStructSingle(src r.Value) {
+	if isStructUnit(src.Type()) {
+		self.fmtStructSingleAnon(src)
 		return
 	}
-	fmtStructSingleNamed(buf, src)
+	self.fmtStructSingleNamed(src)
 }
 
-func fmtStructSingleAnon(buf *Fmt, src r.Value) {
-	src = src.Field(0)
+func (self *Fmt) fmtStructSingleAnon(src r.Value) {
+	head := src.Field(0)
 
-	buf.AppendByte('{')
-
-	if !skipField(buf, src) {
-		fmtAny(buf, src)
+	self.AppendByte('{')
+	if !self.skipField(head) {
+		self.fmtAny(structHeadType(src.Type()), head)
 	}
-
-	buf.AppendByte('}')
+	self.AppendByte('}')
 }
 
-func fmtStructSingleNamed(buf *Fmt, src r.Value) {
-	buf.AppendByte('{')
+func (self *Fmt) fmtStructSingleNamed(src r.Value) {
+	self.AppendByte('{')
 
 	var found bool
 
 	for _, field := range gg.StructPublicFieldCache.Get(src.Type()) {
 		src := src.FieldByIndex(field.Index)
-		if skipField(buf, src) {
+		if self.skipField(src) {
 			continue
 		}
 
 		if found {
-			buf.AppendString(`, `)
+			self.AppendString(`, `)
 		}
 		found = true
 
-		fmtStructField(buf, src, field)
+		self.fmtStructField(src, field)
 	}
 
-	buf.AppendByte('}')
+	self.AppendByte('}')
 }
 
-func fmtStructMulti(buf *Fmt, src r.Value) {
-	if isStructUnit(src) {
-		fmtStructMultiAnon(buf, src)
+func (self *Fmt) fmtStructMulti(src r.Value) {
+	if isStructUnit(src.Type()) {
+		self.fmtStructMultiAnon(src)
 		return
 	}
-	fmtStructMultiNamed(buf, src)
+	self.fmtStructMultiNamed(src)
 }
 
-func fmtStructMultiAnon(buf *Fmt, src r.Value) {
-	src = src.Field(0)
+func (self *Fmt) fmtStructMultiAnon(src r.Value) {
+	head := src.Field(0)
 
-	buf.AppendByte('{')
+	self.AppendByte('{')
 
-	if !skipField(buf, src) {
-		defer incLvl(buf).Done()
-		fmtAny(buf, src)
+	if !self.skipField(head) {
+		defer self.lvlInc().Done()
+		self.fmtAny(structHeadType(src.Type()), head)
 	}
 
-	buf.AppendByte('}')
+	self.AppendByte('}')
 }
 
-func fmtStructMultiNamed(buf *Fmt, src r.Value) {
+func (self *Fmt) fmtStructMultiNamed(src r.Value) {
 	fields := gg.StructPublicFieldCache.Get(src.Type())
 
-	if buf.SkipZeroFields() {
+	if self.SkipZeroFields() {
 		test := func(field r.StructField) bool {
 			return !src.FieldByIndex(field.Index).IsZero()
 		}
@@ -441,140 +585,274 @@ func fmtStructMultiNamed(buf *Fmt, src r.Value) {
 		count := gg.Count(fields, test)
 
 		if count == 0 {
-			buf.AppendString(`{}`)
+			self.AppendString(`{}`)
 			return
 		}
 
 		if count == 1 {
 			field := gg.Find(fields, test)
-			fmtStructMultiNamedUnit(buf, src.FieldByIndex(field.Index), field)
+			self.fmtStructMultiNamedUnit(src.FieldByIndex(field.Index), field)
 			return
 		}
 	}
 
-	fmtStructMultiNamedLines(buf, src, fields)
+	self.fmtStructMultiNamedLines(src, fields)
 }
 
-func fmtStructMultiNamedUnit(buf *Fmt, src r.Value, field r.StructField) {
-	buf.AppendByte('{')
-	fmtStructField(buf, src, field)
-	buf.AppendByte('}')
+func (self *Fmt) fmtStructMultiNamedUnit(src r.Value, field r.StructField) {
+	self.AppendByte('{')
+	self.fmtStructField(src, field)
+	self.AppendByte('}')
 }
 
-func fmtStructMultiNamedLines(buf *Fmt, src r.Value, fields []r.StructField) {
-	buf.AppendByte('{')
-	buf.AppendNewline()
-	snap := incLvl(buf)
+func (self *Fmt) fmtStructMultiNamedLines(src r.Value, fields []r.StructField) {
+	self.AppendByte('{')
+	self.AppendNewline()
+	snap := self.lvlInc()
 
 	for _, field := range fields {
 		src := src.FieldByIndex(field.Index)
-		if skipField(buf, src) {
+		if self.skipField(src) {
 			continue
 		}
 
-		fmtIndent(buf)
-		fmtStructField(buf, src, field)
-		buf.AppendByte(',')
-		buf.AppendNewline()
+		self.fmtIndent()
+		self.fmtStructField(src, field)
+		self.AppendByte(',')
+		self.AppendNewline()
 	}
 
 	snap.Done()
-	fmtIndent(buf)
-	buf.AppendByte('}')
+	self.fmtIndent()
+	self.AppendByte('}')
 }
 
-func fmtUnfmtable(buf *Fmt, src r.Value) {
-	if fmtedNil(buf, src) {
+func (self *Fmt) fmtUnfmtable(typ r.Type, src r.Value) {
+	if self.fmtedNil(typ, src) {
 		return
 	}
 
-	fmtTypeName(buf, src.Type())
-	buf.AppendByte('(')
-	fmtUintHex(buf, src.Pointer())
-	buf.AppendByte(')')
+	self.fmtTypeName(src.Type())
+	self.AppendByte('(')
+	self.fmtUint64Hex(uint64(src.Pointer()))
+	self.AppendByte(')')
 }
 
-func fmtTypeName(buf *Fmt, typ r.Type) {
-	if typ == gg.Type[[]byte]() {
-		buf.AppendString(`[]byte`)
-	} else {
-		buf.AppendString(typeName(typ))
-	}
-}
-
-func fmtTypeArg(buf *Fmt, typ r.Type) {
+func (self *Fmt) fmtTypeArg(typ r.Type) {
 	if isTypeDefaultForLiteral(typ) {
 		return
 	}
 
-	buf.AppendByte('[')
-	buf.AppendString(typeName(typ))
-	buf.AppendByte(']')
+	self.AppendByte('[')
+	self.fmtTypeName(typ)
+	self.AppendByte(']')
 }
 
-func fmtType(buf *Fmt, src r.Value) {
-	buf.AppendString(`gg.Type[`)
-	fmtTypeName(buf, src.Interface().(r.Type))
-	buf.AppendString(`]()`)
+func (self *Fmt) fmtReflectType(src r.Value) {
+	self.fmtIdent(`gg`, `Type`)
+	self.AppendByte('[')
+	self.fmtTypeName(src.Interface().(r.Type))
+	self.AppendString(`]()`)
 }
 
-func fmtIndent(buf *Fmt) {
-	buf.AppendStringN(buf.Indent, buf.Lvl)
+func (self *Fmt) fmtUint64Hex(val uint64) {
+	self.AppendString(`0x`)
+	self.AppendUint64Hex(val)
 }
 
-/*
-TODO: consider eliding the name of the "current" package. Is that possible?
-We can inspect the stack trace, but we might be unable to define "current".
-*/
-func typeName(typ r.Type) string { return typ.String() }
+func (self *Fmt) fmtIndent() { self.AppendStringN(self.Indent, self.Lvl) }
+
+func (self *Fmt) fmtIdent(pkg, name string) {
+	if self.Pkg != pkg {
+		self.AppendString(pkg)
+		self.AppendByte('.')
+	}
+	self.AppendString(name)
+}
+
+func (self *Fmt) fmtTypeNameOpt(typ r.Type) {
+	if !self.ElideType {
+		self.fmtTypeName(typ)
+	}
+}
+
+func (self *Fmt) fmtTypeName(typ r.Type) {
+	self.AppendString(self.typeName(typ))
+}
+
+func (self *Fmt) fmtConvOpen(typ r.Type) *Fmt {
+	self.fmtTypeName(typ)
+	self.AppendByte('(')
+	return self
+}
+
+func (self *Fmt) fmtConvOpt(outer, inner r.Type, excl ...r.Type) *Fmt {
+	if !isTypeInterface(outer) || gg.Has(excl, inner) {
+		return nil
+	}
+	return self.fmtConvOpen(inner)
+}
+
+func (self *Fmt) fmtConvClose() {
+	// The nil check is relevant for `defer`. See `.fmtConvOpt`.
+	if self != nil {
+		self.AppendByte(')')
+	}
+}
+
+func (self *Fmt) setElideType(val bool) gg.Snapshot[bool] {
+	return gg.PtrSwap(&self.ElideType, val)
+}
+
+func (self *Fmt) lvlInc() gg.Snapshot[int] {
+	return gg.PtrSwap(&self.Lvl, self.Lvl+1)
+}
+
+func (self *Fmt) skipField(src r.Value) bool {
+	return self.SkipZeroFields() && src.IsZero()
+}
+
+func (self *Fmt) typeName(typ r.Type) string {
+	return elidePkg(typeName(typ), self.Pkg)
+}
+
+func typeName(typ r.Type) string { return string(typeNameCache.Get(typ)) }
+
+var typeNameCache = gg.TypeCacheOf[typeNameStr]()
+
+type typeNameStr string
+
+func (self *typeNameStr) Init(typ r.Type) {
+	if typ == nil {
+		return
+	}
+
+	tar := typ.String()
+
+	/**
+	Some types must be wrapped in parens because we use the resulting type name
+	in expression context, not in type context. Wrapping avoids ambiguity with
+	value expression syntax.
+	*/
+	if typ.Kind() == r.Func && strings.HasPrefix(tar, `func(`) ||
+		typ.Kind() == r.Pointer && strings.HasPrefix(tar, `*`) {
+		tar = `(` + tar + `)`
+	}
+
+	tar = strings.ReplaceAll(tar, `interface {}`, `any`)
+	tar = reUint8.Get().ReplaceAllString(tar, `byte`)
+	*self = typeNameStr(tar)
+}
+
+var reUint8 = gg.NewLazy(func() *regexp.Regexp {
+	return regexp.MustCompile(`\buint8\b`)
+})
+
+func elidePkg(src, pkg string) string {
+	if pkg == `` {
+		return src
+	}
+
+	tar := strings.TrimPrefix(src, pkg)
+	if len(src) != len(tar) && len(tar) > 0 && tar[0] == '.' {
+		return tar[1:]
+	}
+	return src
+}
 
 func canAmpersand(kind r.Kind) bool {
 	return kind == r.Array || kind == r.Slice || kind == r.Struct
 }
 
 func isTypeDefaultForLiteral(typ r.Type) bool {
-	return typ == gg.Type[bool]() ||
-		typ == gg.Type[int]() ||
-		typ == gg.Type[string]()
-}
-
-func isValueNil(src r.Value) bool {
-	return isValueNilable(src) && src.IsNil()
-}
-
-func isValueNilable(src r.Value) bool {
-	switch src.Kind() {
-	case r.Invalid, r.Chan, r.Func, r.Interface, r.Map, r.Pointer, r.Slice:
+	switch typ {
+	case nil, typeBool, typeInt, typeString, typeComplex64, typeComplex128:
 		return true
 	default:
 		return false
 	}
 }
 
-func setElideType(buf *Fmt, val bool) gg.Snapshot[bool] {
-	return gg.PtrSwap(&buf.ElideType, val)
+func isValueNilInterface(src r.Value) bool {
+	return !src.IsValid() || isValueInterface(src) && src.IsNil()
 }
 
-func incLvl(buf *Fmt) gg.Snapshot[int] {
-	return gg.PtrSwap(&buf.Lvl, buf.Lvl+1)
+func isValueInterface(src r.Value) bool {
+	return src.Kind() == r.Interface
 }
 
-func skipField(buf *Fmt, src r.Value) bool {
-	return buf.SkipZeroFields() && src.IsZero()
+func isStructUnit(typ r.Type) bool { return typ.NumField() == 1 }
+
+func isTypeInterface(typ r.Type) bool { return gg.TypeKind(typ) == r.Interface }
+
+func structHeadType(typ r.Type) r.Type {
+	return gg.StructPublicFieldCache.Get(typ)[0].Type
 }
 
-func isNotBackquotable(char rune) bool {
-	const bom = '\ufeff'
-
-	return char == utf8.RuneError ||
-		char == '`' ||
-		char == bom ||
-		(char < ' ' && !(char == '\t' || char == '\n' || char == '\r'))
+func derefIface(val r.Value) r.Value {
+	for val.Kind() == r.Interface {
+		val = val.Elem()
+	}
+	return val
 }
 
-// TODO take type instead of value.
-func isStructUnit(val r.Value) bool { return val.NumField() == 1 }
+func textPrintability[A gg.Text](src A) (out printability) {
+	out.init(gg.ToString(src))
+	return
+}
 
-func isNotInterface(typ r.Type) bool {
-	return gg.TypeKind(typ) != r.Interface
+type printability struct {
+	errors, lineFeeds, carriageReturns, backquotes, escapes, unprintables bool
+}
+
+func (self *printability) init(src string) {
+	for _, val := range src {
+		/**
+		`unicode.IsPrint` uses `unicode.S` which includes `utf8.RuneError`.
+		As a result, it considers error runes printable, which is wildly
+		inappropriate for our purposes. So we have to handle it separately.
+		*/
+		if val == utf8.RuneError {
+			self.errors = true
+			return
+		}
+
+		if val == '\n' {
+			self.lineFeeds = true
+			continue
+		}
+
+		if val == '\r' {
+			self.carriageReturns = true
+			continue
+		}
+
+		if val == '`' {
+			self.backquotes = true
+			continue
+		}
+
+		if int(val) < len(stringEsc) && stringEsc[byte(val)] {
+			self.escapes = true
+			continue
+		}
+
+		if !unicode.IsPrint(val) {
+			self.unprintables = true
+			return
+		}
+	}
+}
+
+// https://go.dev/ref/spec#String_literals
+var stringEsc = [256]bool{
+	byte('\a'): true,
+	byte('\b'): true,
+	byte('\f'): true,
+	byte('\n'): true,
+	byte('\r'): true,
+	byte('\t'): true,
+	byte('\v'): true,
+	byte('\\'): true,
+	byte('"'):  true,
 }

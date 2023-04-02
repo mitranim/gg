@@ -122,57 +122,56 @@ func (self *Buf) AppendNewlineOpt() {
 func (self *Buf) AppendNewlines(count int) { self.AppendStringN(Newline, count) }
 
 /*
-Appends text representation of the input, using "strconv". Mutates the
-receiver.
+Appends text representation of the numeric value of the given byte in base 16.
+Always uses exactly 2 characters, for consistent width, which is the common
+convention for printing binary data. Mutates the receiver.
 */
-func (self *Buf) AppendUint(val int) {
+func (self *Buf) AppendByteHex(val byte) {
+	if val < 16 {
+		self.AppendByte('0')
+	}
+	*self = strconv.AppendUint(*self, uint64(val), 16)
+}
+
+// Appends text representation of the input. Mutates the receiver.
+func (self *Buf) AppendUint(val uint) {
 	*self = strconv.AppendUint(*self, uint64(val), 10)
 }
 
-/*
-Appends text representation of the input, using "strconv". Mutates the
-receiver.
-*/
+// Appends text representation of the input. Mutates the receiver.
 func (self *Buf) AppendUint64(val uint64) {
 	*self = strconv.AppendUint(*self, val, 10)
 }
 
 /*
-Appends text representation of the input, using "strconv". Mutates the
-receiver.
+Appends text representation of the input in base 16. Mutates the receiver.
+Also see `.AppendByteHex`.
 */
+func (self *Buf) AppendUint64Hex(val uint64) {
+	*self = strconv.AppendUint(*self, val, 16)
+}
+
+// Appends text representation of the input. Mutates the receiver.
 func (self *Buf) AppendInt(val int) {
 	*self = strconv.AppendInt(*self, int64(val), 10)
 }
 
-/*
-Appends text representation of the input, using "strconv". Mutates the
-receiver.
-*/
+// Appends text representation of the input. Mutates the receiver.
 func (self *Buf) AppendInt64(val int64) {
 	*self = strconv.AppendInt(*self, val, 10)
 }
 
-/*
-Appends text representation of the input, using "strconv". Mutates the
-receiver.
-*/
+// Appends text representation of the input. Mutates the receiver.
 func (self *Buf) AppendFloat32(val float32) {
 	*self = strconv.AppendFloat(*self, float64(val), 'f', -1, 32)
 }
 
-/*
-Appends text representation of the input, using "strconv". Mutates the
-receiver.
-*/
+// Appends text representation of the input. Mutates the receiver.
 func (self *Buf) AppendFloat64(val float64) {
 	*self = strconv.AppendFloat(*self, val, 'f', -1, 64)
 }
 
-/*
-Appends text representation of the input, using "strconv". Mutates the
-receiver.
-*/
+// Appends text representation of the input. Mutates the receiver.
 func (self *Buf) AppendBool(val bool) { *self = strconv.AppendBool(*self, val) }
 
 /*
@@ -269,7 +268,7 @@ Truncates the buffer's length, preserving the capacity. Does not modify the
 content. Mutates the receiver.
 */
 func (self *Buf) Clear() {
-	if self != nil && *self != nil {
+	if self != nil {
 		*self = (*self)[:0]
 	}
 }

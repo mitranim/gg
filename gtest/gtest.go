@@ -163,6 +163,7 @@ func NotEq[A comparable](act, nom A, opt ...any) {
 	}
 }
 
+// Internal shortcut for generating parts of an error message.
 func MsgEq(act, exp any) string {
 	return gg.JoinLinesOpt(`unexpected difference`, MsgEqInner(act, exp))
 }
@@ -175,29 +176,45 @@ func MsgEqInner(act, exp any) string {
 	)
 }
 
+// Internal shortcut for generating parts of an error message.
 func MsgEqDetailed(act, exp any) string {
 	return gg.JoinLinesOpt(
-		msgDet(`actual detailed:`, goStringIndent(act)),
-		msgDet(`expected detailed:`, goStringIndent(exp)),
+		Msg(`actual detailed:`, goStringIndent(act)),
+		Msg(`expected detailed:`, goStringIndent(exp)),
 	)
 }
 
+// Internal shortcut for generating parts of an error message.
 func MsgEqSimple(act, exp any) string {
 	return gg.JoinLinesOpt(
-		msgDet(`actual simple:`, gg.StringAny(act)),
-		msgDet(`expected simple:`, gg.StringAny(exp)),
+		Msg(`actual simple:`, gg.StringAny(act)),
+		Msg(`expected simple:`, gg.StringAny(exp)),
 	)
 }
 
+// Internal shortcut for generating parts of an error message.
 func MsgNotEq[A any](act A) string {
 	return gg.JoinLinesOpt(`unexpected equality`, msgSingle(act))
 }
 
-func msgDet(msg, det string) string {
+// Internal shortcut for generating parts of an error message.
+func Msg(msg, det string) string {
 	if det == `` {
 		return ``
 	}
-	return gg.JoinLinesOpt(msg, gg.Indent+det)
+	return gg.JoinLinesOpt(msg, reindent(det))
+}
+
+// Suboptimal, TODO revise.
+func reindent(src string) string {
+	return gg.JoinLinesOpt(gg.Map(gg.SplitLines(src), indent)...)
+}
+
+func indent(src string) string {
+	if src == `` {
+		return src
+	}
+	return gg.Indent + src
 }
 
 func goStringIndent[A any](val A) string { return grepr.StringIndent(val, 1) }
@@ -255,8 +272,8 @@ func SliceIs[A ~[]B, B any](act, exp A, opt ...any) {
 	if !gg.SliceIs(act, exp) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected difference in slice headers`,
-			msgDet(`actual header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](act))),
-			msgDet(`expected header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](exp))),
+			Msg(`actual header:`, goStringIndent(gg.SliceHeaderOf(act))),
+			Msg(`expected header:`, goStringIndent(gg.SliceHeaderOf(exp))),
 		))))
 	}
 }
@@ -271,8 +288,8 @@ func NotSliceIs[A ~[]B, B any](act, nom A, opt ...any) {
 	if gg.SliceIs(act, nom) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected given slice headers to be distinct, but they were equal`,
-			msgDet(`actual header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](act))),
-			msgDet(`nominal header:`, goStringIndent(gg.CastUnsafe[gg.SliceHeader](nom))),
+			Msg(`actual header:`, goStringIndent(gg.SliceHeaderOf(act))),
+			Msg(`nominal header:`, goStringIndent(gg.SliceHeaderOf(nom))),
 		))))
 	}
 }
@@ -305,15 +322,15 @@ func NotZero[A any](val A, opt ...any) {
 
 func msgSingle[A any](val A) string {
 	return gg.JoinLinesOpt(
-		msgDet(`detailed:`, goStringIndent(val)),
-		msgDet(`simple:`, gg.StringAny(val)),
+		Msg(`detailed:`, goStringIndent(val)),
+		Msg(`simple:`, gg.StringAny(val)),
 	)
 }
 
 func msgOpt(opt []any, src string) string {
 	return gg.JoinLinesOpt(
 		src,
-		msgDet(`extra:`, gg.SpacedOpt(opt...)),
+		Msg(`extra:`, gg.SpacedOpt(opt...)),
 	)
 }
 
@@ -395,14 +412,14 @@ func msgFun(val func()) string {
 	if val == nil {
 		return ``
 	}
-	return msgDet(`function:`, gg.FuncName(val))
+	return Msg(`function:`, gg.FuncName(val))
 }
 
 func msgErrTest(val func(error) bool) string {
 	if val == nil {
 		return ``
 	}
-	return msgDet(`error test:`, gg.FuncName(val))
+	return Msg(`error test:`, gg.FuncName(val))
 }
 
 func msgErrMismatch(fun func(), test func(error) bool, err error) string {
@@ -417,8 +434,8 @@ func msgErrMsgMismatch(fun func(), exp, act string) string {
 	return gg.JoinLinesOpt(
 		`unexpected error message mismatch`,
 		msgFun(fun),
-		msgDet(`actual error message:`, act),
-		msgDet(`expected error message substring:`, exp),
+		Msg(`actual error message:`, act),
+		Msg(`expected error message substring:`, exp),
 	)
 }
 
@@ -426,7 +443,7 @@ func msgErrIsMismatch(err, exp error) string {
 	return gg.JoinLinesOpt(
 		`unexpected error mismatch`,
 		msgErrActual(err),
-		msgDet(`expected error via errors.Is:`, gg.StringAny(exp)),
+		Msg(`expected error via errors.Is:`, gg.StringAny(exp)),
 	)
 }
 
@@ -525,15 +542,15 @@ func msgFunErr(fun func(), err error) string {
 
 func msgErr(err error) string {
 	return gg.JoinLinesOpt(
-		msgDet(`error trace:`, errTrace(err)),
-		msgDet(`error string:`, gg.StringAny(err)),
+		Msg(`error trace:`, errTrace(err)),
+		Msg(`error string:`, gg.StringAny(err)),
 	)
 }
 
 func msgErrActual(err error) string {
 	return gg.JoinLinesOpt(
-		msgDet(`actual error trace:`, errTrace(err)),
-		msgDet(`actual error string:`, gg.StringAny(err)),
+		Msg(`actual error trace:`, errTrace(err)),
+		Msg(`actual error string:`, gg.StringAny(err)),
 	)
 }
 
@@ -603,10 +620,10 @@ func msgSliceElemUnexpected[A ~[]B, B any](src A, val B) string {
 
 func msgSliceElem[A ~[]B, B any](src A, val B) string {
 	return gg.JoinLinesOpt(
-		msgDet(`slice detailed:`, goStringIndent(src)),
-		msgDet(`element detailed:`, goStringIndent(val)),
-		msgDet(`slice simple:`, gg.StringAny(src)),
-		msgDet(`element simple:`, gg.StringAny(val)),
+		Msg(`slice detailed:`, goStringIndent(src)),
+		Msg(`element detailed:`, goStringIndent(val)),
+		Msg(`slice simple:`, gg.StringAny(src)),
+		Msg(`element simple:`, gg.StringAny(val)),
 	)
 }
 
@@ -617,17 +634,17 @@ Otherwise fails the test, printing the optional additional messages and the
 stack trace.
 */
 func HasEvery[A ~[]B, B comparable](src, exp A, opt ...any) {
-	missing := gg.Subtract(exp, src)
+	missing := gg.Exclude(exp, src...)
 
 	if len(missing) > 0 {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected outer slice to contain all elements from inner slice`,
-			msgDet(`outer detailed:`, goStringIndent(src)),
-			msgDet(`inner detailed:`, goStringIndent(exp)),
-			msgDet(`missing detailed:`, goStringIndent(missing)),
-			msgDet(`outer simple:`, gg.StringAny(src)),
-			msgDet(`inner simple:`, gg.StringAny(exp)),
-			msgDet(`missing simple:`, gg.StringAny(missing)),
+			Msg(`outer detailed:`, goStringIndent(src)),
+			Msg(`inner detailed:`, goStringIndent(exp)),
+			Msg(`missing detailed:`, goStringIndent(missing)),
+			Msg(`outer simple:`, gg.StringAny(src)),
+			Msg(`inner simple:`, gg.StringAny(exp)),
+			Msg(`missing simple:`, gg.StringAny(missing)),
 		))))
 	}
 }
@@ -641,10 +658,10 @@ func HasSome[A ~[]B, B comparable](src, exp A, opt ...any) {
 	if !gg.HasSome(src, exp) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected lack of shared elements in two slices`,
-			msgDet(`left detailed:`, goStringIndent(src)),
-			msgDet(`right detailed:`, goStringIndent(exp)),
-			msgDet(`left simple:`, gg.StringAny(src)),
-			msgDet(`right simple:`, gg.StringAny(exp)),
+			Msg(`left detailed:`, goStringIndent(src)),
+			Msg(`right detailed:`, goStringIndent(exp)),
+			Msg(`left simple:`, gg.StringAny(src)),
+			Msg(`right simple:`, gg.StringAny(exp)),
 		))))
 	}
 }
@@ -660,12 +677,12 @@ func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {
 	if len(inter) > 0 {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected left slice to contain no elements from right slice`,
-			msgDet(`left detailed:`, goStringIndent(src)),
-			msgDet(`right detailed:`, goStringIndent(exp)),
-			msgDet(`intersection detailed:`, goStringIndent(inter)),
-			msgDet(`left simple:`, gg.StringAny(src)),
-			msgDet(`right simple:`, gg.StringAny(exp)),
-			msgDet(`intersection simple:`, gg.StringAny(inter)),
+			Msg(`left detailed:`, goStringIndent(src)),
+			Msg(`right detailed:`, goStringIndent(exp)),
+			Msg(`intersection detailed:`, goStringIndent(inter)),
+			Msg(`left simple:`, gg.StringAny(src)),
+			Msg(`right simple:`, gg.StringAny(exp)),
+			Msg(`intersection simple:`, gg.StringAny(inter)),
 		))))
 	}
 }
@@ -703,8 +720,8 @@ func TextHas[A, B gg.Text](src A, exp B, opt ...any) {
 	if !strings.Contains(gg.ToString(src), gg.ToString(exp)) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`text does not contain substring`,
-			msgDet(`full text:`, goStringIndent(gg.ToString(src))),
-			msgDet(`substring:`, goStringIndent(gg.ToString(exp))),
+			Msg(`full text:`, goStringIndent(gg.ToString(src))),
+			Msg(`substring:`, goStringIndent(gg.ToString(exp))),
 		))))
 	}
 }
@@ -717,8 +734,8 @@ func Empty[A ~[]B, B any](src A, opt ...any) {
 	if len(src) != 0 {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected non-empty slice`,
-			msgDet(`detailed:`, goStringIndent(src)),
-			msgDet(`simple:`, gg.StringAny(src)),
+			Msg(`detailed:`, goStringIndent(src)),
+			Msg(`simple:`, gg.StringAny(src)),
 		))))
 	}
 }
@@ -846,10 +863,10 @@ func msgLessEq[A any](one, two A) string {
 
 func msgAB[A any](one, two A) string {
 	return gg.JoinLinesOpt(
-		msgDet(`A detailed:`, goStringIndent(one)),
-		msgDet(`B detailed:`, goStringIndent(two)),
-		msgDet(`A simple:`, gg.StringAny(one)),
-		msgDet(`B simple:`, gg.StringAny(two)),
+		Msg(`A detailed:`, goStringIndent(one)),
+		Msg(`B detailed:`, goStringIndent(two)),
+		Msg(`A simple:`, gg.StringAny(one)),
+		Msg(`B simple:`, gg.StringAny(two)),
 	)
 }
 

@@ -137,11 +137,13 @@ the existing index. Can be useful for external code that directly modifies the
 inner `.Slice`, for example by sorting it. This is NOT used when adding items
 via `.Add`, which modifies the index incrementally rather than all-at-once.
 */
-func (self *Coll[_, _]) Reindex() {
-	src := self.Slice
-	self.Clear()
-	self.Slice = src[:0]
-	self.Add(src...)
+func (self *Coll[Key, _]) Reindex() {
+	slice := self.Slice
+	index := make(map[Key]int, len(slice))
+	for ind, val := range slice {
+		index[ValidPk[Key](val)] = ind
+	}
+	self.Index = index
 }
 
 /*

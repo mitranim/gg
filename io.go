@@ -14,8 +14,10 @@ Creates a read-closer able to read from the given string or byte slice. Similar
 to the following, but shorter and avoids allocation in case of bytes-to-string
 or string-to-bytes conversion:
 
-	io.NopCloser(strings.NewReader(string(val)))
-	io.NopCloser(bytes.NewReader([]byte(val)))
+	gg.NewReadCloser(string(`some_data`))
+	gg.NewReadCloser([]byte(`some_data`))
+	io.NopCloser(strings.NewReader(string(`some_data`)))
+	io.NopCloser(bytes.NewReader([]byte(`some_data`)))
 */
 func NewReadCloser[A Text](val A) io.ReadCloser {
 	if Kind[A]() == r.String {

@@ -1,6 +1,7 @@
 package gg
 
 import (
+	"math"
 	"path/filepath"
 	r "reflect"
 	"regexp"
@@ -179,3 +180,12 @@ func (self node[A]) vals() (out []A) {
 	}
 	return
 }
+
+func safeUintToInt(src uint) int {
+	if src > math.MaxInt {
+		return math.MaxInt
+	}
+	return int(src)
+}
+
+func isByteNewline(val byte) bool { return val == '\n' || val == '\r' }

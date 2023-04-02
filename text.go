@@ -1,7 +1,6 @@
 package gg
 
 import (
-	"math"
 	"regexp"
 	"strings"
 	"unicode"
@@ -69,42 +68,48 @@ cause undefined behavior.
 func TextDat[A Text](val A) *byte { return CastUnsafe[*byte](val) }
 
 /*
-TODO: in `TextDat`, consider using `unsafe.StringData` for strings and
-`unsafe.SliceData` for byte slices. Something like the following pseudocode.
-May run slower.
+Implementation note. We could write `TextDat` as following, but it would not be
+an improvement, because it still makes assumptions about the underlying
+structure of the data, specifically it assumes that strings and byte slices
+have a different width. At the time of writing, Go doesn't seem to provide a
+safe and free way to detect if we have `~string` or `~[]byte`. A type switch on
+`any(src)` works only for core types such as `string`, but not for typedefs
+conforming to `~string` and `~[]byte`. Alternatives involve overheads such as
+calling interface methods of `reflect.Type`, which would stop this function
+from being a free cast.
 
-func TextDat[A Text](val A) *byte {
-	if string {
-		return u.StringData(val)
+	func TextDat[A Text](src A) *byte {
+		if u.Sizeof(src) == SizeofString {
+			return u.StringData(string(src))
+		}
+		if u.Sizeof(src) == SizeofSlice {
+			return u.SliceData([]byte(src))
+		}
+		panic(`unreachable`)
 	}
-	if bytes {
-		return u.SliceData(val)
-	}
-	panic(`unreachable`)
-}
 */
 
 /*
 Allocation-free conversion between two types conforming to the `Text`
 constraint, typically variants of `string` and/or `[]byte`.
 */
-func ToText[Out, Src Text](val Src) Out {
-	tar := CastUnsafe[Out](val)
+func ToText[Out, Src Text](src Src) Out {
+	out := CastUnsafe[Out](src)
 
 	/**
-	Implementation note. We could also write the condition as shown below, but
-	this would be significantly slower than the unsafe trick:
+	Implementation note. We could also write the condition as shown below:
 
 		Kind[Src]() == r.String && Kind[Out]() == r.Slice
 
+	But the above would be measurably slower than the unsafe trick.
 	In addition, sizeof lets us ensure that the target can be cast into
 	`SliceHeader` without affecting other memory.
 	*/
-	if u.Sizeof(Zero[Src]()) == SizeofString && u.Sizeof(Zero[Out]()) == SizeofSliceHeader {
-		CastUnsafe[*SliceHeader](&tar).Cap = len(tar)
+	if u.Sizeof(src) == SizeofString && u.Sizeof(out) == SizeofSliceHeader {
+		CastUnsafe[*SliceHeader](&out).Cap = len(out)
 	}
 
-	return tar
+	return out
 }
 
 /*
@@ -297,8 +302,8 @@ func JoinOpt[A Text](src []A, sep string) string {
 				if found {
 					buf.AppendString(sep)
 				}
-				buf = append(buf, src...)
 				found = true
+				buf = append(buf, src...)
 			}
 		}
 		return buf.String()
@@ -319,22 +324,58 @@ func Split2[A Text](src A, sep string) (A, A) {
 
 /*
 Splits the given text into lines. The resulting strings do not contain any
-newline characters. If the input is empty, the output is nil. The following
-sequences are considered newlines: "\r\n", "\r", "\n".
+newline characters. If the input is empty, the output is empty. Avoids
+information loss: preserves empty lines, allowing the caller to transform and
+join the lines without losing blanks. The following sequences are considered
+newlines: "\r\n", "\r", "\n".
 */
-func SplitLines[A Text](src A) []string {
-	if len(src) <= 0 {
-		return nil
+func SplitLines[A Text](src A) []A {
+	/**
+	In our benchmark in Go 1.22, this runs about 20-30 times faster than the
+	equivalent regexp-based implementation.
+
+	It would be much simpler to use `strings.FieldsFunc` and `bytes.FieldsFunc`,
+	but they would elide empty lines, losing information and making this
+	non-reversible. They would also be about 2 times slower.
+
+	TODO simpler implementation.
+	*/
+
+	var out []A
+	var prev int
+	var next int
+	max := len(src)
+
+	/**
+	Iterating bytes is significantly faster than runes, and in valid UTF-8 it's
+	not possible to encounter '\r' or '\n' in multi-byte characters, making this
+	safe for valid text.
+	*/
+	for next < max {
+		char := src[next]
+
+		if char == '\r' && next < len(src)-1 && src[next+1] == '\n' {
+			out = append(out, src[prev:next])
+			next = next + 2
+			prev = next
+			continue
+		}
+
+		if char == '\n' || char == '\r' {
+			out = append(out, src[prev:next])
+			next++
+			prev = next
+			continue
+		}
+
+		next++
 	}
 
-	// Probably vastly suboptimal. Needs tuning.
-	return ReNewline.Get().Split(ToString(src), -1)
+	if next > 0 {
+		out = append(out, src[prev:next])
+	}
+	return out
 }
-
-// Matches any newline. Supports Windows, Unix, and old MacOS styles.
-var ReNewline = NewLazy(func() *regexp.Regexp {
-	return regexp.MustCompile(`(?:\r\n|\r|\n)`)
-})
 
 /*
 Similar to `SplitLines`, but splits only on the first newline occurrence,
@@ -390,8 +431,7 @@ func TextPop[Src, Sep Text](ptr *Src, sep Sep) Src {
 
 // True if the string ends with a line feed or carriage return.
 func HasNewlineSuffix[A Text](src A) bool {
-	val := TextLastByte(src)
-	return val == '\n' || val == '\r'
+	return isByteNewline(TextLastByte(src))
 }
 
 /*
@@ -423,7 +463,7 @@ Regexp for splitting arbitrary text into words, Unicode-aware. Used by
 `ToWords`.
 */
 var ReWord = NewLazy(func() *regexp.Regexp {
-	return regexp.MustCompile(`\p{Lu}\p{Ll}+\d*|\p{Lu}+\d*|\p{Ll}+\d*`)
+	return regexp.MustCompile(`\p{Lu}+[\p{Ll}\d]*|[\p{Ll}\d]+`)
 })
 
 /*
@@ -544,25 +584,36 @@ func TextCut[A Text](src A, start, end int) (_ A) {
 }
 
 /*
-Truncates the given text to the given total count of Unicode characters
-(not bytes) with an ellipsis, if needed. The total count includes the ellipsis
-character '…'. The limit's can't exceed `math.MaxInt`.
+Truncates text to the given count of Unicode characters (not bytes). The limit
+can't exceed `math.MaxInt`. Also see `TextTruncWith` which is more general.
 */
-func Ellipsis[A Text](src A, limit uint) string {
+func TextTrunc[A Text](src A, limit uint) (_ A) {
+	return TextTruncWith(src, Zero[A](), limit)
+}
+
+/*
+Shortcut for `TextTruncWith(src, "…")`. Truncates the given text to the given total
+count of Unicode characters with an ellipsis.
+*/
+func TextEllipsis[A Text](src A, limit uint) A {
+	return TextTruncWith(src, ToText[A](`…`), limit)
+}
+
+/*
+Truncates the given text to the given total count of Unicode characters
+(not bytes) with a suffix. If the text is under the limit, it's returned
+unchanged, otherwise it's truncated and the given suffix is appended. The total
+count includes the character count of the given suffix string. The limit can't
+exceed `math.MaxInt`. Also see shortcut `TextEllipsis` which uses this with the
+ellipsis character '…'.
+*/
+func TextTruncWith[A Text](src, suf A, limit uint) A {
 	if limit == 0 {
-		return ``
+		return Zero[A]()
 	}
 
-	var lim int
-	if limit > math.MaxInt {
-		lim = math.MaxInt
-	} else {
-		lim = int(limit)
-	}
-
-	const suf = `…`
-	const sufCharLen = 1
-
+	lim := safeUintToInt(limit)
+	sufCharLen := CharCount(suf)
 	str := ToString(src)
 	prevInd := 0
 	nextInd := 0
@@ -570,10 +621,10 @@ func Ellipsis[A Text](src A, limit uint) string {
 
 	for nextInd = range str {
 		if charInd+sufCharLen > lim {
-			return str[:prevInd] + suf
+			return ToText[A](str[:prevInd] + ToString(suf))
 		}
 		prevInd = nextInd
 		charInd++
 	}
-	return str
+	return src
 }

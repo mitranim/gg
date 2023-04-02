@@ -6,6 +6,7 @@ import (
 	r "reflect"
 	"strconv"
 	"time"
+	u "unsafe"
 )
 
 /*
@@ -345,3 +346,43 @@ Shortcut for `strconv.Quote(String(val))`.
 Encodes an arbitrary value to a string and quotes it.
 */
 func Quote[A any](val A) string { return strconv.Quote(String(val)) }
+
+/*
+Returns a representation of the bits in the given machine number, using the
+traditional big-endian ordering, starting with the most significant bit, which
+represents the sign in signed integers. The representation is always padded to
+the full number of bits: 8 for uint8/int8, 16 for uint16/int16, and so on. For
+unsigned numbers, this is equivalent to using `fmt.Sprintf` with the `%b` flag
+and appropriate padding. For signed numbers, this is not equivalent.
+*/
+func NumBits[A Int](src A) string {
+	size := u.Sizeof(src)
+	var num uint64
+
+	switch size {
+	case 1:
+		num = uint64(CastUnsafe[uint8](src))
+	case 2:
+		num = uint64(CastUnsafe[uint16](src))
+	case 4:
+		num = uint64(CastUnsafe[uint32](src))
+	case 8:
+		num = uint64(CastUnsafe[uint64](src))
+	default:
+		panic(Errf(`unsupported sizeof %T: %v`, src, size))
+	}
+
+	buf0 := make(Buf, size*8)
+	buf1 := strconv.AppendUint(buf0[:0], num, 2)
+	len0 := len(buf0)
+	len1 := len(buf1)
+	off := len0 - len1
+
+	if off > 0 {
+		copy(buf0[off:], buf1)
+		for ind := range buf0[:off] {
+			buf0[ind] = '0'
+		}
+	}
+	return buf0.String()
+}

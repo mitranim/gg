@@ -8,7 +8,7 @@ import (
 )
 
 // TODO: test with concurrency.
-func TestNewLazy(t *testing.T) {
+func TestLazy(t *testing.T) {
 	defer gtest.Catch(t)
 
 	var count int
@@ -21,15 +21,13 @@ func TestNewLazy(t *testing.T) {
 		return count
 	})
 
-	gtest.NotPanic(func() {
-		gtest.Eq(once.Get(), 1)
-		gtest.Eq(once.Get(), 1)
-		gtest.Eq(once.Get(), 1)
-		gtest.Eq(once.Get(), 1)
-	})
+	gtest.Eq(*gg.CastUnsafe[*int](once), 0)
+	gtest.Eq(once.Get(), 1)
+	gtest.Eq(once.Get(), once.Get())
+	gtest.Eq(*gg.CastUnsafe[*int](once), 1)
 }
 
-func BenchmarkNewLazy(b *testing.B) {
+func BenchmarkLazy(b *testing.B) {
 	once := gg.NewLazy(gg.Cwd)
 
 	for ind := 0; ind < b.N; ind++ {

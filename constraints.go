@@ -22,6 +22,9 @@ type Int interface{ Sint | Uint }
 // Describes all built-in float types and their typedefs.
 type Float interface{ ~float32 | ~float64 }
 
+// Describes all built-in complex number types and their typedefs.
+type Complex interface{ ~complex64 | ~complex128 }
+
 /*
 Describes all built-in numeric types and their typedefs, excluding complex
 numbers.

@@ -15,9 +15,9 @@ and cache the result, and discard the function. Uses `sync.Once` internally for
 synchronization.
 */
 type Lazy[A any] struct {
-	once sync.Once
 	val  A
 	fun  func() A
+	once sync.Once
 }
 
 /*

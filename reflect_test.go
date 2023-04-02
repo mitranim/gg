@@ -358,8 +358,8 @@ func testCloneDeepSame[A comparable](src A) {
 func testCloneDeepSameSlice[A any](src []A) {
 	gtest.Equal(gg.CloneDeep(src), src)
 
-	gtest.Eq(gg.SliceDat(gg.Clone(src)), gg.SliceDat(src))
-	gtest.Eq(gg.SliceDat(gg.CloneDeep(src)), gg.SliceDat(src))
+	gtest.Eq(u.SliceData(gg.Clone(src)), u.SliceData(src))
+	gtest.Eq(u.SliceData(gg.CloneDeep(src)), u.SliceData(src))
 
 	gtest.SliceIs(gg.Clone(src), src)
 	gtest.SliceIs(gg.CloneDeep(src), src)
@@ -379,8 +379,8 @@ func testSliceEqualButDistinct[A any](src, tar []A) {
 	gtest.Equal(tar, src)
 	gtest.Equal(tar, shallow)
 
-	gtest.NotEq(gg.SliceDat(shallow), gg.SliceDat(src))
-	gtest.NotEq(gg.SliceDat(tar), gg.SliceDat(src))
+	gtest.NotEq(u.SliceData(shallow), u.SliceData(src))
+	gtest.NotEq(u.SliceData(tar), u.SliceData(src))
 
 	gtest.NotSliceIs(shallow, src)
 	gtest.NotSliceIs(tar, src)
@@ -593,5 +593,13 @@ func TestValueDerefAlloc(t *testing.T) {
 
 		deref(&tar).SetString(`str`)
 		gtest.Equal(tar, gg.Ptr(gg.Ptr(`str`)))
+	}
+}
+
+func BenchmarkSize(b *testing.B) {
+	defer gtest.Catch(b)
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Size[string]())
 	}
 }

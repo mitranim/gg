@@ -1,16 +1,17 @@
-MAKEFLAGS  := --silent --always-make
-MAKE_PAR   := $(MAKE) -j 128
-GO_FLAGS   := -tags=$(tags) -mod=mod
-VERB       := $(if $(filter $(verb),true), -v,)
-SHORT      := $(if $(filter $(short),true), -short,)
-PROF       := $(if $(filter $(prof),true), -cpuprofile=cpu.prof -memprofile=mem.prof,)
+MAKEFLAGS := --silent --always-make
+MAKE_PAR := $(MAKE) -j 128
+GO_FLAGS := -tags=$(tags) -mod=mod
+VERB := $(if $(filter $(verb),true), -v,)
+SHORT := $(if $(filter $(short),true), -short,)
+PROF := $(if $(filter $(prof),true), -cpuprofile=cpu.prof -memprofile=mem.prof,)
 TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(SHORT) $(PROF)
-TEST       := test $(TEST_FLAGS) -timeout=2s -run=$(run)
-PKG        := ./$(or $(pkg),...)
-BENCH      := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=128ms
-GOW        := gow -c -v -e=go,mod,pgsql
-WATCH      := watchexec -r -c -d=0 -n
-DOC_HOST   := localhost:58214
+TEST := test $(TEST_FLAGS) -timeout=1s -run=$(run)
+PKG := ./$(or $(pkg),...)
+BENCH := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=128ms
+GOW := gow -c -v -e=go,mod,pgsql
+WATCH := watchexec -r -c -d=0 -n
+DOC_HOST := localhost:58214
+OK = echo [$@] ok
 
 default: test_w
 
@@ -34,7 +35,14 @@ lint_w:
 
 lint:
 	golangci-lint run
-	echo [lint] ok
+	$(OK)
+
+vet_w:
+	$(WATCH) -- $(MAKE) vet
+
+vet:
+	go vet $(GO_FLAGS) $(PKG)
+	$(OK)
 
 prof:
 	$(MAKE_PAR) prof_cpu prof_mem

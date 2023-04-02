@@ -1,6 +1,8 @@
 package gg
 
-import "sort"
+import (
+	"sort"
+)
 
 /*
 Syntactic shortcut for creating a slice out of the given values. Simply returns
@@ -47,14 +49,6 @@ methods that can be passed to higher-order functions. Example:
 	// []string{`one`, `three`}
 */
 type Slice[A any] []A
-
-// Returns the underlying data pointer of the given slice.
-func SliceDat[Slice ~[]Elem, Elem any](src Slice) *Elem {
-	return CastUnsafe[*Elem](src)
-}
-
-// Same as global `SliceDat`.
-func (self Slice[A]) Dat() *A { return SliceDat(self) }
 
 // True if len <= 0. Inverse of `.IsNotEmpty`.
 func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) <= 0 }
@@ -1168,7 +1162,7 @@ func Exclude[Slice ~[]Elem, Elem comparable](base Slice, sub ...Elem) Slice {
 Returns a version of the given slice excluding any additionally supplied
 values.
 */
-func Subtract[Slice ~[]Elem, Elem comparable](base Slice, sub ...Slice) Slice {
+func ExcludeFrom[Slice ~[]Elem, Elem comparable](base Slice, sub ...Slice) Slice {
 	return Reject(base, SetFrom(sub...).Has)
 }
 
@@ -1296,7 +1290,10 @@ func Some[A any](src []A, fun func(A) bool) bool {
 // Same as global `Some`.
 func (self Slice[A]) Some(fun func(A) bool) bool { return Some(self, fun) }
 
-// Inverse of `Some`.
+/*
+True if the given function returns false for every element of the given slice,
+or if the slice is empty, or if the function is nil. Exact inverse of `Some`.
+*/
 func None[A any](src []A, fun func(A) bool) bool { return !Some(src, fun) }
 
 // Same as global `None`.

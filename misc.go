@@ -26,22 +26,26 @@ func IsZero[A any](val A) bool {
 	}
 
 	/**
-	Prioritize `==` over reflection if possible. This is measurably faster than
-	the reflect-based version, especially for large value types such as fat
-	structs or arrays. It would be ideal to compare concrete values rather than
-	`any`, but we can't afford to require `comparable` here, and comparing `any`
+	When possible, we want to "natively" compare to a zero value before invoking
+	`Zeroable`. Depending on the Go version, this may slightly speed us up, or
+	slightly slow us down. More importantly, this improves correctness,
+	safeguarding us against bizarre implementations of `Zeroable` such as
+	`reflect.Value.IsZero`, which panics when called on the zero value of
+	`reflect.Value`.
+
+	It would be ideal to compare concrete values rather than `any`, but requiring
+	`comparable` would make this function much less usable, and comparing `any`
 	seems fast enough.
 	*/
 	if Type[A]().Comparable() {
-		/**
-		True zero value must always be considered zero. This safeguards us against
-		bizarre implementations of `Zeroable` such as `reflect.Value.IsZero`,
-		which panics when called on the zero value of `reflect.Value`.
-		*/
 		if box == AnyNoEscUnsafe(Zero[A]()) {
 			return true
 		}
 
+		/**
+		Terminate here to avoid falling down to the reflection-based clause.
+		We already know that our value is not considered zero by Go.
+		*/
 		impl, _ := box.(Zeroable)
 		return impl != nil && impl.IsZero()
 	}
@@ -50,11 +54,38 @@ func IsZero[A any](val A) bool {
 	if impl != nil {
 		return impl.IsZero()
 	}
+
+	/**
+	Implementation note. For some types, some non-zero byte patterns are
+	considered a zero value. The most notable example is strings. For example,
+	the following expression makes a string with a non-zero data pointer, which
+	is nevertheless considered a zero value by Go:
+
+		`some_text`[:0]
+
+	`reflect.Value.IsZero` correctly handles such cases, and doesn't seem to be
+	outrageously slow.
+	*/
 	return r.ValueOf(box).IsZero()
 }
 
 // Inverse of `IsZero`.
 func IsNotZero[A any](val A) bool { return !IsZero(val) }
+
+/*
+True if every byte in the given value is zero. Not equivalent to `IsZero`.
+Most of the time, you should prefer `IsZero`, which is more performant and
+more correct.
+*/
+func IsTrueZero[A any](val A) bool {
+	size := u.Sizeof(val)
+	for off := uintptr(0); off < size; off++ {
+		if *(*byte)(u.Pointer(uintptr(u.Pointer(&val)) + off)) != 0 {
+			return false
+		}
+	}
+	return true
+}
 
 // Returns a zero value of the given type.
 func Zero[A any]() (_ A) { return }
@@ -239,8 +270,9 @@ True if the inputs are byte-for-byte identical. This function is not meant for
 common use. Nearly always, you should use `Eq` or `Equal` instead. This one is
 sometimes useful for testing purposes, such as asserting that two interface
 values refer to the same underlying data. This may lead to brittle code that is
-not portable between different Go implementations. The implementation is naive
-and may be slower than `Eq` or `==`.
+not portable between different Go implementations. Performance is similar to
+`==` for small value sizes (up to 2-4 machine words) but is significantly worse
+for large value sizes.
 */
 func Is[A any](one, two A) bool {
 	/**
@@ -254,8 +286,7 @@ func Is[A any](one, two A) bool {
 	the implementation above.
 	*/
 
-	typ := Type[A]()
-	size := typ.Size()
+	size := u.Sizeof(one)
 
 	switch size {
 	case 0:
@@ -264,12 +295,27 @@ func Is[A any](one, two A) bool {
 	case SizeofWord:
 		return *(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))
 
+	// Common case: comparing interfaces or strings.
 	case SizeofWord * 2:
 		return (*(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))) &&
 			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + SizeofWord)) ==
 				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + SizeofWord)))
 
+	// Common case: comparing slices.
+	case SizeofWord * 3:
+		return (*(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))) &&
+			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + SizeofWord)) ==
+				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + SizeofWord))) &&
+			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + SizeofWord*2)) ==
+				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + SizeofWord*2)))
+
 	default:
+		/**
+		Implementation note. We could also walk word-by-word by using padded structs
+		to ensure sufficient empty memory. It would improve the performance
+		slightly, but not enough to bother. The resulting performance is still
+		much worse than `==` on whole values.
+		*/
 		for off := uintptr(0); off < size; off++ {
 			oneChunk := *(*byte)(u.Pointer(uintptr(u.Pointer(&one)) + off))
 			twoChunk := *(*byte)(u.Pointer(uintptr(u.Pointer(&two)) + off))
@@ -319,7 +365,9 @@ True if the given slices have the same data pointer, length, capacity.
 Does not compare individual elements.
 */
 func SliceIs[A any](one, two []A) bool {
-	return CastUnsafe[r.SliceHeader](one) == CastUnsafe[r.SliceHeader](two)
+	return u.SliceData(one) == u.SliceData(two) &&
+		len(one) == len(two) &&
+		cap(one) == cap(two)
 }
 
 // Returns the first non-zero value from among the inputs.
@@ -342,8 +390,8 @@ func AnyIs[A any](src any) bool {
 }
 
 /*
-Non-asserting interface conversion. Safely converts the given `any` into the
-given type, returning zero value on failure.
+Non-asserting interface conversion. Converts the given `any` into the given
+type, returning zero value on failure.
 */
 func AnyAs[A any](src any) A {
 	val, _ := AnyNoEscUnsafe(src).(A)
@@ -406,18 +454,43 @@ compile to approximately the same instructions as "normal" counted loops.
 func Iter(size int) []struct{} { return make([]struct{}, size) }
 
 /*
-Returns a slice of numbers from "min" to "max". The range is inclusive at the
-start but exclusive at the end: "[min,max)".
+Returns a slice of numbers from `min` to `max`. The range is inclusive at the
+start but exclusive at the end: `[min,max)`. If `!(max > min)`, returns nil.
+Values must be within the range of the Go type `int`.
 */
 func Range[A Int](min, max A) []A {
-	buf := make([]A, max-min)
+	// We must check this before calling `max-1` to avoid underflow.
+	if !(max > min) {
+		return nil
+	}
+	return RangeIncl(min, max-1)
+}
+
+/*
+Returns a slice of numbers from `min` to `max`. The range is inclusive at the
+start and at the end: `[min,max]`. If `!(max >= min)`, returns nil. Values must
+be within the range of the Go type `int`.
+
+While the exclusive range `[min,max)` implemented by `Range` is more
+traditional, this function allows to create a range that includes the maximum
+representable value of any given integer type, such as 255 for `uint8`, which
+cannot be done with `Range`.
+*/
+func RangeIncl[A Int](min, max A) []A {
+	if !(max >= min) {
+		return nil
+	}
+
+	minInt := NumConv[int](min)
+	maxInt := NumConv[int](max)
+	buf := make([]A, (maxInt-minInt)+1)
 	for ind := range buf {
-		buf[ind] = A(ind) + min
+		buf[ind] = A(ind + minInt)
 	}
 	return buf
 }
 
-// Shortcut for creating a range from 0 to N.
+// Shortcut for creating range `[0,N)`, exclusive at the end.
 func Span[A Int](val A) []A { return Range(0, val) }
 
 // Combines two inputs via "+". Also see variadic `Plus`.
@@ -487,16 +560,16 @@ the previous length. Usage:
 
 	defer SnapSlice(&somePtr).Done()
 */
-func SnapSlice[Slice ~[]Elem, Elem any](ptr *Slice) SliceSnapshot[Elem] {
-	return SliceSnapshot[Elem]{CastUnsafe[*[]Elem](ptr), PtrLen(ptr)}
+func SnapSlice[Slice ~[]Elem, Elem any](ptr *Slice) SliceSnapshot[Slice, Elem] {
+	return SliceSnapshot[Slice, Elem]{ptr, PtrLen(ptr)}
 }
 
 /*
 Analogous to `Snapshot`, but instead of storing a value, stores a length.
 When done, reverts the referenced slice to the given length.
 */
-type SliceSnapshot[A any] struct {
-	Ptr *[]A
+type SliceSnapshot[Slice ~[]Elem, Elem any] struct {
+	Ptr *Slice
 	Len int
 }
 
@@ -504,7 +577,7 @@ type SliceSnapshot[A any] struct {
 Analogous to `Snapshot.Done`. Reverts the referenced slice to `self.Len` while
 keeping the capacity.
 */
-func (self SliceSnapshot[_]) Done() {
+func (self SliceSnapshot[_, _]) Done() {
 	if self.Ptr != nil {
 		*self.Ptr = (*self.Ptr)[:self.Len]
 	}

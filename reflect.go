@@ -67,7 +67,10 @@ the type parameter is an interface, the output is `reflect.Interface`.
 */
 func KindOf[A any](A) r.Kind { return Type[A]().Kind() }
 
-// Returns `reflect.Type.Size` of the given type.
+/*
+Returns `reflect.Type.Size` of the given type. Prefer `Sizeof` which is
+equivalent but more performant.
+*/
 func Size[A any]() uintptr { return Type[A]().Size() }
 
 // Uses `reflect.Zero` to create a zero value of the given type.
@@ -123,6 +126,42 @@ func IsTypeBytes(typ r.Type) bool {
 	return (typ != nil) &&
 		(typ.Kind() == r.Slice || typ.Kind() == r.Array) &&
 		(typ.Elem().Kind() == r.Uint8)
+}
+
+/*
+Safer version of `reflect.Value.IsNil`. Doesn't panic if the value is not
+nilable.
+*/
+func IsValueNil(val r.Value) bool { return IsValueNilable(val) && val.IsNil() }
+
+// Shortcut for `IsKindNilable(val.Kind())`.
+func IsValueNilable(val r.Value) bool { return IsKindNilable(val.Kind()) }
+
+// Shortcut for `IsTypeNilable(TypeKind(val))`.
+func IsTypeNilable(val r.Type) bool { return IsKindNilable(TypeKind(val)) }
+
+/*
+True if the given `reflect.Kind` describes a kind whose value can be nil.
+On any `reflect.Value` matching this, it's safe to call `.IsNil`.
+*/
+func IsKindNilable(val r.Kind) bool {
+	switch val {
+	case r.Invalid, r.Chan, r.Func, r.Interface, r.Map, r.Pointer, r.Slice:
+		return true
+	default:
+		return false
+	}
+}
+
+/*
+Same as `reflect.Value.Type`, but when value is invalid, returns nil instead of
+panicking.
+*/
+func ValueType(src r.Value) r.Type {
+	if src.IsValid() {
+		return src.Type()
+	}
+	return nil
 }
 
 /*

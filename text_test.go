@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	u "unsafe"
 
 	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
@@ -80,6 +81,25 @@ func testToBytes(fun func(string) []byte) {
 	test(`one`)
 	test(`two`)
 	test(`three`)
+}
+
+func BenchmarkTextDat_string(b *testing.B) {
+	defer gtest.Catch(b)
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.TextDat(`b5c298d773c048b2a88e7fe4a2bd5b0d`))
+	}
+}
+
+func BenchmarkTextDat_bytes(b *testing.B) {
+	defer gtest.Catch(b)
+
+	src := []byte(`b5c298d773c048b2a88e7fe4a2bd5b0d`)
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.TextDat(src))
+	}
 }
 
 func BenchmarkToText_string_to_string(b *testing.B) {
@@ -320,6 +340,16 @@ func TestToWords(t *testing.T) {
 	test(`one12-Two34-Three56`, gg.Words{`one12`, `Two34`, `Three56`})
 	test(`One12-Two34-Three56`, gg.Words{`One12`, `Two34`, `Three56`})
 	test(`ONE12-TWO34-THREE56`, gg.Words{`ONE12`, `TWO34`, `THREE56`})
+
+	test(`one&two|three`, gg.Words{`one`, `two`, `three`})
+	test(`one&two|three:four`, gg.Words{`one`, `two`, `three`, `four`})
+
+	test(`12a33fe0-4b4a-48e5-bb90-53a068ad376b`, gg.Words{`12a33fe0`, `4b4a`, `48e5`, `bb90`, `53a068ad376b`})
+	test(`2af310ac-f7b8-470d-b04c-98a286b8bf3f`, gg.Words{`2af310ac`, `f7b8`, `470d`, `b04c`, `98a286b8bf3f`})
+	test(`154cd2d1-fade-4cab-ab01-a7df8b760569`, gg.Words{`154cd2d1`, `fade`, `4cab`, `ab01`, `a7df8b760569`})
+	test(`c7ddacf8-4117-49c3-8a7e-a3c9627dc199`, gg.Words{`c7ddacf8`, `4117`, `49c3`, `8a7e`, `a3c9627dc199`})
+	test(`cf1a86ed-6db7-4c6f-aad3-c8e6cb1cb2f2`, gg.Words{`cf1a86ed`, `6db7`, `4c6f`, `aad3`, `c8e6cb1cb2f2`})
+	test(`78437a9e-45fd-4007-8a04-bace0147df30`, gg.Words{`78437a9e`, `45fd`, `4007`, `8a04`, `bace0147df30`})
 }
 
 // TODO test Unicode.
@@ -390,17 +420,64 @@ func TestSplitLines(t *testing.T) {
 
 	var Split = gg.SplitLines[string]
 
-	gtest.Zero(Split(""))
-	gtest.Equal(Split(" "), []string{` `})
+	gtest.Empty(Split(``))
+	gtest.Equal(Split(` `), []string{` `})
+
 	gtest.Equal(Split("\n"), []string{``, ``})
+	gtest.Equal(Split("\r"), []string{``, ``})
+	gtest.Equal(Split("\r\n"), []string{``, ``})
+
 	gtest.Equal(Split("one"), []string{`one`})
 	gtest.Equal(Split("one\n"), []string{`one`, ``})
+	gtest.Equal(Split("one\r"), []string{`one`, ``})
+	gtest.Equal(Split("one\r\n"), []string{`one`, ``})
+
 	gtest.Equal(Split("\none"), []string{``, `one`})
+	gtest.Equal(Split("\rone"), []string{``, `one`})
+	gtest.Equal(Split("\r\none"), []string{``, `one`})
+
 	gtest.Equal(Split("\none\n"), []string{``, `one`, ``})
+	gtest.Equal(Split("\rone\r"), []string{``, `one`, ``})
+	gtest.Equal(Split("\r\none\r\n"), []string{``, `one`, ``})
+
 	gtest.Equal(Split("one\ntwo"), []string{`one`, `two`})
+	gtest.Equal(Split("one\rtwo"), []string{`one`, `two`})
+	gtest.Equal(Split("one\r\ntwo"), []string{`one`, `two`})
+
 	gtest.Equal(Split("one\ntwo\n"), []string{`one`, `two`, ``})
+	gtest.Equal(Split("one\rtwo\r"), []string{`one`, `two`, ``})
+	gtest.Equal(Split("one\r\ntwo\r\n"), []string{`one`, `two`, ``})
+
 	gtest.Equal(Split("\none\ntwo"), []string{``, `one`, `two`})
+	gtest.Equal(Split("\rone\rtwo"), []string{``, `one`, `two`})
+	gtest.Equal(Split("\r\none\r\ntwo"), []string{``, `one`, `two`})
+
 	gtest.Equal(Split("\none\ntwo\n"), []string{``, `one`, `two`, ``})
+	gtest.Equal(Split("\rone\rtwo\r"), []string{``, `one`, `two`, ``})
+	gtest.Equal(Split("\r\none\r\ntwo\r\n"), []string{``, `one`, `two`, ``})
+}
+
+func BenchmarkSplitLines(b *testing.B) {
+	defer gtest.Catch(b)
+	src := makeLines()
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.SplitLines(src))
+	}
+}
+
+func makeLines() []byte {
+	var buf gg.Buf
+	buf.GrowLen(1024 * 1024)
+	for ind := range buf {
+		if ind%64 == 0 {
+			buf[ind] = '\n'
+		} else {
+			buf[ind] = ' '
+		}
+	}
+	return buf
 }
 
 func TestSplitLines2(t *testing.T) {
@@ -552,33 +629,45 @@ func BenchmarkStr_3(b *testing.B) {
 	}
 }
 
-func TestEllipsis(t *testing.T) {
+func TestTextEllipsis(t *testing.T) {
 	defer gtest.Catch(t)
 
 	const src = `🐒🐴🦖🦔🐲🐈`
 
-	gtest.Zero(gg.Ellipsis(src, 0))
-	gtest.Eq(gg.Ellipsis(src, 1), `…`)
-	gtest.Eq(gg.Ellipsis(src, 2), `🐒…`)
-	gtest.Eq(gg.Ellipsis(src, 3), `🐒🐴…`)
-	gtest.Eq(gg.Ellipsis(src, 4), `🐒🐴🦖…`)
-	gtest.Eq(gg.Ellipsis(src, 5), `🐒🐴🦖🦔…`)
-	gtest.Eq(gg.Ellipsis(src, 6), `🐒🐴🦖🦔🐲🐈`)
-	gtest.Eq(gg.Ellipsis(src, 7), `🐒🐴🦖🦔🐲🐈`)
-	gtest.Eq(gg.Ellipsis(src, 8), `🐒🐴🦖🦔🐲🐈`)
-	gtest.Eq(gg.Ellipsis(src, 9), `🐒🐴🦖🦔🐲🐈`)
-	gtest.Eq(gg.Ellipsis(src, math.MaxUint), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Zero(gg.TextEllipsis(src, 0))
+	gtest.Eq(gg.TextEllipsis(src, 1), `…`)
+	gtest.Eq(gg.TextEllipsis(src, 2), `🐒…`)
+	gtest.Eq(gg.TextEllipsis(src, 3), `🐒🐴…`)
+	gtest.Eq(gg.TextEllipsis(src, 4), `🐒🐴🦖…`)
+	gtest.Eq(gg.TextEllipsis(src, 5), `🐒🐴🦖🦔…`)
+	gtest.Eq(gg.TextEllipsis(src, 6), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.TextEllipsis(src, 7), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.TextEllipsis(src, 8), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.TextEllipsis(src, 9), `🐒🐴🦖🦔🐲🐈`)
+	gtest.Eq(gg.TextEllipsis(src, math.MaxUint), `🐒🐴🦖🦔🐲🐈`)
 }
 
-func BenchmarkEllipsis_changed(b *testing.B) {
+func BenchmarkTextEllipsis_changed(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Ellipsis(`🐒🐴🦖🦔🐲🐈`, 5)
+		gg.TextEllipsis(`🐒🐴🦖🦔🐲🐈`, 4)
 	}
 }
 
-func BenchmarkEllipsis_unchanged(b *testing.B) {
+func BenchmarkTextEllipsis_unchanged(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Ellipsis(`🐒🐴🦖🦔🐲🐈`, 6)
+		gg.TextEllipsis(`🐒🐴🦖🦔🐲🐈`, 6)
+	}
+}
+
+func BenchmarkTextTrunc_changed(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.TextTrunc(`🐒🐴🦖🦔🐲🐈`, 4)
+	}
+}
+
+func BenchmarkTextTrunc_unchanged(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.TextTrunc(`🐒🐴🦖🦔🐲🐈`, 6)
 	}
 }
 
@@ -621,8 +710,8 @@ func TestAppendNewlineOpt(t *testing.T) {
 
 		gtest.TextEq(src, []byte("one\ntwo"))
 		gtest.TextEq(out, []byte("one\n"))
-		gtest.Eq(gg.SliceDat(src), gg.SliceDat(tar))
-		gtest.Eq(gg.SliceDat(src), gg.SliceDat(out))
+		gtest.Eq(u.SliceData(src), u.SliceData(tar))
+		gtest.Eq(u.SliceData(src), u.SliceData(out))
 	}
 }
 

@@ -1,8 +1,9 @@
 package gg
 
 import (
+	"io/fs"
 	"path/filepath"
-	"regexp"
+	"strings"
 )
 
 /*
@@ -70,24 +71,22 @@ func (self GraphDir) File(key string) GraphFile {
 	if !ok {
 		panic(Errf(`missing file %q`, key))
 	}
-	if val.Name != key {
-		panic(Errf(`invalid index for %q, found %q`, key, val.Name))
+	if val.Pk() != key {
+		panic(Errf(`invalid index for %q, found %q`, key, val.Pk()))
 	}
 	return val
 }
 
 func (self *GraphDir) read() {
-	for _, src := range ReadDir(self.Path) {
-		if src == nil || src.IsDir() {
-			continue
-		}
+	self.Files = CollFrom[string, GraphFile](ConcMap(
+		MapCompact(ReadDir(self.Path), dirEntryToFileName),
+		self.initFile,
+	))
+}
 
-		var file GraphFile
-		file.Name = src.Name()
-		file.Init(self.Path)
-
-		self.Files.Add(file)
-	}
+func (self GraphDir) initFile(name string) (out GraphFile) {
+	out.Init(self.Path, name)
+	return
 }
 
 // Technically redundant because `graphWalk` also validates this.
@@ -96,7 +95,7 @@ func (self GraphDir) validateExisting() {
 }
 
 func (self GraphDir) validateExistingDeps(file GraphFile) {
-	defer Detailf(`dependency error for %q`, file.Name)
+	defer Detailf(`dependency error for %q`, file.Pk())
 
 	for _, dep := range file.Deps {
 		Nop1(self.File(dep))
@@ -136,7 +135,7 @@ func (self GraphDir) validateEntryFile() {
 	head := Head(self.Files.Slice)
 	deps := len(head.Deps)
 	if deps != 0 {
-		panic(Errf(`expected to begin with a dependency-free entry file, found %q with %v dependencies`, head.Name, deps))
+		panic(Errf(`expected to begin with a dependency-free entry file, found %q with %v dependencies`, head.Pk(), deps))
 	}
 
 	if None(Tail(self.Files.Slice), GraphFile.isEntry) {
@@ -154,56 +153,46 @@ Represents a file in a graph of files that import each other by using special
 import annotations understood by this tool. See `GraphDir` for explanation.
 */
 type GraphFile struct {
-	Name string   // Valid file base name.
+	Path string   // Valid FS path. Directory must match parent `GraphDir`.
 	Body string   // Read from disk by `.Init`.
 	Deps []string // Parsed from `.Body` by `.Init`.
 }
 
 // Implement `Pker` for compatibility with `Coll`. See `GraphDir.Files`.
-func (self GraphFile) Pk() string { return self.Name }
+func (self GraphFile) Pk() string { return filepath.Base(self.Path) }
 
 /*
-Reads the file named by `.Name` in the given directory, and parses the import
-annotations into `.Deps`. Used automatically by `GraphDir.Init`.
+Sets `.Path` to the combination of the given directory and base name, reads the
+file from FS into `.Body`, and parses the import annotations into `.Deps`.
+Called automatically by `GraphDir.Init`.
 */
-func (self *GraphFile) Init(dir string) {
-	self.read(dir)
+func (self *GraphFile) Init(dir, name string) {
+	self.Path = filepath.Join(dir, name)
+	self.read()
 	self.parse()
 }
 
-func (self *GraphFile) read(dir string) {
-	self.validateName()
-	self.Body = ReadFile[string](filepath.Join(dir, self.Name))
-}
-
-func (self GraphFile) validateName() {
-	if !isBaseName(self.Name) {
-		panic(Errf(`unexpected non-base file name %q; file graph currently supports only base-name imports`, self.Name))
-	}
-}
+func (self *GraphFile) read() { self.Body = ReadFile[string](self.Path) }
 
 func (self *GraphFile) parse() {
-	/**
-	Suboptimal. This is also the slowest part of the `GraphDir` API. Total
-	execution can take several milliseconds in some real-life projects with
-	hundreds of files. A decently-written custom parser may be able to perform
-	several times better.
-	*/
-	deps := firstSubmatches(reGraphImport.Get(), self.Body)
+	var deps []string
+
+	for _, line := range SplitLines(self.Body) {
+		rest := strings.TrimPrefix(line, `@import `)
+		if rest != line {
+			deps = append(deps, strings.TrimSpace(rest))
+		}
+	}
 
 	invalid := Reject(deps, isBaseName)
 	if IsNotEmpty(invalid) {
-		panic(Errf(`invalid imports in %q, every import must be a base name, found %q`, self.Name, invalid))
+		panic(Errf(`invalid imports in %q, every import must be a base name, found %q`, self.Pk(), invalid))
 	}
 
 	self.Deps = deps
 }
 
 func (self GraphFile) isEntry() bool { return IsEmpty(self.Deps) }
-
-var reGraphImport = NewLazy(func() *regexp.Regexp {
-	return regexp.MustCompile(`(?m)^@import\s+(.*)$`)
-})
 
 func isBaseName(val string) bool { return filepath.Base(val) == val }
 
@@ -226,7 +215,7 @@ func (self *graphWalk) Run() {
 }
 
 func (self *graphWalk) walk(tail *node[string], file GraphFile) {
-	key := file.Name
+	key := file.Pk()
 	if self.Valid.Has(key) {
 		return
 	}
@@ -242,4 +231,11 @@ func (self *graphWalk) walk(tail *node[string], file GraphFile) {
 		self.walk(&head, self.Dir.File(dep))
 	}
 	self.Valid.Add(file)
+}
+
+func dirEntryToFileName(src fs.DirEntry) (_ string) {
+	if src == nil || src.IsDir() {
+		return
+	}
+	return src.Name()
 }

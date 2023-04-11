@@ -1,6 +1,9 @@
 package gg
 
-import u "unsafe"
+import (
+	r "reflect"
+	u "unsafe"
+)
 
 /*
 Amount of bytes in `uintptr`. At the time of writing, in Go 1.20, this is also
@@ -33,7 +36,7 @@ Returns `unsafe.Sizeof` for the given type. Equivalent to `reflect.Type.Size`
 for the same type. Due to Go's limitations, the result is not a constant, thus
 you should prefer direct use of `unsafe.Sizeof` which returns a constant.
 */
-func Sizeof[A any]() uintptr { return u.Sizeof(Zero[A]()) }
+func Size[A any]() uintptr { return u.Sizeof(Zero[A]()) }
 
 /*
 Memory representation of an arbitrary Go slice. Same as `reflect.SliceHeader`
@@ -75,6 +78,41 @@ unsafe pointers.
 func CastUnsafe[Out, Src any](val Src) Out { return *(*Out)(u.Pointer(&val)) }
 
 /*
+Same as `CastUnsafe` but with additional validation: `unsafe.Sizeof` must be the
+same for both types, otherwise this panics.
+*/
+func Cast[Out, Src any](src Src) Out {
+	out := CastUnsafe[Out](src)
+	srcSize := u.Sizeof(src)
+	outSize := u.Sizeof(out)
+	if srcSize == outSize {
+		return out
+	}
+	panic(errSizeMismatch(Type[Src](), srcSize, Type[Out](), outSize))
+}
+
+func errSizeMismatch(src r.Type, srcSize uintptr, out r.Type, outSize uintptr) Err {
+	return Errf(
+		`size mismatch: %v (size %v) vs %v (size %v)`,
+		src, srcSize, out, outSize,
+	)
+}
+
+/*
+Similar to `CastUnsafe` between two slice types but with additional validation:
+`unsafe.Sizeof` must be the same for both element types, otherwise this
+panics.
+*/
+func CastSlice[Out, Src any](src []Src) []Out {
+	srcSize := Size[Src]()
+	outSize := Size[Out]()
+	if srcSize == outSize {
+		return CastUnsafe[[]Out](src)
+	}
+	panic(errSizeMismatch(Type[Src](), srcSize, Type[Out](), outSize))
+}
+
+/*
 Reinterprets existing memory as a byte slice. The resulting byte slice is backed
 by the given pointer. Mutations of the resulting slice are reflected in the
 source memory. Length and capacity are equal to the size of the referenced
@@ -84,5 +122,5 @@ func AsBytes[A any](tar *A) []byte {
 	if tar == nil {
 		return nil
 	}
-	return u.Slice(CastUnsafe[*byte](tar), Sizeof[A]())
+	return u.Slice(CastUnsafe[*byte](tar), Size[A]())
 }

@@ -20,24 +20,33 @@ func ValidPk[
 
 /*
 Syntactic shortcut for making a `Coll` of the given arguments, with type
-inference.
+inference. Reuses the given slice as-is with no reallocation.
 */
 func CollOf[Key comparable, Val Pker[Key]](src ...Val) Coll[Key, Val] {
 	var tar Coll[Key, Val]
-	tar.Add(src...)
+	tar.Slice = src
+	if src != nil {
+		tar.Reindex()
+	}
 	return tar
 }
 
 /*
 Syntactic shortcut for making a `Coll` from any number of source slices, with
-type inference.
+type inference. When called with exactly one argument, this reuses the given
+slice as-is with no reallocation.
 */
-func CollFrom[Slice ~[]Val, Key comparable, Val Pker[Key]](src ...Slice) Coll[Key, Val] {
-	var tar Coll[Key, Val]
-	for _, src := range src {
-		tar.Add(src...)
+func CollFrom[Key comparable, Val Pker[Key], Slice ~[]Val](src ...Slice) Coll[Key, Val] {
+	switch len(src) {
+	case 1:
+		return CollOf[Key, Val](src[0]...)
+	default:
+		var tar Coll[Key, Val]
+		for _, src := range src {
+			tar.Add(src...)
+		}
+		return tar
 	}
-	return tar
 }
 
 /*

@@ -40,11 +40,11 @@ func BenchmarkAnyNoEscUnsafe(b *testing.B) {
 	}
 }
 
-func BenchmarkSizeof(b *testing.B) {
+func BenchmarkSize(b *testing.B) {
 	defer gtest.Catch(b)
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.Sizeof[string]())
+		gg.Nop1(gg.Size[string]())
 	}
 }
 
@@ -97,5 +97,75 @@ func TestAsBytes(t *testing.T) {
 		}
 
 		gtest.Eq(src, math.MaxUint64)
+	}
+}
+
+func TestCast(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.PanicStr(`size mismatch: uint8 (size 1) vs int64 (size 8)`, func() {
+		gg.Cast[int64](byte(0))
+	})
+
+	gtest.PanicStr(`size mismatch: int64 (size 8) vs uint8 (size 1)`, func() {
+		gg.Cast[byte](int64(0))
+	})
+
+	gtest.PanicStr(`size mismatch: string (size 16) vs []uint8 (size 24)`, func() {
+		gg.Cast[[]byte](string(``))
+	})
+
+	gtest.PanicStr(`size mismatch: []uint8 (size 24) vs string (size 16)`, func() {
+		gg.Cast[string]([]byte(nil))
+	})
+
+	gtest.Zero(gg.Cast[struct{}]([0]struct{}{}))
+	gtest.Eq(gg.Cast[int8](uint8(math.MaxUint8)), -1)
+	gtest.Eq(gg.Cast[uint8](int8(math.MaxInt8)), 127)
+	gtest.Eq(gg.Cast[uint8](int8(math.MinInt8)), 128)
+
+	{
+		type Src [16]byte
+		type Tar struct{ Src }
+
+		src := Src([]byte(`ef1e7d2249dc45fc`))
+		gtest.Eq(string(src[:]), `ef1e7d2249dc45fc`)
+
+		tar := gg.Cast[Tar](src)
+		gtest.Eq(tar.Src, src)
+		gtest.Eq(gg.Cast[Src](tar), src)
+	}
+}
+
+func TestCastSlice(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.PanicStr(`size mismatch: uint8 (size 1) vs int64 (size 8)`, func() {
+		gg.CastSlice[int64, byte](nil)
+	})
+
+	gtest.PanicStr(`size mismatch: int64 (size 8) vs uint8 (size 1)`, func() {
+		gg.CastSlice[byte, int64](nil)
+	})
+
+	gtest.PanicStr(`size mismatch: string (size 16) vs []uint8 (size 24)`, func() {
+		gg.CastSlice[[]byte, string](nil)
+	})
+
+	gtest.PanicStr(`size mismatch: []uint8 (size 24) vs string (size 16)`, func() {
+		gg.CastSlice[string, []byte](nil)
+	})
+
+	gtest.Zero(gg.CastSlice[uint8, int8](nil))
+	gtest.Zero(gg.CastSlice[int8, uint8](nil))
+
+	{
+		src := []int8{-128, -127, -1, 0, 1, 127}
+		tar := gg.CastSlice[uint8](src)
+
+		gtest.Equal(tar, []uint8{128, 129, 255, 0, 1, 127})
+		gtest.Eq(u.Pointer(u.SliceData(tar)), u.Pointer(u.SliceData(src)))
+		gtest.Len(tar, len(src))
+		gtest.Cap(tar, cap(src))
 	}
 }

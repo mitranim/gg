@@ -9,6 +9,17 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
+func TestGraphDir_invalid_imports(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.PanicStr(
+		`unable to build dependency graph for "testdata/graph_invalid_imports": invalid imports in "one.pgsql", every import must be a base name, found ["dir/base_name.pgsql"]`,
+		func() {
+			gg.GraphDirInit(`testdata/graph_invalid_imports`)
+		},
+	)
+}
+
 func TestGraphDir_invalid_missing_deps(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -135,123 +146,45 @@ func firstSubmatches(reg *regexp.Regexp, src string) []string {
 
 func get1(src []string) string { return src[1] }
 
-func Test_graph_file_parse_custom(t *testing.T) {
+func Test_graph_file_parse_lines(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.Equal(graphFileParseCustom(graphFileSrc), graphFileOut)
+	gtest.Equal(graphFileParseLines(graphFileSrc), graphFileOut)
 }
 
 /*
 On the author's machine in Go 1.20.2:
 
-	Benchmark_graph_file_parse_regexp  58900 ns/op  37 allocs/op
-	Benchmark_graph_file_parse_custom   8495 ns/op   6 allocs/op
+	Benchmark_graph_file_parse_regexp  56996 ns/op  37 allocs/op
+	Benchmark_graph_file_parse_lines   7026 ns/op   14 allocs/op
+	Benchmark_graph_file_parse_custom  7020 ns/op   6 allocs/op
 
-In practice, the difference tends to be significantly lower, making the custom
-parser not worth it.
+(The last one involves a custom parser that got deleted.)
 */
-func Benchmark_graph_file_parse_custom(b *testing.B) {
+func Benchmark_graph_file_parse_lines(b *testing.B) {
 	defer gtest.Catch(b)
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(graphFileParseCustom(graphFileSrc))
+		gg.Nop1(graphFileParseLines(graphFileSrc))
 	}
 }
 
-func graphFileParseCustom(src string) []string {
-	var par graphFileParser
-	par.src = src
-	par.run()
-	return par.mat
-}
-
-type graphFileParser struct {
-	src string
-	pos int
-	mat []string
-}
-
-func (self *graphFileParser) run() {
-	if self.more() {
-		self.scanImport()
-	}
-
-	for self.more() {
-		if self.scanned((*graphFileParser).scanNewline) {
-			if self.more() {
-				self.scanImport()
-			}
-			continue
-		}
-		self.skip()
-	}
-}
-
-func (self *graphFileParser) scanNewline() {
-	head := self.headByte()
-
-	if head == '\r' {
-		self.pos++
-		if self.more() {
-			head = self.headByte()
-			goto lineFeed
-		}
-		return
-	}
-
-lineFeed:
-	if head == '\n' {
-		self.pos++
-	}
-}
-
-func (self *graphFileParser) scanImport() {
-	if !self.scannedString(`@import `) {
-		return
-	}
-
-	var ind int
-	var char rune
-	rest := self.rest()
-	for ind, char = range rest {
-		if char == '\r' || char == '\n' {
-			break
+func graphFileParseLines(src string) (out []string) {
+	for _, line := range gg.SplitLines(src) {
+		rest := strings.TrimPrefix(line, `@import `)
+		if rest != line {
+			out = append(out, strings.TrimSpace(rest))
 		}
 	}
-	self.pos += ind
-	self.mat = append(self.mat, strings.TrimSpace(rest[:ind]))
+	return
 }
 
-func (self *graphFileParser) more() bool { return self.pos < len(self.src) }
+func BenchmarkGraphFile_Pk(b *testing.B) {
+	defer gtest.Catch(b)
+	var file gg.GraphFile
+	file.Path = `one/two/three/four.pgsql`
 
-func (self *graphFileParser) headByte() byte { return self.src[self.pos] }
-
-func (self *graphFileParser) rest() string {
-	if self.more() {
-		return self.src[self.pos:]
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(file.Pk())
 	}
-	return ``
 }
-
-func (self *graphFileParser) scanned(fun func(*graphFileParser)) bool {
-	sta := self.pos
-	if fun != nil {
-		fun(self)
-	}
-	return self.pos > sta
-}
-
-func (self *graphFileParser) scannedString(pre string) bool {
-	if strings.HasPrefix(self.rest(), pre) {
-		self.pos += len(pre)
-		return true
-	}
-	return false
-}
-
-/*
-Caution: possible antipattern becaues this skips a byte, not a character.
-Implemented this way for benchmark reasons. Our public implementation doesn't
-do that.
-*/
-func (self *graphFileParser) skip() { self.pos++ }

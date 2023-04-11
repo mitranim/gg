@@ -331,7 +331,7 @@ newlines: "\r\n", "\r", "\n".
 */
 func SplitLines[A Text](src A) []A {
 	/**
-	In our benchmark in Go 1.22, this runs about 20-30 times faster than the
+	In our benchmark in Go 1.20.2, this runs about 20-30 times faster than the
 	equivalent regexp-based implementation.
 
 	It would be much simpler to use `strings.FieldsFunc` and `bytes.FieldsFunc`,

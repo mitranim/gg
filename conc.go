@@ -89,8 +89,8 @@ func concCatchRun(gro *sync.WaitGroup, errPtr *error, fun func()) {
 }
 
 /*
-Concurrently calls the given function on each element of the given slice.
-Also see `Conc`.
+Concurrently calls the given function on each element of the given slice. If the
+function is nil, does nothing. Also see `Conc`.
 */
 func ConcEach[A any](src []A, fun func(A)) {
 	TryAt(Errs(ConcEachCatch(src, fun)).Err(), 1)
@@ -98,7 +98,8 @@ func ConcEach[A any](src []A, fun func(A)) {
 
 /*
 Concurrently calls the given function on each element of the given slice,
-returning the resulting panics if any. Also see `ConcCatch`.
+returning the resulting panics if any. If the function is nil, does nothing and
+returns nil. Also see `ConcCatch`.
 */
 func ConcEachCatch[A any](src []A, fun func(A)) []error {
 	if fun == nil {

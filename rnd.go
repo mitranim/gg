@@ -11,7 +11,7 @@ Generates a random integer of the given type, using the given entropy source
 (typically `"crypto/rand".Reader`).
 */
 func RandomInt[A Int](src io.Reader) (out A) {
-	Try1(src.Read(AsBytes(&out)[:]))
+	Try1(src.Read(AsBytes(&out)))
 	return out
 }
 

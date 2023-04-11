@@ -596,10 +596,14 @@ func TestValueDerefAlloc(t *testing.T) {
 	}
 }
 
-func BenchmarkSize(b *testing.B) {
+// Compare `BenchmarkSize`.
+func Benchmark_size_reflect(b *testing.B) {
 	defer gtest.Catch(b)
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.Size[string]())
+		gg.Nop1(Size[string]())
 	}
 }
+
+// Runs slower than an equivalent version using `unsafe`.
+func Size[A any]() uintptr { return gg.Type[A]().Size() }

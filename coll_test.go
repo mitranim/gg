@@ -7,6 +7,82 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
+func TestCollOf(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.CollOf[SomeKey, SomeModel]())
+
+	testCollOf(func(src []SomeModel) gg.Coll[SomeKey, SomeModel] {
+		return gg.CollOf[SomeKey, SomeModel](src...)
+	})
+}
+
+func testCollOf(fun func([]SomeModel) gg.Coll[SomeKey, SomeModel]) {
+	test := func(slice []SomeModel, index map[SomeKey]int) {
+		tar := gg.CollOf[SomeKey, SomeModel](slice...)
+
+		gtest.Equal(
+			tar,
+			gg.Coll[SomeKey, SomeModel]{Slice: slice, Index: index},
+		)
+
+		gtest.Is(tar.Slice, slice)
+	}
+
+	test(
+		[]SomeModel{SomeModel{`10`, `one`}},
+		map[SomeKey]int{`10`: 0},
+	)
+
+	test(
+		[]SomeModel{
+			SomeModel{`10`, `one`},
+			SomeModel{`20`, `two`},
+		},
+		map[SomeKey]int{
+			`10`: 0,
+			`20`: 1,
+		},
+	)
+}
+
+func TestCollFrom(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.CollFrom[SomeKey, SomeModel, []SomeModel]())
+
+	testCollOf(func(src []SomeModel) gg.Coll[SomeKey, SomeModel] {
+		return gg.CollFrom[SomeKey, SomeModel](src)
+	})
+
+	gtest.Equal(
+		gg.CollFrom[SomeKey, SomeModel](
+			[]SomeModel{
+				SomeModel{`10`, `one`},
+				SomeModel{`20`, `two`},
+			},
+			[]SomeModel{
+				SomeModel{`30`, `three`},
+				SomeModel{`40`, `four`},
+			},
+		),
+		gg.Coll[SomeKey, SomeModel]{
+			Slice: []SomeModel{
+				SomeModel{`10`, `one`},
+				SomeModel{`20`, `two`},
+				SomeModel{`30`, `three`},
+				SomeModel{`40`, `four`},
+			},
+			Index: map[SomeKey]int{
+				`10`: 0,
+				`20`: 1,
+				`30`: 2,
+				`40`: 3,
+			},
+		},
+	)
+}
+
 func TestColl(t *testing.T) {
 	defer gtest.Catch(t)
 

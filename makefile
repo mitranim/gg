@@ -7,7 +7,7 @@ PROF := $(if $(filter $(prof),true), -cpuprofile=cpu.prof -memprofile=mem.prof,)
 TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(SHORT) $(PROF)
 TEST := test $(TEST_FLAGS) -timeout=1s -run=$(run)
 PKG := ./$(or $(pkg),...)
-BENCH := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=128ms
+BENCH := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=256ms
 GOW := gow -c -v -e=go,mod,pgsql
 WATCH := watchexec -r -c -d=0 -n
 DOC_HOST := localhost:58214

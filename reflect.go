@@ -67,12 +67,6 @@ the type parameter is an interface, the output is `reflect.Interface`.
 */
 func KindOf[A any](A) r.Kind { return Type[A]().Kind() }
 
-/*
-Returns `reflect.Type.Size` of the given type. Prefer `Sizeof` which is
-equivalent but more performant.
-*/
-func Size[A any]() uintptr { return Type[A]().Size() }
-
 // Uses `reflect.Zero` to create a zero value of the given type.
 func ZeroValue[A any]() r.Value { return r.Zero(Type[A]()) }
 

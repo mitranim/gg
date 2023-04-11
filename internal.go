@@ -135,12 +135,6 @@ func cliFlagSplit(src string) (_ string, _ string, _ bool) {
 	return src, ``, false
 }
 
-func firstSubmatches(reg *regexp.Regexp, src string) []string {
-	return MapCompact(reg.FindAllStringSubmatch(src, -1), firstSubmatch)
-}
-
-func firstSubmatch(src []string) string { return Get(src, 1) }
-
 /*
 Represents nodes in a linked list. Normally in Go, linked lists tend to be an
 anti-pattern; slices perform better in most scenarios, and don't require an

@@ -1,6 +1,21 @@
 package gg
 
 /*
+Non-idempotent version of `MapInit`. If the target pointer is nil, does nothing
+and returns nil. If the target pointer is non-nil, allocates the map via
+`make`, stores it at the target pointer, and returns the resulting non-nil
+map.
+*/
+func MapMake[Map ~map[Key]Val, Key comparable, Val any](ptr *Map) Map {
+	if ptr == nil {
+		return nil
+	}
+	val := make(map[Key]Val)
+	*ptr = val
+	return val
+}
+
+/*
 Shortcut for converting an arbitrary map to `Dict`. Workaround for the
 limitations of type inference in Go generics.
 */
@@ -14,6 +29,15 @@ functions. Useful as a shortcut for creating bound methods that can be passed
 to higher-order functions.
 */
 type Dict[Key comparable, Val any] map[Key]Val
+
+// Same as `len(self)`.
+func (self Dict[_, _]) Len() int { return len(self) }
+
+// Same as `len(self) <= 0`. Inverse of `.IsNotEmpty`.
+func (self Dict[_, _]) IsEmpty() bool { return len(self) <= 0 }
+
+// Same as `len(self) > 0`. Inverse of `.IsEmpty`.
+func (self Dict[_, _]) IsNotEmpty() bool { return len(self) > 0 }
 
 /*
 Idempotent map initialization. If the target pointer is nil, does nothing and
@@ -30,21 +54,6 @@ func MapInit[Map ~map[Key]Val, Key comparable, Val any](ptr *Map) Map {
 		val = make(map[Key]Val)
 		*ptr = val
 	}
-	return val
-}
-
-/*
-Non-idempotent version of `MapInit`. If the target pointer is nil, does nothing
-and returns nil. If the target pointer is non-nil, allocates the map via
-`make`, stores it at the target pointer, and returns the resulting non-nil
-map.
-*/
-func MapMake[Map ~map[Key]Val, Key comparable, Val any](ptr *Map) Map {
-	if ptr == nil {
-		return nil
-	}
-	val := make(map[Key]Val)
-	*ptr = val
 	return val
 }
 

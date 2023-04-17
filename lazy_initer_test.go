@@ -7,21 +7,20 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
-type IniterOnceStr string
+type IniterStr string
 
-func (self *IniterOnceStr) Init() {
-	if *self == `` {
-		*self = `inited`
-		return
+func (self *IniterStr) Init() {
+	if *self != `` {
+		panic(`redundant init`)
 	}
-	panic(`redundant init`)
+	*self = `inited`
 }
 
 // Incomplete: doesn't verify concurrency safety.
 func TestLazyIniter(t *testing.T) {
 	defer gtest.Catch(t)
 
-	var tar gg.LazyIniter[IniterOnceStr, *IniterOnceStr]
+	var tar gg.LazyIniter[IniterStr, *IniterStr]
 
 	gtest.Eq(tar.Get(), `inited`)
 	gtest.Eq(tar.Get(), tar.Get())
@@ -31,6 +30,6 @@ func TestLazyIniter(t *testing.T) {
 	// to inner mutex. Wouldn't actually matter.
 	gtest.Eq(*gg.CastUnsafe[*string](&tar), `inited`)
 
-	gtest.Eq(tar.Ptr(), gg.CastUnsafe[*IniterOnceStr](&tar))
+	gtest.Eq(tar.Ptr(), gg.CastUnsafe[*IniterStr](&tar))
 	gtest.Eq(tar.Ptr(), tar.Ptr())
 }

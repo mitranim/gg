@@ -97,6 +97,12 @@ type Getter[A any] interface{ Get() A }
 type Setter[A any] interface{ Set(A) }
 
 /*
+Similar to `Getter`, but for types that may perform work in `.Get`, this must
+avoid that work and be very cheap to call. Used by `Mem`.
+*/
+type Peeker[A any] interface{ Peek() A }
+
+/*
 Implemented by utility types that wrap arbitrary types, such as `Opt`. The
 returned pointer must reference the memory of the wrapper, instead of referring
 to new memory. Its mutation must affect the wrapper. If the wrapper is nil,
@@ -222,19 +228,7 @@ type DefaulterPtr[A any] interface {
 Interface for values which are convertible to `time.Duration` or can specify
 a lifetime for other values. Used by `Mem`.
 */
-type Dur interface{ Duration() time.Duration }
-
-/*
-Very similar to `Getter`, but has different semantics in some contexts.
-Used by `Mem`.
-*/
-type Maker[A any] interface{ Make() A }
-
-// Used by `Mem`.
-type DurMaker[A any] interface {
-	Dur
-	Maker[A]
-}
+type Durationer interface{ Duration() time.Duration }
 
 /*
 Implemented by various types such as `context.Context`, `sql.Rows`, and our own
@@ -263,3 +257,9 @@ Allows to customize/override `ErrFind`, which prioritizes this interface over
 the default behavior.
 */
 type ErrFinder interface{ Find(func(error) bool) error }
+
+/*
+Must return the length of a collection, such as a slice, map, text, etc.
+Implemented by various collection types in this package.
+*/
+type Lener interface{ Len() int }

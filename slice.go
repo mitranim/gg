@@ -1200,7 +1200,8 @@ func Union[Slice ~[]Elem, Elem comparable](val ...Slice) Slice {
 
 /*
 Deduplicates the elements of the given slice, preserving the order of initial
-occurrence for each element. The output is always a newly allocated slice.
+occurrence for each element. The output is always either nil or a newly
+allocated slice with at least one element.
 */
 func Uniq[Slice ~[]Elem, Elem comparable](src Slice) Slice {
 	var tar Slice

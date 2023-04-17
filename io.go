@@ -182,49 +182,51 @@ func Write[Out io.Writer, Src Text](out Out, src Src) {
 	Try1(out.Write(ToBytes(src)))
 }
 
+// https://en.wikipedia.org/wiki/ANSI_escape_code
 const (
-	// Standard terminal escape sequence.
-	TermEsc = "\x1b"
+	// Standard terminal escape sequence. Same as "\x1b" or "\033".
+	TermEsc = string(rune(27))
+
+	// Control Sequence Introducer. Prefix for many terminal escape sequences.
+	TermEscCsi = TermEsc + `[`
 
 	/**
-	Escape sequence recognized by many terminals. When printed, should cause
-	the terminal to scroll down as much as needed to create an appearance of
-	clearing the window. Scrolling up should reveal previous content.
+	Escape sequence recognized by many terminals. When printed, should cause the
+	terminal to update cursor position to row 1 column 1 in the current screen,
+	ignoring the scrollback.
 	*/
-	TermEscClearSoft = TermEsc + `c`
+	TermEscCup = TermEscCsi + `1;1H`
 
 	/**
-	Escape sequence recognized by many terminals. When printed, should cause
-	the terminal to clear the scrollback buffer without clearing the currently
-	visible content.
+	Escape sequence recognized by many terminals. When printed, should cause the
+	terminal to clear the current screen without clearing the scrollback.
+	Scrolling up should reveal previous content. Should typically be preceded
+	with `TermEscCup`.
 	*/
-	TermEscClearScrollback = TermEsc + `[3J`
+	TermEscClearSoft = TermEscCsi + `2J`
 
 	/**
-	Escape sequence recognized by many terminals. When printed, should cause
-	the terminal to clear both the scrollback buffer and the currently visible
-	content.
+	Escape sequence recognized by many terminals. When printed, should cause the
+	terminal to clear the current screen and the scrollback. Should typically be
+	preceded with `TermEscCup`. Note: we could also use `TermEscCsi` + `3J`, but
+	it seems to behave incorrectly in some scenarios, for example when used from
+	a subprocess running under Make.
 	*/
-	TermEscClearHard = TermEscClearSoft + TermEscClearScrollback
+	TermEscClearHard = TermEsc + `c`
 )
 
 /*
-Prints `TermEscClearScrollback` to `os.Stdout`, causing the current TTY to clear
-the scrollback buffer.
+Prints `TermEscCup+TermEscClearSoft` to `os.Stdout`, causing the current TTY to
+clear the screen but not the scrollback, pushing existing content out of view.
 */
-func TermClearScrollback() {
-	_, _ = io.WriteString(os.Stdout, TermEscClearScrollback)
+func TermClearSoft() {
+	_, _ = io.WriteString(os.Stdout, TermEscCup+TermEscClearSoft)
 }
 
 /*
-Prints `TermEscClearScrollback` to `os.Stdout`, causing the current TTY to push
-existing content out of view.
+Prints `TermEscCup+TermEscClearHard` to `os.Stdout`, clearing the current TTY
+completely (screen + scrollback).
 */
-func TermClearSoft() {
-	_, _ = io.WriteString(os.Stdout, TermEscClearSoft)
-}
-
-// Prints `TermEscClearScrollback` to `os.Stdout`, clearing the current TTY.
 func TermClearHard() {
-	_, _ = io.WriteString(os.Stdout, TermEscClearHard)
+	_, _ = io.WriteString(os.Stdout, TermEscCup+TermEscClearHard)
 }

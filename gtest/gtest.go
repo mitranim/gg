@@ -95,6 +95,7 @@ func False(val bool, opt ...any) {
 /*
 Asserts that the inputs are byte-for-byte identical, via `gg.Is`. Otherwise
 fails the test, printing the optional additional messages and the stack trace.
+Intended for interface values, maps, chans, funcs. For slices, use `SliceIs`.
 */
 func Is[A any](act, exp A, opt ...any) {
 	if gg.Is(act, exp) {
@@ -114,6 +115,7 @@ func Is[A any](act, exp A, opt ...any) {
 /*
 Asserts that the inputs are NOT byte-for-byte identical, via `gg.Is`. Otherwise
 fails the test, printing the optional additional messages and the stack trace.
+Intended for interface values, maps, chans, funcs. For slices, use `NotSliceIs`.
 */
 func NotIs[A any](act, exp A, opt ...any) {
 	if gg.Is(act, exp) {

@@ -72,7 +72,7 @@ func (self GraphDir) File(key string) GraphFile {
 		panic(Errf(`missing file %q`, key))
 	}
 	if val.Pk() != key {
-		panic(Errf(`invalid index for %q, found %q`, key, val.Pk()))
+		panic(Errf(`invalid index for %q, found %q instead`, key, val.Pk()))
 	}
 	return val
 }

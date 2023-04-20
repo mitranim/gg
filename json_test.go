@@ -66,12 +66,12 @@ func TestJsonParseTo(t *testing.T) {
 	gtest.Catch(t)
 
 	gtest.Eq(
-		gg.JsonParseTo[SomeModel](`{"id":"10"}`),
-		SomeModel{Id: `10`},
+		gg.JsonParseTo[SomeModel](`{"id":10}`),
+		SomeModel{Id: 10},
 	)
 
 	gtest.Eq(
-		gg.JsonParseTo[SomeModel]([]byte(`{"id":"10"}`)),
-		SomeModel{Id: `10`},
+		gg.JsonParseTo[SomeModel]([]byte(`{"id":10}`)),
+		SomeModel{Id: 10},
 	)
 }

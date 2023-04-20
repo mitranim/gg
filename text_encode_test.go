@@ -18,7 +18,7 @@ var testTime = time.Date(1234, time.February, 23, 0, 0, 0, 0, time.UTC)
 func TestString(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.PanicStr(`unable to convert value { } of type gg_test.SomeModel to type string`, func() {
+	gtest.PanicStr(`unable to convert value {0 } of type gg_test.SomeModel to type string`, func() {
 		gg.String(SomeModel{})
 	})
 

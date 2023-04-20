@@ -294,31 +294,31 @@ func TestCloneDeep(t *testing.T) {
 	t.Run(`slice_of_struct_pointers`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		one := SomeModel{Id: `10`}
-		two := SomeModel{Id: `20`}
+		one := SomeModel{Id: 10}
+		two := SomeModel{Id: 20}
 		src := []*SomeModel{&one, &two}
 		out := gg.CloneDeep(src)
 
 		gtest.Equal(out, src)
 
-		one.Id = `30`
-		two.Id = `40`
-		src = append(src, &SomeModel{Id: `50`})
+		one.Id = 30
+		two.Id = 40
+		src = append(src, &SomeModel{Id: 50})
 
 		gtest.Equal(
 			src,
 			[]*SomeModel{
-				&SomeModel{Id: `30`},
-				&SomeModel{Id: `40`},
-				&SomeModel{Id: `50`},
+				&SomeModel{Id: 30},
+				&SomeModel{Id: 40},
+				&SomeModel{Id: 50},
 			},
 		)
 
 		gtest.Equal(
 			out,
 			[]*SomeModel{
-				&SomeModel{Id: `10`},
-				&SomeModel{Id: `20`},
+				&SomeModel{Id: 10},
+				&SomeModel{Id: 20},
 			},
 		)
 	})
@@ -387,7 +387,7 @@ func testSliceEqualButDistinct[A any](src, tar []A) {
 }
 
 func Benchmark_clone_direct_CloneDeep(b *testing.B) {
-	src := [8]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+	src := [8]SomeModel{{Id: 10}, {Id: 20}, {Id: 30}}
 	gtest.Equal(gg.CloneDeep(src), src)
 	b.ResetTimer()
 
@@ -397,7 +397,7 @@ func Benchmark_clone_direct_CloneDeep(b *testing.B) {
 }
 
 func Benchmark_clone_direct_native(b *testing.B) {
-	src := [8]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+	src := [8]SomeModel{{Id: 10}, {Id: 20}, {Id: 30}}
 
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(esc(src))
@@ -405,7 +405,7 @@ func Benchmark_clone_direct_native(b *testing.B) {
 }
 
 func Benchmark_clone_slice_CloneDeep(b *testing.B) {
-	src := []SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+	src := []SomeModel{{Id: 10}, {Id: 20}, {Id: 30}}
 	gtest.Equal(gg.CloneDeep(src), src)
 	b.ResetTimer()
 
@@ -415,7 +415,7 @@ func Benchmark_clone_slice_CloneDeep(b *testing.B) {
 }
 
 func Benchmark_clone_slice_Clone(b *testing.B) {
-	src := []SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}}
+	src := []SomeModel{{Id: 10}, {Id: 20}, {Id: 30}}
 	gtest.Equal(gg.Clone(src), src)
 	b.ResetTimer()
 
@@ -426,7 +426,7 @@ func Benchmark_clone_slice_Clone(b *testing.B) {
 
 func Benchmark_clone_map_CloneDeep(b *testing.B) {
 	src := gg.Index(
-		[]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}},
+		[]SomeModel{{Id: 10}, {Id: 20}, {Id: 30}},
 		gg.ValidPk[SomeKey, SomeModel],
 	)
 	gtest.Equal(gg.CloneDeep(src), src)
@@ -439,7 +439,7 @@ func Benchmark_clone_map_CloneDeep(b *testing.B) {
 
 func Benchmark_clone_map_MapClone(b *testing.B) {
 	src := gg.Index(
-		[]SomeModel{{Id: `10`}, {Id: `20`}, {Id: `30`}},
+		[]SomeModel{{Id: 10}, {Id: 20}, {Id: 30}},
 		gg.ValidPk[SomeKey, SomeModel],
 	)
 	gtest.Equal(gg.MapClone(src), src)

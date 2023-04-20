@@ -183,3 +183,7 @@ func safeUintToInt(src uint) int {
 }
 
 func isByteNewline(val byte) bool { return val == '\n' || val == '\r' }
+
+func errCollMissing[Val, Key any](key Key) Err {
+	return Errf(`missing value of type %v for key %v`, Type[Val](), key)
+}

@@ -27,7 +27,7 @@ type IntSet = gg.Set[int]
 
 type IntMap = map[int]int
 
-type SomeKey string
+type SomeKey int64
 
 type SomeModel struct {
 	Id   SomeKey `json:"id"`
@@ -74,6 +74,8 @@ type SomeJsonDbMapper struct {
 }
 
 type SomeColl = gg.Coll[SomeKey, SomeModel]
+
+type SomeLazyColl = gg.LazyColl[SomeKey, SomeModel]
 
 type IsZeroAlwaysTrue string
 

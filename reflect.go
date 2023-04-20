@@ -48,6 +48,12 @@ func TypeName(val r.Type) string {
 	return val.String()
 }
 
+// True if both type parameters are exactly the same.
+func EqType[A, B any]() bool { return Type[A]() == Type[B]() }
+
+// True if both type parameters are not exactly the same.
+func NotEqType[A, B any]() bool { return Type[A]() != Type[B]() }
+
 /*
 Returns `reflect.Kind` of the given `any`. Compare our generic functions `Kind`
 and `KindOf` which take a concrete type.

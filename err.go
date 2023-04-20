@@ -315,6 +315,11 @@ func (self Errs) First() error { return Find(self, IsErrNotNil) }
 
 // Returns an error message. Same as `.Error`.
 func (self Errs) String() string {
+	/**
+	TODO also implement `fmt.Formatter` with support for %+v, show stacktraces for
+	inner errors.
+	*/
+
 	switch self.LenNotNil() {
 	case 0:
 		return ``

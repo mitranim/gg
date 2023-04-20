@@ -161,3 +161,8 @@ func intStrPair(src int) []string {
 func intPair(src int) []int {
 	return []int{src - 1, src + 1}
 }
+
+type Cyclic struct {
+	Id     int
+	Cyclic *Cyclic
+}

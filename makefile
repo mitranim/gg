@@ -60,7 +60,7 @@ doc:
 	pkgsite $(if $(GOREPO),-gorepo=$(GOREPO)) -http=$(DOC_HOST)
 
 # Example: `make release tag=v0.0.1`.
-release:
+release: test lint
 ifeq ($(tag),)
 	$(error missing tag)
 endif

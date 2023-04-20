@@ -148,6 +148,10 @@ via `.Add`, which modifies the index incrementally rather than all-at-once.
 */
 func (self *Coll[Key, _]) Reindex() {
 	slice := self.Slice
+	if len(slice) <= 0 {
+		return
+	}
+
 	index := make(map[Key]int, len(slice))
 	for ind, val := range slice {
 		index[ValidPk[Key](val)] = ind

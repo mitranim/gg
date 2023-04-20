@@ -408,7 +408,7 @@ func TestIndexPair(t *testing.T) {
 
 	gtest.Zero(gg.IndexPair[Slice, int, int, int](Slice(nil), nil))
 	gtest.Zero(gg.IndexPair[Slice, int, int, int](Slice{10, 20}, nil))
-	gtest.Equal(gg.IndexPair(Slice(nil), ToPair[int]), Map{})
+	gtest.Zero(gg.IndexPair(Slice(nil), ToPair[int]))
 
 	gtest.Equal(
 		gg.IndexPair(Slice{10, 20}, ToPair[int]),

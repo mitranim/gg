@@ -14,7 +14,8 @@ Returns `reflect.Type` of the given type. Differences from `reflect.TypeOf`:
 	* Avoids spurious heap escape and copying.
 	* Output is always non-nil.
 	* When the given type is an interface, including the empty interface `any`,
-	  the output is a non-nil `reflect.Type` describing the given interface.
+	  the output is a non-nil `reflect.Type` describing the given interface,
+	  rather than the concrete underlying type.
 */
 func Type[A any]() r.Type { return r.TypeOf((*A)(nil)).Elem() }
 

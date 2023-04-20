@@ -783,7 +783,8 @@ func IndexInto[Key comparable, Val any](tar map[Key]Val, src []Val, fun func(Val
 
 /*
 Takes a slice and "indexes" it by converting each element to a key-value pair,
-returning the resulting map.
+returning the resulting map. If the function is nil or the source slice is
+empty, returns nil.
 */
 func IndexPair[
 	Slice ~[]Elem,
@@ -793,7 +794,7 @@ func IndexPair[
 ](
 	src Slice, fun func(Elem) (Key, Val),
 ) map[Key]Val {
-	if fun == nil {
+	if fun == nil || len(src) <= 0 {
 		return nil
 	}
 
@@ -803,9 +804,9 @@ func IndexPair[
 }
 
 /*
-"Indexes" the given slice by adding key-value pairs to the given map, making
-key-value pairs by calling the given function for each element. If the
-function is nil, does nothing.
+Takes a slice and "indexes" it by adding key-value pairs to the given map,
+making key-value pairs by calling the given function for each element. If the
+function is nil or the source slice is empty, does nothing.
 */
 func IndexPairInto[Elem any, Key comparable, Val any](
 	tar map[Key]Val,

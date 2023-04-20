@@ -623,6 +623,20 @@ func TextHas[A, B gg.Text](src A, exp B, opt ...any) {
 }
 
 /*
+Asserts that the given chunk of text does not contain the given substring, or
+fails the test, printing the optional additional messages and the stack trace.
+*/
+func NotTextHas[A, B gg.Text](src A, exp B, opt ...any) {
+	if strings.Contains(gg.ToString(src), gg.ToString(exp)) {
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
+			`text contains unexpected substring`,
+			Msg(`full text:`, goStringIndent(gg.ToString(src))),
+			Msg(`substring:`, goStringIndent(gg.ToString(exp))),
+		))))
+	}
+}
+
+/*
 Asserts that the given slice is empty, or fails the test, printing the optional
 additional messages and the stack trace.
 */

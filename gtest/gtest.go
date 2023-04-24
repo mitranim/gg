@@ -552,7 +552,6 @@ func HasSome[A ~[]B, B comparable](src, exp A, opt ...any) {
 	if !gg.HasSome(src, exp) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected lack of shared elements in two slices`,
-			// TODO avoid detailed view when it's unnecessary.
 			Msg(`left detailed:`, goStringIndent(src)),
 			Msg(`right detailed:`, goStringIndent(exp)),
 			Msg(`left simple:`, gg.StringAny(src)),
@@ -572,7 +571,6 @@ func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {
 	if len(inter) > 0 {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`expected left slice to contain no elements from right slice`,
-			// TODO avoid detailed view when it's unnecessary.
 			Msg(`left detailed:`, goStringIndent(src)),
 			Msg(`right detailed:`, goStringIndent(exp)),
 			Msg(`intersection detailed:`, goStringIndent(inter)),
@@ -580,6 +578,70 @@ func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {
 			Msg(`right simple:`, gg.StringAny(exp)),
 			Msg(`intersection simple:`, gg.StringAny(inter)),
 		))))
+	}
+}
+
+/*
+Asserts that every element of the given slice satisfies the given predicate
+function, or fails the test, printing the optional additional messages and the
+stack trace.
+*/
+func Every[A ~[]B, B any](src A, fun func(B) bool, opt ...any) {
+	for ind, val := range src {
+		if fun == nil || !fun(val) {
+			panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
+				gg.Str(
+					`expected every element to satisfy predicate `, gg.FuncName(fun),
+					`; element at index `, ind, ` did not satisfy`,
+				),
+				Msg(`slice detailed:`, goStringIndent(src)),
+				Msg(`element detailed:`, goStringIndent(val)),
+				Msg(`slice simple:`, gg.StringAny(src)),
+				Msg(`element simple:`, gg.StringAny(val)),
+			))))
+		}
+	}
+}
+
+/*
+Asserts that at least one element of the given slice satisfies the given
+predicate function, or fails the test, printing the optional additional
+messages and the stack trace.
+*/
+func Some[A ~[]B, B any](src A, fun func(B) bool, opt ...any) {
+	if gg.Some(src, fun) {
+		return
+	}
+
+	panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
+		gg.Str(
+			`expected at least one element to satisfy predicate `, gg.FuncName(fun),
+			`; found no such elements`,
+		),
+		Msg(`slice detailed:`, goStringIndent(src)),
+		Msg(`slice simple:`, gg.StringAny(src)),
+	))))
+}
+
+/*
+Asserts that no elements of the given slice satisfy the given predicate
+function, or fails the test, printing the optional additional messages and the
+stack trace.
+*/
+func None[A ~[]B, B any](src A, fun func(B) bool, opt ...any) {
+	for ind, val := range src {
+		if fun == nil || fun(val) {
+			panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
+				gg.Str(
+					`expected every element to fail predicate `, gg.FuncName(fun),
+					`; element at index `, ind, ` did not fail`,
+				),
+				Msg(`slice detailed:`, goStringIndent(src)),
+				Msg(`element detailed:`, goStringIndent(val)),
+				Msg(`slice simple:`, gg.StringAny(src)),
+				Msg(`element simple:`, gg.StringAny(val)),
+			))))
+		}
 	}
 }
 

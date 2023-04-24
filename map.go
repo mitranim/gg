@@ -17,7 +17,8 @@ func MapMake[Map ~map[Key]Val, Key comparable, Val any](ptr *Map) Map {
 
 /*
 Shortcut for converting an arbitrary map to `Dict`. Workaround for the
-limitations of type inference in Go generics.
+limitations of type inference in Go generics. This is a free cast with no
+reallocation.
 */
 func ToDict[Src ~map[Key]Val, Key comparable, Val any](val Src) Dict[Key, Val] {
 	return Dict[Key, Val](val)

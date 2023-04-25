@@ -51,11 +51,10 @@ type must be either scalar or struct. Panics on errors. Must be called only
 after `Rows.Next`.
 */
 func ScanNext[Row any, Src ColumnerScanner](src Src) Row {
-	meta := typeMetaCache.Get(gg.Type[Row]())
-	if meta.IsScalar() {
+	if isScalar[Row]() {
 		return scanNextScalar[Row](src)
 	}
-	return scanNextStruct[Row](src, meta)
+	return scanNextStruct[Row](src)
 }
 
 /*

@@ -130,7 +130,7 @@ func MapGot[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) (Val, b
 // Self as global `MapGot`.
 func (self Dict[Key, Val]) Got(key Key) (Val, bool) { return MapGot(self, key) }
 
-// Same as `val := tar[key]`, expressed as a generic function.
+// Same as `tar[key]`, expressed as a generic function.
 func MapGet[Map ~map[Key]Val, Key comparable, Val any](tar Map, key Key) Val {
 	return tar[key]
 }

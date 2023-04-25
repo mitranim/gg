@@ -125,8 +125,8 @@ func scanNextScalar[Row any, Src ColumnerScanner](src Src) (out Row) {
 	return
 }
 
-func scanNextStruct[Row any, Src ColumnerScanner](src Src, meta typeMeta) (out Row) {
-	scanStructReflect(src, meta, r.ValueOf(gg.AnyNoEscUnsafe(&out)).Elem())
+func scanNextStruct[Row any, Src ColumnerScanner](src Src) (out Row) {
+	scanStructReflect(src, r.ValueOf(gg.AnyNoEscUnsafe(&out)).Elem())
 	return
 }
 
@@ -143,8 +143,9 @@ Would be nice to use an implementation similar to this:
 destinations such as `string` fields. This behavior is inconsistent with
 JSON, and unfortunate for our purposes.
 */
-func scanStructReflect[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value) {
+func scanStructReflect[Src ColumnerScanner](src Src, tar r.Value) {
 	typ := tar.Type()
+	meta := typeMetaCache.Get(typ)
 	cols := gg.Try1(src.Columns())
 	indir := gg.Map(cols, func(key string) r.Value {
 		return r.New(r.PointerTo(typ.FieldByIndex(meta.Get(key)).Type))
@@ -163,11 +164,26 @@ func scanStructReflect[Src ColumnerScanner](src Src, meta typeMeta, tar r.Value)
 func scanValsReflect[Src Rows](src Src, tar r.Value) {
 	defer gg.Close(src)
 
-	elem := tar.Type().Elem()
-	meta := typeMetaCache.Get(elem)
-
 	for src.Next() {
-		tar.Set(r.Append(tar, scanNextReflect(src, meta, elem)))
+		const off = 1
+
+		// Increase length by one, effectively appending a zero value to the slice.
+		// Similar to `r.Append(r.New(typ).Elem())`, but should be marginally more
+		// efficient.
+		ind := tar.Len()
+		tar.Grow(off)
+		tar.SetLen(ind + off)
+
+		// Settable, addressable reference to the newly appended zero value.
+		out := tar.Index(ind)
+
+		// Hide new value from consumer code until scan is successful.
+		tar.SetLen(ind)
+
+		scanReflect(src, out)
+
+		// After successful scan, we can reveal new element to consumer code.
+		tar.SetLen(ind + off)
 	}
 
 	gg.ErrOk(src)
@@ -180,8 +196,7 @@ func scanValReflect[Src Rows](src Src, tar r.Value) {
 		panic(gg.AnyErrTraced(sql.ErrNoRows))
 	}
 
-	typ := tar.Type()
-	tar.Set(scanNextReflect(src, typeMetaCache.Get(typ), typ))
+	scanReflect(src, tar)
 	gg.ErrOk(src)
 
 	if src.Next() {
@@ -189,21 +204,22 @@ func scanValReflect[Src Rows](src Src, tar r.Value) {
 	}
 }
 
-func scanNextReflect[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
-	if meta.IsScalar() {
-		return scanNextScalarReflect(src, typ)
+func scanReflect[Src ColumnerScanner](src Src, tar r.Value) {
+	if isValueScalar(tar) {
+		scanScalarReflect(src, tar)
+		return
 	}
-	return scanNextStructReflect(src, meta, typ)
+	scanStructReflect(src, tar)
 }
 
-func scanNextScalarReflect[Src ColumnerScanner](src Src, typ r.Type) r.Value {
-	tar := r.New(typ)
-	gg.Try(src.Scan(tar.Interface()))
-	return tar.Elem()
+func scanScalarReflect[Src ColumnerScanner](src Src, tar r.Value) {
+	gg.Try(src.Scan(tar.Addr().Interface()))
 }
 
-func scanNextStructReflect[Src ColumnerScanner](src Src, meta typeMeta, typ r.Type) r.Value {
-	tar := gg.NewElem(typ)
-	scanStructReflect(src, meta, tar)
-	return tar
+func isScalar[A any]() bool {
+	return typeMetaCache.Get(gg.Type[A]()).IsScalar()
+}
+
+func isValueScalar(val r.Value) bool {
+	return typeMetaCache.Get(val.Type()).IsScalar()
 }

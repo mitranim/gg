@@ -63,7 +63,7 @@ prep:
 	$(MAKE_PAR) test lint
 
 # Example: `make release tag=v0.0.1`.
-release: test lint
+release: prep
 ifeq ($(tag),)
 	$(error missing tag)
 endif

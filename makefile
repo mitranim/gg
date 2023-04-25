@@ -59,6 +59,9 @@ doc:
 	$(or $(shell which open),echo) http://$(DOC_HOST)/github.com/mitranim/gg
 	pkgsite $(if $(GOREPO),-gorepo=$(GOREPO)) -http=$(DOC_HOST)
 
+prep:
+	$(MAKE_PAR) test lint
+
 # Example: `make release tag=v0.0.1`.
 release: test lint
 ifeq ($(tag),)

@@ -740,12 +740,12 @@ func MapCompact[A, B any](src []A, fun func(A) B) []B {
 }
 
 // Similar to `Map` but concats the slices returned by the given function.
-func MapFlat[A, B any](src []A, fun func(A) []B) []B {
+func MapFlat[Out ~[]B, A, B any](src []A, fun func(A) Out) Out {
 	if src == nil {
 		return nil
 	}
 
-	var out []B
+	var out Out
 	for _, val := range src {
 		out = append(out, fun(val)...)
 	}

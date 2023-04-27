@@ -480,6 +480,9 @@ Tool for converting between typographic cases such as `camelCase` and
 */
 type Words []string
 
+// Combines the words via "".
+func (self Words) Dense() string { return self.Join(``) }
+
 // Combines the words via " ".
 func (self Words) Spaced() string { return self.Join(` `) }
 
@@ -489,11 +492,11 @@ func (self Words) Snake() string { return self.Join(`_`) }
 // Combines the words via "-".
 func (self Words) Kebab() string { return self.Join(`-`) }
 
-// Combines the words via "".
-func (self Words) Dense() string { return self.Join(``) }
-
 // Combines the words via ",".
 func (self Words) Comma() string { return self.Join(`,`) }
+
+// Combines the words via "|".
+func (self Words) Piped() string { return self.Join(`|`) }
 
 // Converts each word to lowercase. Mutates and returns the receiver.
 func (self Words) Lower() Words { return MapMut(self, strings.ToLower) }

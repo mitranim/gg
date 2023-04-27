@@ -56,8 +56,8 @@ func BenchmarkFrames_AppendIndentTable(b *testing.B) {
 }
 
 func BenchmarkFrames_AppendIndentTable_rel_path(b *testing.B) {
-	defer gg.PtrSwap(&gg.TraceSkipLang, true).Done()
-	defer gg.PtrSwap(&gg.TraceBaseDir, gg.Cwd()).Done()
+	defer gg.SnapSwap(&gg.TraceSkipLang, true).Done()
+	defer gg.SnapSwap(&gg.TraceBaseDir, gg.Cwd()).Done()
 
 	frames := trace0().Frames()
 	buf := make([]byte, 0, 1<<16)

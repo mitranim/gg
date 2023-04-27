@@ -268,7 +268,7 @@ printing the optional additional messages and the stack trace.
 func SliceIs[A ~[]B, B any](act, exp A, opt ...any) {
 	if !gg.SliceIs(act, exp) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
-			`unexpected difference in slice headers`,
+			`expected given slice headers to be identical, but they were distinct`,
 			Msg(`actual header:`, goStringIndent(gg.SliceHeaderOf(act))),
 			Msg(`expected header:`, goStringIndent(gg.SliceHeaderOf(exp))),
 		))))
@@ -284,7 +284,7 @@ fails the test, printing the optional additional messages and the stack trace.
 func NotSliceIs[A ~[]B, B any](act, nom A, opt ...any) {
 	if gg.SliceIs(act, nom) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
-			`expected given slice headers to be distinct, but they were equal`,
+			`expected given slice headers to be distinct, but they were identical`,
 			Msg(`actual header:`, goStringIndent(gg.SliceHeaderOf(act))),
 			Msg(`nominal header:`, goStringIndent(gg.SliceHeaderOf(nom))),
 		))))
@@ -340,6 +340,13 @@ given substring, or fails the test, printing the optional additional messages
 and the stack trace.
 */
 func PanicStr(exp string, fun func(), opt ...any) {
+	if exp == `` {
+		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
+			`refusing to test for panic without a non-empty expected error message`,
+			msgFun(fun),
+		))))
+	}
+
 	err := gg.Catch(fun)
 	if err == nil {
 		panic(ErrAt(1, msgOpt(opt, msgPanicNoneWithStr(fun, exp))))

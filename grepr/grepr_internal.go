@@ -701,11 +701,11 @@ func (self *Fmt) fmtConvClose() {
 }
 
 func (self *Fmt) setElideType(val bool) gg.Snapshot[bool] {
-	return gg.PtrSwap(&self.ElideType, val)
+	return gg.SnapSwap(&self.ElideType, val)
 }
 
 func (self *Fmt) lvlInc() gg.Snapshot[int] {
-	return gg.PtrSwap(&self.Lvl, self.Lvl+1)
+	return gg.SnapSwap(&self.Lvl, self.Lvl+1)
 }
 
 func (self *Fmt) skipField(src r.Value) bool {

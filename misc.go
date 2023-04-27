@@ -3,8 +3,6 @@ package gg
 import (
 	"context"
 	"database/sql/driver"
-	r "reflect"
-	u "unsafe"
 )
 
 var (
@@ -12,174 +10,6 @@ var (
 	Space   = ` `
 	Newline = "\n"
 )
-
-/*
-Returns true if the input is the zero value of its type. Optionally falls back
-on `Zeroable.IsZero` if the input implements this interface. Support for
-`Zeroable` is useful for types such as `time.Time`, where "zero" is determined
-only by the timestamp, ignoring the timezone.
-*/
-func IsZero[A any](val A) bool {
-	box := AnyNoEscUnsafe(val)
-	if box == nil {
-		return true
-	}
-
-	/**
-	When possible, we want to "natively" compare to a zero value before invoking
-	`Zeroable`. Depending on the Go version, this may slightly speed us up, or
-	slightly slow us down. More importantly, this improves correctness,
-	safeguarding us against bizarre implementations of `Zeroable` such as
-	`reflect.Value.IsZero`, which panics when called on the zero value of
-	`reflect.Value`.
-
-	It would be ideal to compare concrete values rather than `any`, but requiring
-	`comparable` would make this function much less usable, and comparing `any`
-	seems fast enough.
-	*/
-	if Type[A]().Comparable() {
-		if box == AnyNoEscUnsafe(Zero[A]()) {
-			return true
-		}
-
-		/**
-		Terminate here to avoid falling down to the reflection-based clause.
-		We already know that our value is not considered zero by Go.
-		*/
-		impl, _ := box.(Zeroable)
-		return impl != nil && impl.IsZero()
-	}
-
-	impl, _ := box.(Zeroable)
-	if impl != nil {
-		return impl.IsZero()
-	}
-
-	/**
-	Implementation note. For some types, some non-zero byte patterns are
-	considered a zero value. The most notable example is strings. For example,
-	the following expression makes a string with a non-zero data pointer, which
-	is nevertheless considered a zero value by Go:
-
-		`some_text`[:0]
-
-	`reflect.Value.IsZero` correctly handles such cases, and doesn't seem to be
-	outrageously slow.
-	*/
-	return r.ValueOf(box).IsZero()
-}
-
-// Inverse of `IsZero`.
-func IsNotZero[A any](val A) bool { return !IsZero(val) }
-
-/*
-True if every byte in the given value is zero. Not equivalent to `IsZero`.
-Most of the time, you should prefer `IsZero`, which is more performant and
-more correct.
-*/
-func IsTrueZero[A any](val A) bool {
-	size := u.Sizeof(val)
-	for off := uintptr(0); off < size; off++ {
-		if *(*byte)(u.Pointer(uintptr(u.Pointer(&val)) + off)) != 0 {
-			return false
-		}
-	}
-	return true
-}
-
-// Returns a zero value of the given type.
-func Zero[A any]() (_ A) { return }
-
-// Generic variant of `Nullable.IsNull`.
-func IsNull[A Nullable](val A) bool { return val.IsNull() }
-
-// Inverse of `IsNull`.
-func IsNotNull[A Nullable](val A) bool { return !val.IsNull() }
-
-/*
-Zeroes the memory referenced by the given pointer. If the pointer is nil, does
-nothing. Also see the interface `Clearer` and method `.Clear` implemented by
-various types.
-*/
-func PtrClear[A any](val *A) {
-	if val != nil {
-		*val = Zero[A]()
-	}
-}
-
-// Calls `PtrClear` and returns the same pointer.
-func PtrCleared[A any](val *A) *A {
-	PtrClear(val)
-	return val
-}
-
-/*
-Takes an arbitrary value and returns a non-nil pointer to a new memory region
-containing a shallow copy of that value.
-*/
-func Ptr[A any](val A) *A { return &val }
-
-// If the pointer is non-nil, dereferences it. Otherwise returns zero value.
-func PtrGet[A any](val *A) A {
-	if val != nil {
-		return *val
-	}
-	return Zero[A]()
-}
-
-// If the pointer is nil, does nothing. If non-nil, set the given value.
-func PtrSet[A any](tar *A, val A) {
-	if tar != nil {
-		*tar = val
-	}
-}
-
-/*
-Takes two pointers and copies the value from source to target if both pointers
-are non-nil. If either is nil, does nothing.
-*/
-func PtrSetOpt[A any](tar, src *A) {
-	if tar != nil && src != nil {
-		*tar = *src
-	}
-}
-
-/*
-If the pointer is non-nil, returns its value while zeroing the destination.
-Otherwise returns zero value.
-*/
-func PtrPop[A any](src *A) (out A) {
-	if src != nil {
-		out, *src = *src, out
-	}
-	return
-}
-
-/*
-If the pointer is nil, uses `new` to allocate a new value of the given type,
-returning the resulting pointer. Otherwise returns the input as-is.
-*/
-func PtrInited[A any](val *A) *A {
-	if val != nil {
-		return val
-	}
-	return new(A)
-}
-
-/*
-If the outer pointer is nil, returns nil. If the inner pointer is nil, uses
-`new` to allocate a new value, sets and returns the resulting new pointer.
-Otherwise returns the inner pointer as-is.
-*/
-func PtrInit[A any](val **A) *A {
-	if val == nil {
-		return nil
-	}
-	if *val == nil {
-		*val = new(A)
-	}
-	return *val
-}
 
 // Does nothing.
 func Nop() {}
@@ -202,6 +32,24 @@ func Id2[A, B any](val0 A, val1 B) (A, B) { return val0, val1 }
 // Identity function. Returns input as-is.
 func Id3[A, B, C any](val0 A, val1 B, val2 C) (A, B, C) { return val0, val1, val2 }
 
+// Returns a zero value of the given type.
+func Zero[A any]() (_ A) { return }
+
+/*
+Same as Go's `+` operator, expressed as a generic function. Input type may be
+numeric or ~string. When the input type is numeric, this is unchecked and may
+overflow. For integers, prefer `Add` whenever possible, which has overflow
+checks.
+*/
+func Plus2[A Plusable](one, two A) A { return one + two }
+
+/*
+Variadic version of Go's `+` operator. Input type may be numeric or ~string.
+If the input is empty, returns a zero value. Use caution: this has no overflow
+checks for numbers. Prefer `Add` for integers.
+*/
+func Plus[A Plusable](val ...A) A { return Foldz(val, Plus2[A]) }
+
 /*
 Shortcut for implementing `driver.Valuer` on `Nullable` types that wrap other
 types, such as `Opt`. Mostly for internal use.
@@ -220,164 +68,6 @@ func ValueNull[A any, B NullableValGetter[A]](src B) (driver.Value, error) {
 
 	return val, nil
 }
-
-/*
-Returns the lesser of the two inputs, which must be comparable primitives. For
-non-primitives, see `Min2`.
-*/
-func MinPrim2[A LesserPrim](one, two A) A {
-	if one < two {
-		return one
-	}
-	return two
-}
-
-/*
-Returns the lesser of the two inputs. For primitive types that don't implement
-`Lesser`, see `MinPrim2`.
-*/
-func Min2[A Lesser[A]](one, two A) A {
-	if one.Less(two) {
-		return one
-	}
-	return two
-}
-
-/*
-Returns the larger of the two inputs, which must be comparable primitives. For
-non-primitives, see `Max2`.
-*/
-func MaxPrim2[A LesserPrim](one, two A) A {
-	if one < two {
-		return two
-	}
-	return one
-}
-
-/*
-Returns the larger of the two inputs. For primitive types that don't implement
-`Lesser`, see `MaxPrim2`.
-*/
-func Max2[A Lesser[A]](one, two A) A {
-	if one.Less(two) {
-		return two
-	}
-	return one
-}
-
-/*
-True if the inputs are byte-for-byte identical. This function is not meant for
-common use. Nearly always, you should use `Eq` or `Equal` instead. This one is
-sometimes useful for testing purposes, such as asserting that two interface
-values refer to the same underlying data. This may lead to brittle code that is
-not portable between different Go implementations. Performance is similar to
-`==` for small value sizes (up to 2-4 machine words) but is significantly worse
-for large value sizes.
-*/
-func Is[A any](one, two A) bool {
-	/**
-	Note. The "ideal" implementation looks like this:
-
-		const size = u.Sizeof(one)
-		return CastUnsafe[[size]byte](one) == CastUnsafe[[size]byte](two)
-
-	But at the time of writing, in Go 1.19, `unsafe.Sizeof` on a type parameter
-	is considered non-constant. If this changes in the future, we'll switch to
-	the implementation above.
-	*/
-
-	size := u.Sizeof(one)
-
-	switch size {
-	case 0:
-		return true
-
-	case SizeofWord:
-		return *(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))
-
-	// Common case: comparing interfaces or strings.
-	case SizeofWord * 2:
-		return (*(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))) &&
-			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + SizeofWord)) ==
-				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + SizeofWord)))
-
-	// Common case: comparing slices.
-	case SizeofWord * 3:
-		return (*(*uint)(u.Pointer(&one)) == *(*uint)(u.Pointer(&two))) &&
-			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + SizeofWord)) ==
-				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + SizeofWord))) &&
-			(*(*uint)(u.Pointer(uintptr(u.Pointer(&one)) + SizeofWord*2)) ==
-				*(*uint)(u.Pointer(uintptr(u.Pointer(&two)) + SizeofWord*2)))
-
-	default:
-		/**
-		Implementation note. We could also walk word-by-word by using padded structs
-		to ensure sufficient empty memory. It would improve the performance
-		slightly, but not enough to bother. The resulting performance is still
-		much worse than `==` on whole values.
-		*/
-		for off := uintptr(0); off < size; off++ {
-			oneChunk := *(*byte)(u.Pointer(uintptr(u.Pointer(&one)) + off))
-			twoChunk := *(*byte)(u.Pointer(uintptr(u.Pointer(&two)) + off))
-			if oneChunk != twoChunk {
-				return false
-			}
-		}
-		return true
-	}
-}
-
-// Same as `==`. Sometimes useful with higher-order functions.
-func Eq[A comparable](one, two A) bool { return one == two }
-
-/*
-Short for "equal". For types that implement `Equaler`, this simply calls their
-equality method. Otherwise falls back on `reflect.DeepEqual`. Compared to
-`reflect.DeepEqual`, this has better type safety, and in many cases this has
-better performance, even when calling `reflect.DeepEqual` in fallback mode.
-*/
-func Equal[A any](one, two A) bool {
-	impl, _ := AnyNoEscUnsafe(one).(Equaler[A])
-	if impl != nil {
-		return impl.Equal(two)
-	}
-	return r.DeepEqual(AnyNoEscUnsafe(one), AnyNoEscUnsafe(two))
-}
-
-/*
-True if the inputs are equal via `==`, and neither is a zero value of its type.
-For non-equality, use `NotEqNotZero`.
-*/
-func EqNotZero[A comparable](one, two A) bool {
-	return one == two && one != Zero[A]()
-}
-
-/*
-True if the inputs are non-equal via `!=`, and at least one is not a zero value
-of its type. For equality, use `EqNotZero`.
-*/
-func NotEqNotZero[A comparable](one, two A) bool {
-	return one != two && one != Zero[A]()
-}
-
-/*
-True if the given slices have the same data pointer, length, capacity.
-Does not compare individual elements.
-*/
-func SliceIs[A any](one, two []A) bool {
-	return u.SliceData(one) == u.SliceData(two) &&
-		len(one) == len(two) &&
-		cap(one) == cap(two)
-}
-
-// Returns the first non-zero value from among the inputs.
-func Or[A any](val ...A) A { return Find(val, IsNotZero[A]) }
-
-/*
-Variant of `Or` compatible with `Nullable`. Returns the first non-"null" value
-from among the inputs.
-*/
-func NullOr[A Nullable](val ...A) A { return Find(val, IsNotNull[A]) }
 
 /*
 Returns true if the given `any` can be usefully converted into a value of the
@@ -493,12 +183,6 @@ func RangeIncl[A Int](min, max A) []A {
 // Shortcut for creating range `[0,N)`, exclusive at the end.
 func Span[A Int](val A) []A { return Range(0, val) }
 
-// Combines two inputs via "+". Also see variadic `Plus`.
-func Plus2[A Plusable](one, two A) A { return one + two }
-
-// Same as `one - two`.
-func Minus2[A Num](one, two A) A { return one - two }
-
 /*
 Takes a pointer and a fallback value which must be non-zero. If the pointer
 destination is zero, sets the fallback and returns true. Otherwise returns
@@ -533,21 +217,21 @@ func Snap[A any](ptr *A) Snapshot[A] { return Snapshot[A]{ptr, *ptr} }
 Snapshots the previous value, sets the next value, and returns a snapshot
 that can restore the previous value. Usage:
 
-	defer PtrSwap(&somePtr, someVal).Done()
+	defer SnapSwap(&somePtr, someVal).Done()
 */
-func PtrSwap[A any](ptr *A, next A) Snapshot[A] {
+func SnapSwap[A any](ptr *A, next A) Snapshot[A] {
 	prev := *ptr
 	*ptr = next
 	return Snapshot[A]{ptr, prev}
 }
 
-// Short for "snapshot". Used by `PtrSwap`.
+// Short for "snapshot". Used by `SnapSwap`.
 type Snapshot[A any] struct {
 	Ptr *A
 	Val A
 }
 
-// If the pointer is non-nil, writes the value to it. See `PtrSwap`.
+// If the pointer is non-nil, writes the value to it. See `SnapSwap`.
 func (self Snapshot[_]) Done() {
 	if self.Ptr != nil {
 		*self.Ptr = self.Val

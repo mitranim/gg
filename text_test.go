@@ -362,41 +362,53 @@ func TestWords(t *testing.T) {
 	gtest.Equal(gg.ToWords(`One Two`).Lower(), gg.Words{`one`, `two`})
 	gtest.Equal(gg.ToWords(`ONE TWO`).Lower(), gg.Words{`one`, `two`})
 
-	gtest.Eq(src().Spaced(), `one two three`)
-	gtest.Eq(src().Snake(), `one_two_three`)
-	gtest.Eq(src().Kebab(), `one-two-three`)
-	gtest.Eq(src().Dense(), `onetwothree`)
-
 	gtest.Equal(src().Lower(), gg.Words{`one`, `two`, `three`})
 	gtest.Equal(src().Upper(), gg.Words{`ONE`, `TWO`, `THREE`})
 	gtest.Equal(src().Title(), gg.Words{`One`, `Two`, `Three`})
 	gtest.Equal(src().Sentence(), gg.Words{`One`, `two`, `three`})
 	gtest.Equal(src().Camel(), gg.Words{`one`, `Two`, `Three`})
 
+	gtest.Eq(src().Dense(), `onetwothree`)
+	gtest.Eq(src().Spaced(), `one two three`)
+	gtest.Eq(src().Snake(), `one_two_three`)
+	gtest.Eq(src().Kebab(), `one-two-three`)
+	gtest.Eq(src().Comma(), `one,two,three`)
+	gtest.Eq(src().Piped(), `one|two|three`)
+
+	gtest.Eq(src().Lower().Dense(), `onetwothree`)
 	gtest.Eq(src().Lower().Spaced(), `one two three`)
 	gtest.Eq(src().Lower().Snake(), `one_two_three`)
 	gtest.Eq(src().Lower().Kebab(), `one-two-three`)
-	gtest.Eq(src().Lower().Dense(), `onetwothree`)
+	gtest.Eq(src().Lower().Comma(), `one,two,three`)
+	gtest.Eq(src().Lower().Piped(), `one|two|three`)
 
+	gtest.Eq(src().Upper().Dense(), `ONETWOTHREE`)
 	gtest.Eq(src().Upper().Spaced(), `ONE TWO THREE`)
 	gtest.Eq(src().Upper().Snake(), `ONE_TWO_THREE`)
 	gtest.Eq(src().Upper().Kebab(), `ONE-TWO-THREE`)
-	gtest.Eq(src().Upper().Dense(), `ONETWOTHREE`)
+	gtest.Eq(src().Upper().Comma(), `ONE,TWO,THREE`)
+	gtest.Eq(src().Upper().Piped(), `ONE|TWO|THREE`)
 
+	gtest.Eq(src().Title().Dense(), `OneTwoThree`)
 	gtest.Eq(src().Title().Spaced(), `One Two Three`)
 	gtest.Eq(src().Title().Snake(), `One_Two_Three`)
 	gtest.Eq(src().Title().Kebab(), `One-Two-Three`)
-	gtest.Eq(src().Title().Dense(), `OneTwoThree`)
+	gtest.Eq(src().Title().Comma(), `One,Two,Three`)
+	gtest.Eq(src().Title().Piped(), `One|Two|Three`)
 
+	gtest.Eq(src().Sentence().Dense(), `Onetwothree`)
 	gtest.Eq(src().Sentence().Spaced(), `One two three`)
 	gtest.Eq(src().Sentence().Snake(), `One_two_three`)
 	gtest.Eq(src().Sentence().Kebab(), `One-two-three`)
-	gtest.Eq(src().Sentence().Dense(), `Onetwothree`)
+	gtest.Eq(src().Sentence().Comma(), `One,two,three`)
+	gtest.Eq(src().Sentence().Piped(), `One|two|three`)
 
+	gtest.Eq(src().Camel().Dense(), `oneTwoThree`)
 	gtest.Eq(src().Camel().Spaced(), `one Two Three`)
 	gtest.Eq(src().Camel().Snake(), `one_Two_Three`)
 	gtest.Eq(src().Camel().Kebab(), `one-Two-Three`)
-	gtest.Eq(src().Camel().Dense(), `oneTwoThree`)
+	gtest.Eq(src().Camel().Comma(), `one,Two,Three`)
+	gtest.Eq(src().Camel().Piped(), `one|Two|Three`)
 }
 
 func BenchmarkReWord_init(b *testing.B) {

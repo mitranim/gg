@@ -510,13 +510,13 @@ func TestFold(t *testing.T) {
 	gtest.Eq(gg.Fold([]int{20}, acc, nil), acc)
 	gtest.Eq(gg.Fold([]int{20, 30}, acc, nil), acc)
 
-	gtest.Eq(gg.Fold([]int{20}, 10, gg.Minus2[int]), 10-20)
+	gtest.Eq(gg.Fold([]int{20}, 10, gg.SubUncheck[int]), 10-20)
 	gtest.Eq(gg.Fold([]int{20}, 10, gg.Plus2[int]), 10+20)
 
-	gtest.Eq(gg.Fold([]int{20, 30}, 10, gg.Minus2[int]), 10-20-30)
+	gtest.Eq(gg.Fold([]int{20, 30}, 10, gg.SubUncheck[int]), 10-20-30)
 	gtest.Eq(gg.Fold([]int{20, 30}, 10, gg.Plus2[int]), 10+20+30)
 
-	gtest.Eq(gg.Fold([]int{20, 30, 40}, 10, gg.Minus2[int]), 10-20-30-40)
+	gtest.Eq(gg.Fold([]int{20, 30, 40}, 10, gg.SubUncheck[int]), 10-20-30-40)
 	gtest.Eq(gg.Fold([]int{20, 30, 40}, 10, gg.Plus2[int]), 10+20+30+40)
 }
 
@@ -528,13 +528,13 @@ func TestFoldz(t *testing.T) {
 	gtest.Zero(gg.Foldz[int]([]int{10}, nil))
 	gtest.Zero(gg.Foldz[int]([]int{10, 20}, nil))
 
-	gtest.Eq(gg.Foldz([]int{10}, gg.Minus2[int]), 0-10)
+	gtest.Eq(gg.Foldz([]int{10}, gg.SubUncheck[int]), 0-10)
 	gtest.Eq(gg.Foldz([]int{10}, gg.Plus2[int]), 0+10)
 
-	gtest.Eq(gg.Foldz([]int{10, 20}, gg.Minus2[int]), 0-10-20)
+	gtest.Eq(gg.Foldz([]int{10, 20}, gg.SubUncheck[int]), 0-10-20)
 	gtest.Eq(gg.Foldz([]int{10, 20}, gg.Plus2[int]), 0+10+20)
 
-	gtest.Eq(gg.Foldz([]int{10, 20, 30}, gg.Minus2[int]), 0-10-20-30)
+	gtest.Eq(gg.Foldz([]int{10, 20, 30}, gg.SubUncheck[int]), 0-10-20-30)
 	gtest.Eq(gg.Foldz([]int{10, 20, 30}, gg.Plus2[int]), 0+10+20+30)
 }
 
@@ -545,15 +545,15 @@ func TestFold1(t *testing.T) {
 	gtest.Zero(gg.Fold1[int]([]int{}, nil))
 
 	gtest.Eq(gg.Fold1([]int{10}, nil), 10)
-	gtest.Eq(gg.Fold1([]int{10}, gg.Minus2[int]), 10)
+	gtest.Eq(gg.Fold1([]int{10}, gg.SubUncheck[int]), 10)
 	gtest.Eq(gg.Fold1([]int{10}, gg.Plus2[int]), 10)
 
 	gtest.Eq(gg.Fold1([]int{10, 20}, nil), 10)
-	gtest.Eq(gg.Fold1([]int{10, 20}, gg.Minus2[int]), 10-20)
+	gtest.Eq(gg.Fold1([]int{10, 20}, gg.SubUncheck[int]), 10-20)
 	gtest.Eq(gg.Fold1([]int{10, 20}, gg.Plus2[int]), 10+20)
 
 	gtest.Eq(gg.Fold1([]int{10, 20, 30}, nil), 10)
-	gtest.Eq(gg.Fold1([]int{10, 20, 30}, gg.Minus2[int]), 10-20-30)
+	gtest.Eq(gg.Fold1([]int{10, 20, 30}, gg.SubUncheck[int]), 10-20-30)
 	gtest.Eq(gg.Fold1([]int{10, 20, 30}, gg.Plus2[int]), 10+20+30)
 }
 
@@ -1607,41 +1607,6 @@ func TestMaxBy(t *testing.T) {
 	gtest.Eq(gg.MaxBy([]Src{-10, 0, -20}, fun), Out{0})
 	gtest.Eq(gg.MaxBy([]Src{0, 10, -10}, fun), Out{10})
 	gtest.Eq(gg.MaxBy([]Src{10, 20, 0}, fun), Out{20})
-}
-
-func TestPlus(t *testing.T) {
-	defer gtest.Catch(t)
-
-	t.Run(`Num`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		gtest.Eq(gg.Plus[int](), 0)
-		gtest.Eq(gg.Plus(0), 0)
-		gtest.Eq(gg.Plus(10), 10)
-		gtest.Eq(gg.Plus(10, 20), 30)
-		gtest.Eq(gg.Plus(-10, 0), -10)
-		gtest.Eq(gg.Plus(-10, 0, 10), 0)
-		gtest.Eq(gg.Plus(-10, 0, 10, 20), 20)
-		gtest.Eq(gg.Plus(-10, 0, 10, 20, 30), 50)
-	})
-
-	t.Run(`string`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		gtest.Eq(gg.Plus[string](), ``)
-		gtest.Eq(gg.Plus(``), ``)
-		gtest.Eq(gg.Plus(`one`), `one`)
-		gtest.Eq(gg.Plus(`one`, ``), `one`)
-		gtest.Eq(gg.Plus(``, `two`), `two`)
-		gtest.Eq(gg.Plus(`one`, `two`), `onetwo`)
-		gtest.Eq(gg.Plus(`one`, `two`, `three`), `onetwothree`)
-	})
-}
-
-func BenchmarkPlus(b *testing.B) {
-	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.Plus(10, 20, 30, 40, 50, 60, 70, 80, 90))
-	}
 }
 
 func TestSum(t *testing.T) {

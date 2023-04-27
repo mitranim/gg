@@ -618,12 +618,9 @@ func MaxBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
 	})
 }
 
-// Combines all inputs via "+". If the input is empty, returns the zero value.
-func Plus[A Plusable](val ...A) A { return Foldz(val, Plus2[A]) }
-
 /*
 Calls the given function on each element of the given slice and returns the sum
-of all results, combined via "+".
+of all results, combined via `+`.
 */
 func Sum[Src any, Out Plusable](src []Src, fun func(Src) Out) Out {
 	if fun == nil {
@@ -1365,6 +1362,37 @@ func Concat[Slice ~[]Elem, Elem any](val ...Slice) Slice {
 	return buf
 }
 
+/*
+Tool for comparing slice elements pairwise. Iterates left-to-right, invoking the
+given function for each element pair. If the function is nil, returns false. If
+there are 0 or 1 elements, returns true. If every comparison returned true,
+returns true. Otherwise returns false.
+*/
+func IsSorted[A any](src []A, fun func(A, A) bool) bool {
+	if fun == nil {
+		return false
+	}
+
+	switch len(src) {
+	case 0, 1:
+		return true
+
+	case 2:
+		return fun(src[0], src[1])
+
+	default:
+		prev := src[0]
+		for _, next := range src[1:] {
+			if fun(prev, next) {
+				prev = next
+				continue
+			}
+			return false
+		}
+		return true
+	}
+}
+
 // Sorts a slice of comparable primitives. For non-primitives, see `Sort`.
 func SortPrim[A LesserPrim](val []A) { SortablePrim[A](val).Sort() }
 
@@ -1376,7 +1404,7 @@ func SortedPrim[Slice ~[]Elem, Elem LesserPrim](val Slice) Slice {
 	return Slice(SortablePrim[Elem](val).Sorted())
 }
 
-// Implements `sort.Interface`.
+// Slice of primitives that implements `sort.Interface`.
 type SortablePrim[A LesserPrim] []A
 
 // Implement `sort.Interface`.
@@ -1408,7 +1436,7 @@ func Sorted[Slice ~[]Elem, Elem Lesser[Elem]](val Slice) Slice {
 	return Slice(Sortable[Elem](val).Sorted())
 }
 
-// Implements `sort.Interface`.
+// Slice of non-primitives that implements `sort.Interface`.
 type Sortable[A Lesser[A]] []A
 
 // Implement `sort.Interface`.

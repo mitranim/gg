@@ -247,11 +247,25 @@ func TestDrop(t *testing.T) {
 func TestMap(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.Equal(gg.Map([]int(nil), strconv.Itoa), []string(nil))
-	gtest.Equal(gg.Map([]int{}, strconv.Itoa), []string{})
-	gtest.Equal(gg.Map([]int{10}, strconv.Itoa), []string{`10`})
-	gtest.Equal(gg.Map([]int{10, 20}, strconv.Itoa), []string{`10`, `20`})
-	gtest.Equal(gg.Map([]int{10, 20, 30}, strconv.Itoa), []string{`10`, `20`, `30`})
+	fun := gg.Map[int, string]
+	elemFun := strconv.Itoa
+
+	testMapCommon(fun)
+
+	gtest.Equal(fun([]int{10, 10}, elemFun), []string{`10`, `10`})
+	gtest.Equal(fun([]int{10, 20, 10}, elemFun), []string{`10`, `20`, `10`})
+	gtest.Equal(fun([]int{10, 20, 10, 20}, elemFun), []string{`10`, `20`, `10`, `20`})
+	gtest.Equal(fun([]int{10, 20, 20, 10}, elemFun), []string{`10`, `20`, `20`, `10`})
+}
+
+func testMapCommon(mapFun func([]int, func(int) string) []string) {
+	elemFun := strconv.Itoa
+
+	gtest.Equal(mapFun([]int(nil), elemFun), []string(nil))
+	gtest.Equal(mapFun([]int{}, elemFun), []string{})
+	gtest.Equal(mapFun([]int{10}, elemFun), []string{`10`})
+	gtest.Equal(mapFun([]int{10, 20}, elemFun), []string{`10`, `20`})
+	gtest.Equal(mapFun([]int{10, 20, 30}, elemFun), []string{`10`, `20`, `30`})
 }
 
 func BenchmarkMap(b *testing.B) {
@@ -333,28 +347,43 @@ func TestMap2(t *testing.T) {
 func TestMapFlat(t *testing.T) {
 	defer gtest.Catch(t)
 
+	fun := gg.MapFlat[[]string, int, string]
+	elemFun := itoaPair
+
+	testMapFlatCommon(fun)
+
+	gtest.Equal(fun([]int{10}, elemFun), []string{`10`, `10`})
+	gtest.Equal(fun([]int{10, 10}, elemFun), []string{`10`, `10`, `10`, `10`})
+	gtest.Equal(fun([]int{10, 20}, elemFun), []string{`10`, `10`, `20`, `20`})
+}
+
+func itoaPair(src int) []string {
+	return []string{strconv.Itoa(src), strconv.Itoa(src)}
+}
+
+func testMapFlatCommon(fun func([]int, func(int) []string) []string) {
 	gtest.Equal(
-		gg.MapFlat([]int(nil), intStrPair),
+		fun([]int(nil), intStrPair),
 		[]string(nil),
 	)
 
 	gtest.Equal(
-		gg.MapFlat([]int{}, intStrPair),
+		fun([]int{}, intStrPair),
 		[]string(nil),
 	)
 
 	gtest.Equal(
-		gg.MapFlat([]int{10}, intStrPair),
+		fun([]int{10}, intStrPair),
 		[]string{`9`, `11`},
 	)
 
 	gtest.Equal(
-		gg.MapFlat([]int{10, 20}, intStrPair),
+		fun([]int{10, 20}, intStrPair),
 		[]string{`9`, `11`, `19`, `21`},
 	)
 
 	gtest.Equal(
-		gg.MapFlat([]int{10, 20, 30}, intStrPair),
+		fun([]int{10, 20, 30}, intStrPair),
 		[]string{`9`, `11`, `19`, `21`, `29`, `31`},
 	)
 }
@@ -366,6 +395,34 @@ func BenchmarkMapFlat(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(gg.MapFlat(val, intPair))
 	}
+}
+
+func TestMapUniq(t *testing.T) {
+	defer gtest.Catch(t)
+
+	fun := gg.MapUniq[int, string]
+	elemFun := strconv.Itoa
+
+	testMapCommon(fun)
+
+	gtest.Equal(fun([]int{10, 10}, elemFun), []string{`10`})
+	gtest.Equal(fun([]int{10, 20, 10}, elemFun), []string{`10`, `20`})
+	gtest.Equal(fun([]int{10, 20, 10, 20}, elemFun), []string{`10`, `20`})
+	gtest.Equal(fun([]int{10, 20, 20, 10}, elemFun), []string{`10`, `20`})
+}
+
+func TestMapFlatUniq(t *testing.T) {
+	defer gtest.Catch(t)
+
+	fun := gg.MapFlatUniq[[]string, int, string]
+	elemFun := itoaPair
+
+	testMapFlatCommon(fun)
+
+	gtest.Equal(fun([]int{10}, elemFun), []string{`10`})
+	gtest.Equal(fun([]int{10, 10}, elemFun), []string{`10`})
+	gtest.Equal(fun([]int{10, 20}, elemFun), []string{`10`, `20`})
+	gtest.Equal(fun([]int{10, 20, 20, 10}, elemFun), []string{`10`, `20`})
 }
 
 func TestIndex(t *testing.T) {
@@ -1033,19 +1090,59 @@ func BenchmarkUnion(b *testing.B) {
 func TestUniq(t *testing.T) {
 	defer gtest.Catch(t)
 
+	testUniqCommon(gg.Uniq[[]int])
+}
+
+func testUniqCommon(fun func([]int) []int) {
+	type Slice = []int
+
+	gtest.Zero(fun(Slice(nil)))
+	gtest.Zero(fun(Slice{}))
+
+	gtest.Equal(fun(Slice{10}), Slice{10})
+	gtest.Equal(fun(Slice{10, 10}), Slice{10})
+	gtest.Equal(fun(Slice{10, 10, 10}), Slice{10})
+	gtest.Equal(fun(Slice{10, 10, 10, 20}), Slice{10, 20})
+	gtest.Equal(fun(Slice{10, 10, 10, 20, 20}), Slice{10, 20})
+	gtest.Equal(fun(Slice{10, 20, 20, 10}), Slice{10, 20})
+	gtest.Equal(fun(Slice{30, 10, 20, 20, 10, 30}), Slice{30, 10, 20})
+}
+
+func TestUniqBy(t *testing.T) {
+	defer gtest.Catch(t)
+
 	type Elem = int
 	type Slice = []Elem
 
-	gtest.Zero(gg.Uniq(Slice(nil)))
-	gtest.Zero(gg.Uniq(Slice{}))
+	testUniqCommon(func(src Slice) Slice {
+		return gg.UniqBy(src, gg.Id1[Elem])
+	})
 
-	gtest.Equal(gg.Uniq(Slice{10}), Slice{10})
-	gtest.Equal(gg.Uniq(Slice{10, 10}), Slice{10})
-	gtest.Equal(gg.Uniq(Slice{10, 10, 10}), Slice{10})
-	gtest.Equal(gg.Uniq(Slice{10, 10, 10, 20}), Slice{10, 20})
-	gtest.Equal(gg.Uniq(Slice{10, 10, 10, 20, 20}), Slice{10, 20})
-	gtest.Equal(gg.Uniq(Slice{10, 20, 20, 10}), Slice{10, 20})
-	gtest.Equal(gg.Uniq(Slice{30, 10, 20, 20, 10, 30}), Slice{30, 10, 20})
+	testUniqCommon(func(src Slice) Slice {
+		return gg.UniqBy(src, gg.String[Elem])
+	})
+
+	gtest.Zero(gg.UniqBy[Slice, Elem, string](Slice(nil), nil))
+	gtest.Zero(gg.UniqBy[Slice, Elem, string](Slice{}, nil))
+	gtest.Zero(gg.UniqBy[Slice, Elem, string](Slice{10}, nil))
+	gtest.Zero(gg.UniqBy[Slice, Elem, string](Slice{10, 20}, nil))
+	gtest.Zero(gg.UniqBy[Slice, Elem, string](Slice{10, 20, 30}, nil))
+
+	gtest.Equal(
+		gg.UniqBy(
+			Slice{10, 20, 10, 30, 10},
+			func(Elem) struct{} { return struct{}{} },
+		),
+		Slice{10},
+	)
+
+	gtest.Equal(
+		gg.UniqBy(
+			Slice{20, 10, 20, 30, 30},
+			func(Elem) struct{} { return struct{}{} },
+		),
+		Slice{20},
+	)
 }
 
 func TestHas(t *testing.T) {
@@ -1640,4 +1737,29 @@ func TestSum(t *testing.T) {
 	gtest.Eq(gg.Sum([]Src{{-10}, {-20}, {0}}, fun), -30)
 	gtest.Eq(gg.Sum([]Src{{0}, {-10}, {20}}, fun), 10)
 	gtest.Eq(gg.Sum([]Src{{10}, {0}, {20}}, fun), 30)
+}
+
+func TestCounts(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Key = string
+	type Val = byte
+	type Src = []Val
+	type Tar = map[Key]int
+
+	gtest.Zero(gg.Counts[Src, Key](Src(nil), nil))
+	gtest.Zero(gg.Counts[Src, Key](Src{10}, nil))
+	gtest.Zero(gg.Counts[Src, Key](Src{10, 20}, nil))
+
+	alwaysSame := func(Val) Key { return `key` }
+
+	gtest.Equal(gg.Counts(Src{}, alwaysSame), Tar{})
+	gtest.Equal(gg.Counts(Src{10}, alwaysSame), Tar{`key`: 1})
+	gtest.Equal(gg.Counts(Src{10, 20}, alwaysSame), Tar{`key`: 2})
+	gtest.Equal(gg.Counts(Src{10, 20, 30}, alwaysSame), Tar{`key`: 3})
+
+	gtest.Equal(gg.Counts(Src{}, gg.String[Val]), Tar{})
+	gtest.Equal(gg.Counts(Src{10}, gg.String[Val]), Tar{`10`: 1})
+	gtest.Equal(gg.Counts(Src{10, 20}, gg.String[Val]), Tar{`10`: 1, `20`: 1})
+	gtest.Equal(gg.Counts(Src{10, 20, 30}, gg.String[Val]), Tar{`10`: 1, `20`: 1, `30`: 1})
 }

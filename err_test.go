@@ -283,12 +283,12 @@ func TestErrAs(t *testing.T) {
 		gg.ErrStr(`one`),
 	)
 
-	gtest.Equal(
+	gtest.Eq(
 		gg.ErrAs[PtrErrStr](gg.Ptr(PtrErrStr(`one`))),
 		PtrErrStr(`one`),
 	)
 
-	gtest.Equal(
+	gtest.Eq(
 		gg.ErrAs[PtrErrStr](fmt.Errorf(`%w`, gg.Ptr(PtrErrStr(`one`)))),
 		PtrErrStr(`one`),
 	)

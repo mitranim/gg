@@ -21,6 +21,7 @@ func indent(src string) string {
 	return gg.Indent + src
 }
 
+// TODO rename and make public.
 func goStringIndent[A any](val A) string { return grepr.StringIndent(val, 1) }
 
 func msgSingle[A any](val A) string {

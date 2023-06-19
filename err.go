@@ -144,7 +144,7 @@ func (self Err) AppendStack(inout []byte) []byte {
 // Implement `fmt.Formatter`.
 func (self Err) Format(out fmt.State, verb rune) {
 	if out.Flag('+') {
-		out.Write(self.AppendStack(nil))
+		_, _ = out.Write(self.AppendStack(nil))
 		return
 	}
 
@@ -533,7 +533,10 @@ func ErrTracedAt(err error, skip int) error {
 }
 
 // Outlined to avoid deoptimization of `ErrTracedAt` observed in benchmarks.
-func errTracedAt(err error, skip int) Err {
+func errTracedAt(err error, skip int) error {
+	if err == nil {
+		return nil
+	}
 	val, ok := err.(Err)
 	if ok {
 		return val.TracedAt(skip + 1)

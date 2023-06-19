@@ -14,14 +14,14 @@ import (
 )
 
 var (
-	typeRtype      = gg.Type[r.Type]()
-	typeBool       = gg.Type[bool]()
-	typeInt        = gg.Type[int]()
-	typeString     = gg.Type[string]()
-	typFloat64     = gg.Type[float64]()
-	typeComplex64  = gg.Type[complex64]()
-	typeComplex128 = gg.Type[complex128]()
-	typeGoStringer = gg.Type[fmt.GoStringer]()
+	typRtype      = gg.Type[r.Type]()
+	typBool       = gg.Type[bool]()
+	typInt        = gg.Type[int]()
+	typString     = gg.Type[string]()
+	typFloat64    = gg.Type[float64]()
+	typComplex64  = gg.Type[complex64]()
+	typComplex128 = gg.Type[complex128]()
+	typGoStringer = gg.Type[fmt.GoStringer]()
 )
 
 func (self *Fmt) fmtAny(typ r.Type, src r.Value) {
@@ -29,7 +29,7 @@ func (self *Fmt) fmtAny(typ r.Type, src r.Value) {
 		return
 	}
 
-	if typ == typeRtype {
+	if typ == typRtype {
 		self.fmtReflectType(src)
 		return
 	}
@@ -113,7 +113,7 @@ func (self *Fmt) fmtedPointerVisited(typ r.Type, src r.Value) bool {
 
 func (self *Fmt) fmtPointerVisited(src r.Value) {
 	self.AppendString(`/* visited */ `)
-	self.fmtTypeName(src.Type())
+	self.fmtType(src.Type())
 	self.AppendByte('(')
 	self.fmtUint64Hex(uint64(src.Pointer()))
 	self.AppendByte(')')
@@ -147,7 +147,7 @@ TODO: if, rather than implementing `.GoString` directly, the input inherits the
 method from an embedded type, we should do nothing and return false.
 */
 func (self *Fmt) fmtedGoString(src r.Value) bool {
-	if !src.Type().Implements(typeGoStringer) {
+	if !src.Type().Implements(typGoStringer) {
 		return false
 	}
 	self.AppendString(src.Interface().(fmt.GoStringer).GoString())
@@ -155,7 +155,7 @@ func (self *Fmt) fmtedGoString(src r.Value) bool {
 }
 
 func (self *Fmt) fmtBool(typ r.Type, src r.Value) {
-	defer self.fmtConvOpt(typ, src.Type(), typeBool).fmtConvClose()
+	defer self.fmtConvOpt(typ, src.Type(), typBool).fmtConvClose()
 	self.AppendBool(src.Bool())
 }
 
@@ -165,7 +165,7 @@ printing the real part when it's zero, and we avoid the scientific notation
 when formatting floats.
 */
 func (self *Fmt) fmtComplex(typ r.Type, src r.Value) {
-	done := self.fmtConvOpt(typ, src.Type(), typeComplex128)
+	done := self.fmtConvOpt(typ, src.Type(), typComplex128)
 	if done != nil {
 		defer done.fmtConvClose()
 	} else {
@@ -193,7 +193,7 @@ func (self *Fmt) fmtComplex(typ r.Type, src r.Value) {
 }
 
 func (self *Fmt) fmtInt64(typ r.Type, src r.Value) {
-	defer self.fmtConvOpt(typ, src.Type(), typeInt).fmtConvClose()
+	defer self.fmtConvOpt(typ, src.Type(), typInt).fmtConvClose()
 	self.AppendInt64(src.Int())
 }
 
@@ -242,7 +242,7 @@ func (self *Fmt) fmtFloat64(typ r.Type, src r.Value) {
 }
 
 func (self *Fmt) fmtString(typ r.Type, src r.Value) {
-	defer self.fmtConvOpt(typ, src.Type(), typeString).fmtConvClose()
+	defer self.fmtConvOpt(typ, src.Type(), typString).fmtConvClose()
 	text := src.String()
 	self.fmtStringInner(text, textPrintability(text))
 }
@@ -289,7 +289,7 @@ func (self *Fmt) fmtSlice(typ r.Type, src r.Value) {
 func (self *Fmt) fmtArray(src r.Value) {
 	typ := src.Type()
 
-	self.fmtTypeNameOpt(typ)
+	self.fmtTypeOpt(typ)
 	defer self.setElideType(!isTypeInterface(typ.Elem())).Done()
 
 	if src.Len() == 0 || src.IsZero() {
@@ -348,7 +348,7 @@ func (self *Fmt) fmtBytes(typ r.Type, src r.Value) {
 		prn := textPrintability(text)
 
 		if !prn.errors && !prn.unprintables {
-			self.fmtTypeName(src.Type())
+			self.fmtType(src.Type())
 			self.AppendByte('(')
 			self.fmtStringInner(gg.ToString(text), prn)
 			self.AppendByte(')')
@@ -365,7 +365,7 @@ supporting column width in `Conf`, which would allow us to print bytes in
 rows.
 */
 func (self *Fmt) fmtBytesHex(typ r.Type, src []byte) {
-	self.fmtTypeNameOpt(typ)
+	self.fmtTypeOpt(typ)
 	self.AppendByte('{')
 	for ind, val := range src {
 		if ind > 0 {
@@ -399,7 +399,7 @@ func (self *Fmt) fmtMap(typ r.Type, src r.Value) {
 
 	srcTyp := src.Type()
 
-	self.fmtTypeNameOpt(srcTyp)
+	self.fmtTypeOpt(srcTyp)
 	defer self.setElideType(!isTypeInterface(srcTyp.Elem())).Done()
 
 	if src.Len() == 0 {
@@ -491,7 +491,7 @@ func (self *Fmt) fmtUnsafePointer(typ r.Type, src r.Value) {
 }
 
 func (self *Fmt) fmtStruct(src r.Value) {
-	self.fmtTypeNameOpt(src.Type())
+	self.fmtTypeOpt(src.Type())
 	defer self.setElideType(false).Done()
 
 	if src.NumField() == 0 {
@@ -632,7 +632,7 @@ func (self *Fmt) fmtUnfmtable(typ r.Type, src r.Value) {
 		return
 	}
 
-	self.fmtTypeName(src.Type())
+	self.fmtType(src.Type())
 	self.AppendByte('(')
 	self.fmtUint64Hex(uint64(src.Pointer()))
 	self.AppendByte(')')
@@ -644,14 +644,14 @@ func (self *Fmt) fmtTypeArg(typ r.Type) {
 	}
 
 	self.AppendByte('[')
-	self.fmtTypeName(typ)
+	self.fmtType(typ)
 	self.AppendByte(']')
 }
 
 func (self *Fmt) fmtReflectType(src r.Value) {
 	self.fmtIdent(`gg`, `Type`)
 	self.AppendByte('[')
-	self.fmtTypeName(src.Interface().(r.Type))
+	self.fmtType(src.Interface().(r.Type))
 	self.AppendString(`]()`)
 }
 
@@ -670,18 +670,18 @@ func (self *Fmt) fmtIdent(pkg, name string) {
 	self.AppendString(name)
 }
 
-func (self *Fmt) fmtTypeNameOpt(typ r.Type) {
+func (self *Fmt) fmtTypeOpt(typ r.Type) {
 	if !self.ElideType {
-		self.fmtTypeName(typ)
+		self.fmtType(typ)
 	}
 }
 
-func (self *Fmt) fmtTypeName(typ r.Type) {
-	self.AppendString(self.typeName(typ))
+func (self *Fmt) fmtType(typ r.Type) {
+	self.AppendString(self.typeString(typ))
 }
 
 func (self *Fmt) fmtConvOpen(typ r.Type) *Fmt {
-	self.fmtTypeName(typ)
+	self.fmtType(typ)
 	self.AppendByte('(')
 	return self
 }
@@ -712,17 +712,35 @@ func (self *Fmt) skipField(src r.Value) bool {
 	return self.SkipZeroFields() && src.IsZero()
 }
 
-func (self *Fmt) typeName(typ r.Type) string {
-	return elidePkg(typeName(typ), self.Pkg)
+func (self *Fmt) typeString(typ r.Type) string {
+	return self.elidePkg(typeString(typ))
 }
 
-func typeName(typ r.Type) string { return string(typeNameCache.Get(typ)) }
+/*
+Known issue: this works only for `pkg.ident` but not for `[]pkg.ident`,
+`map[pkg.ident]pkg.ident`, `func(pkg.ident)`, and so on. We should either
+implement proper rewriting that works in all cases, or remove this feature.
+*/
+func (self *Fmt) elidePkg(src string) string {
+	pkg := self.Pkg
+	if pkg == `` {
+		return src
+	}
 
-var typeNameCache = gg.TypeCacheOf[typeNameStr]()
+	tar := strings.TrimPrefix(src, pkg)
+	if len(src) != len(tar) && len(tar) > 0 && tar[0] == '.' {
+		return tar[1:]
+	}
+	return src
+}
 
-type typeNameStr string
+func typeString(typ r.Type) string { return string(typeStringCache.Get(typ)) }
 
-func (self *typeNameStr) Init(typ r.Type) {
+var typeStringCache = gg.TypeCacheOf[typeStringStr]()
+
+type typeStringStr string
+
+func (self *typeStringStr) Init(typ r.Type) {
 	if typ == nil {
 		return
 	}
@@ -741,24 +759,12 @@ func (self *typeNameStr) Init(typ r.Type) {
 
 	tar = strings.ReplaceAll(tar, `interface {}`, `any`)
 	tar = reUint8.Get().ReplaceAllString(tar, `byte`)
-	*self = typeNameStr(tar)
+	*self = typeStringStr(tar)
 }
 
 var reUint8 = gg.NewLazy(func() *regexp.Regexp {
 	return regexp.MustCompile(`\buint8\b`)
 })
-
-func elidePkg(src, pkg string) string {
-	if pkg == `` {
-		return src
-	}
-
-	tar := strings.TrimPrefix(src, pkg)
-	if len(src) != len(tar) && len(tar) > 0 && tar[0] == '.' {
-		return tar[1:]
-	}
-	return src
-}
 
 func canAmpersand(kind r.Kind) bool {
 	return kind == r.Array || kind == r.Slice || kind == r.Struct
@@ -766,7 +772,7 @@ func canAmpersand(kind r.Kind) bool {
 
 func isTypeDefaultForLiteral(typ r.Type) bool {
 	switch typ {
-	case nil, typeBool, typeInt, typeString, typeComplex64, typeComplex128:
+	case nil, typBool, typInt, typString, typComplex64, typComplex128:
 		return true
 	default:
 		return false
@@ -786,7 +792,7 @@ func isStructUnit(typ r.Type) bool { return typ.NumField() == 1 }
 func isTypeInterface(typ r.Type) bool { return gg.TypeKind(typ) == r.Interface }
 
 func structHeadType(typ r.Type) r.Type {
-	return gg.StructPublicFieldCache.Get(typ)[0].Type
+	return gg.StructFieldCache.Get(typ)[0].Type
 }
 
 func derefIface(val r.Value) r.Value {

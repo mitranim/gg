@@ -241,11 +241,28 @@ Asserts that the input slices have the same set of elements, or fails the test,
 printing the optional additional messages and the stack trace.
 */
 func EqualSet[A ~[]B, B comparable](act, exp A, opt ...any) {
+	missingAct := gg.Exclude(exp, act...)
+	var msgMissingAct string
+
+	missingExp := gg.Exclude(act, exp...)
+	var msgMissingExp string
+
+	if len(missingAct) > 0 {
+		msgMissingAct = Msg(`missing from actual:`, goStringIndent(missingAct))
+	}
+
+	if len(missingExp) > 0 {
+		msgMissingExp = Msg(`missing from expected:`, goStringIndent(missingExp))
+	}
+
 	if !gg.Equal(gg.SetFrom(act), gg.SetFrom(exp)) {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
 			`unexpected difference in element sets`,
-			MsgEqInner(act, exp)),
-		)))
+			Msg(`actual:`, goStringIndent(act)),
+			Msg(`expected:`, goStringIndent(exp)),
+			msgMissingAct,
+			msgMissingExp,
+		))))
 	}
 }
 

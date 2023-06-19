@@ -199,9 +199,10 @@ func isBaseName(val string) bool { return filepath.Base(val) == val }
 /*
 Features:
 
+	* Determines valid execution order.
+
 	* Forbids cycles. In other words, ensures that our graph is a "multitree".
 	  See https://en.wikipedia.org/wiki/Multitree.
-	* Determines valid execution order.
 */
 type graphWalk struct {
 	Dir   *GraphDir

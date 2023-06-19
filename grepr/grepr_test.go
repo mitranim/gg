@@ -797,7 +797,7 @@ func Test_pkg_names(t *testing.T) {
 	}
 }
 
-func TestConf_strip_current_pkg(t *testing.T) {
+func TestConf_pkg_names_strip(t *testing.T) {
 	defer gtest.Catch(t)
 
 	{
@@ -811,7 +811,10 @@ func TestConf_strip_current_pkg(t *testing.T) {
 			Struct1Any{gg.TimeMicro(10)},
 			`Struct1Any{gg.TimeMicro(10)}`,
 		)
+	}
 
+	{
+		conf := grepr.ConfDefault
 		conf.Pkg = `gg`
 
 		testReprC(conf, testOuter, `grepr_test.Outer{
@@ -829,6 +832,16 @@ func TestConf_strip_current_pkg(t *testing.T) {
 			`grepr_test.Struct1Any{TimeMicro(10)}`,
 		)
 	}
+
+	// Not fully implemented.
+	// TODO either implement properly, or drop `Conf.Pkg`.
+	//
+	// {
+	// 	var conf grepr.Conf
+	// 	testReprC(conf, []Struct0{{}}, `[]grepr_test.Struct0{{}}`)
+	// 	conf.Pkg = `grepr_test`
+	// 	testReprC(conf, []Struct0{{}}, `[]Struct0{{}}`)
+	// }
 }
 
 func ExampleString() {

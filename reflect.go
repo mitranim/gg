@@ -41,7 +41,7 @@ func TypeKind(val r.Type) r.Kind {
 }
 
 // Nil-safe version of `reflect.Type.String`. If the input is nil, returns zero.
-func TypeName(val r.Type) string {
+func TypeString(val r.Type) string {
 	if val == nil {
 		return ``
 	}

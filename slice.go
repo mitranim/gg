@@ -630,6 +630,36 @@ func Sum[Src any, Out Plusable](src []Src, fun func(Src) Out) Out {
 }
 
 /*
+Counts occurrences elements of the given slice, keyed by calling the given
+function for each element, and returning the resulting map. If the function is
+nil, returns nil. Compare `Group` which returns `map[Key][]Val` rather than
+`map[Key]int`, and `Index` which returns `map[Key]Val`.
+*/
+func Counts[Slice ~[]Val, Key comparable, Val any](src Slice, fun func(Val) Key) map[Key]int {
+	if fun == nil {
+		return nil
+	}
+
+	out := map[Key]int{}
+	CountsInto(out, src, fun)
+	return out
+}
+
+/*
+Counts occurrences elements of the given slice, keyed by calling the given
+function for each element, modifying the given map, which must be non-nil if
+the slice is non-empty. If the function is nil, does nothing.
+*/
+func CountsInto[Key comparable, Val any](tar map[Key]int, src []Val, fun func(Val) Key) {
+	if fun == nil {
+		return
+	}
+	for _, val := range src {
+		tar[fun(val)]++
+	}
+}
+
+/*
 Maps one slice to another. The resulting slice has exactly the same length as
 the original. Each element is created by calling the given function on the
 corresponding element of the original slice. The name refers to a well-known
@@ -745,6 +775,62 @@ func MapFlat[Out ~[]B, A, B any](src []A, fun func(A) Out) Out {
 	var out Out
 	for _, val := range src {
 		out = append(out, fun(val)...)
+	}
+	return out
+}
+
+// Similar to `Map` but excludes duplicates.
+func MapUniq[A any, B comparable](src []A, fun func(A) B) []B {
+	if src == nil {
+		return nil
+	}
+
+	switch len(src) {
+	case 0:
+		return []B{}
+
+	case 1:
+		return []B{fun(src[0])}
+
+	case 2:
+		one := fun(src[0])
+		two := fun(src[1])
+		if one == two {
+			return []B{one}
+		}
+		return []B{one, two}
+
+	default:
+		set := make(Set[B])
+		out := make([]B, 0, len(src))
+		for _, src := range src {
+			val := fun(src)
+			if set.Has(val) {
+				continue
+			}
+			set.Add(val)
+			out = append(out, val)
+		}
+		return out
+	}
+}
+
+// Similar to `MapFlat` but excludes duplicates.
+func MapFlatUniq[Out ~[]B, A any, B comparable](src []A, fun func(A) Out) Out {
+	if src == nil {
+		return nil
+	}
+
+	var out Out
+	var set Set[B]
+	for _, src := range src {
+		for _, val := range fun(src) {
+			if set.Has(val) {
+				continue
+			}
+			set.Init().Add(val)
+			out = append(out, val)
+		}
 	}
 	return out
 }
@@ -1199,7 +1285,8 @@ func Union[Slice ~[]Elem, Elem comparable](val ...Slice) Slice {
 /*
 Deduplicates the elements of the given slice, preserving the order of initial
 occurrence for each element. The output is always either nil or a newly
-allocated slice with at least one element.
+allocated slice with at least one element. Compare `UniqBy` which compares
+elements by keys obtained by calling the given function.
 */
 func Uniq[Slice ~[]Elem, Elem comparable](src Slice) Slice {
 	var tar Slice
@@ -1211,6 +1298,33 @@ func Uniq[Slice ~[]Elem, Elem comparable](src Slice) Slice {
 		}
 		tar = append(tar, val)
 		set.Init().Add(val)
+	}
+
+	return tar
+}
+
+/*
+Deduplicates the elements of the given slice on keys obtained by calling the
+given function for each element, and preserving the order of initial occurrence
+for each element. If the function is nil, returns nil. The output is always
+either nil or a newly allocated slice with at least one element. Compare `Uniq`
+which compares the elements themselves.
+*/
+func UniqBy[Slice ~[]Elem, Elem any, Key comparable](src Slice, fun func(Elem) Key) Slice {
+	if fun == nil {
+		return nil
+	}
+
+	var tar Slice
+	var set Set[Key]
+
+	for _, val := range src {
+		key := fun(val)
+		if set.Has(key) {
+			continue
+		}
+		tar = append(tar, val)
+		set.Init().Add(key)
 	}
 
 	return tar

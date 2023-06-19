@@ -187,46 +187,39 @@ const (
 	// Standard terminal escape sequence. Same as "\x1b" or "\033".
 	TermEsc = string(rune(27))
 
-	// Control Sequence Introducer. Prefix for many terminal escape sequences.
+	// Control Sequence Introducer. Used for other codes.
 	TermEscCsi = TermEsc + `[`
 
-	/**
-	Escape sequence recognized by many terminals. When printed, should cause the
-	terminal to update cursor position to row 1 column 1 in the current screen,
-	ignoring the scrollback.
-	*/
+	// Update cursor position to first row, first column.
 	TermEscCup = TermEscCsi + `1;1H`
 
-	/**
-	Escape sequence recognized by many terminals. When printed, should cause the
-	terminal to clear the current screen without clearing the scrollback.
-	Scrolling up should reveal previous content. Should typically be preceded
-	with `TermEscCup`.
-	*/
-	TermEscClearSoft = TermEscCsi + `2J`
+	// Supposed to clear the screen without clearing the scrollback, aka soft
+	// clear. Seems insufficient on its own, at least in some terminals.
+	TermEscErase2 = TermEscCsi + `2J`
 
-	/**
-	Escape sequence recognized by many terminals. When printed, should cause the
-	terminal to clear the current screen and the scrollback. Should typically be
-	preceded with `TermEscCup`. Note: we could also use `TermEscCsi` + `3J`, but
-	it seems to behave incorrectly in some scenarios, for example when used from
-	a subprocess running under Make.
-	*/
-	TermEscClearHard = TermEsc + `c`
+	// Supposed to clear the screen and the scrollback, aka hard clear. Seems
+	// insufficient on its own, at least in some terminals.
+	TermEscErase3 = TermEscCsi + `3J`
+
+	// Supposed to reset the terminal to initial state, aka super hard clear.
+	// Seems insufficient on its own, at least in some terminals.
+	TermEscReset = TermEsc + `c`
+
+	// Clear screen without clearing scrollback.
+	TermEscClearSoft = TermEscCup + TermEscErase2
+
+	// Clear screen AND scrollback.
+	TermEscClearHard = TermEscCup + TermEscReset + TermEscErase3
 )
 
 /*
-Prints `TermEscCup+TermEscClearSoft` to `os.Stdout`, causing the current TTY to
-clear the screen but not the scrollback, pushing existing content out of view.
+Prints `TermEscClearSoft` to `os.Stdout`, causing the current TTY to clear the
+screen but not the scrollback, pushing existing content out of view.
 */
-func TermClearSoft() {
-	_, _ = io.WriteString(os.Stdout, TermEscCup+TermEscClearSoft)
-}
+func TermClearSoft() { _, _ = io.WriteString(os.Stdout, TermEscClearSoft) }
 
 /*
-Prints `TermEscCup+TermEscClearHard` to `os.Stdout`, clearing the current TTY
-completely (screen + scrollback).
+Prints `TermEscClearHard` to `os.Stdout`, clearing the current TTY completely
+(both screen and scrollback).
 */
-func TermClearHard() {
-	_, _ = io.WriteString(os.Stdout, TermEscCup+TermEscClearHard)
-}
+func TermClearHard() { _, _ = io.WriteString(os.Stdout, TermEscClearHard) }

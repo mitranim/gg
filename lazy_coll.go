@@ -102,6 +102,13 @@ func (self *LazyColl[Key, Val]) Add(src ...Val) *LazyColl[Key, Val] {
 	return self
 }
 
+// Same as `Coll.AddUniq`. Lazily rebuilds the index.
+func (self *LazyColl[Key, Val]) AddUniq(src ...Val) *LazyColl[Key, Val] {
+	self.ReindexOpt()
+	self.coll().AddUniq(src...)
+	return self
+}
+
 // Same as `Coll.Reset` but deletes the index instead of rebuilding it.
 func (self *LazyColl[Key, Val]) Reset(src ...Val) *LazyColl[Key, Val] {
 	self.Index = nil

@@ -674,24 +674,30 @@ Asserts that the given slice contains no duplicates, or fails the test, printing
 the optional additional messages and the stack trace.
 */
 func Uniq[A ~[]B, B comparable](src A, opt ...any) {
-	dup, ok := foundDup(src)
+	dup, ind0, ind1, ok := foundDup(src)
 	if ok {
 		panic(ErrAt(1, msgOpt(opt, gg.JoinLinesOpt(
-			`unexpected duplicate in slice`,
+			fmt.Sprintf(`unexpected duplicate at indexes %v and %v`, ind0, ind1),
 			msgSingle(dup),
 		))))
 	}
 }
 
-func foundDup[A comparable](src []A) (A, bool) {
-	for ind, val := range src {
-		for _, more := range src[ind+1:] {
-			if val == more {
-				return val, true
-			}
-		}
+func foundDup[A comparable](src []A) (_ A, _ int, _ int, _ bool) {
+	size := len(src)
+	if !(size > 0) {
+		return
 	}
-	return gg.Zero[A](), false
+
+	found := make(map[A]int, size)
+	for ind1, val := range src {
+		ind0, ok := found[val]
+		if ok {
+			return val, ind0, ind1, true
+		}
+		found[val] = ind1
+	}
+	return
 }
 
 /*

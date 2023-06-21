@@ -16,8 +16,8 @@ func ValidPk[Key comparable, Val Pker[Key]](val Val) Key {
 }
 
 /*
-Syntactic shortcut for making a `Coll` of the given arguments, with type
-inference. Reuses the given slice as-is with no reallocation.
+Syntactic shortcut for making a `Coll` of the given arguments. Reuses the given
+slice as-is with no reallocation.
 */
 func CollOf[Key comparable, Val Pker[Key]](src ...Val) Coll[Key, Val] {
 	var tar Coll[Key, Val]
@@ -26,9 +26,9 @@ func CollOf[Key comparable, Val Pker[Key]](src ...Val) Coll[Key, Val] {
 }
 
 /*
-Syntactic shortcut for making a `Coll` from any number of source slices, with
-type inference. When called with exactly one argument, this reuses the given
-slice as-is with no reallocation.
+Syntactic shortcut for making a `Coll` from any number of source slices. When
+called with exactly one argument, this reuses the given slice as-is with no
+reallocation.
 */
 func CollFrom[Key comparable, Val Pker[Key], Slice ~[]Val](src ...Slice) Coll[Key, Val] {
 	var tar Coll[Key, Val]
@@ -146,6 +146,27 @@ func (self *Coll[Key, Val]) Add(src ...Val) *Coll[Key, Val] {
 		if ok {
 			self.Slice[ind] = val
 			continue
+		}
+		index[key] = AppendIndex(&self.Slice, val)
+	}
+
+	return self
+}
+
+/*
+Same as `Coll.Add`, but panics if any inputs are redundant, as in, their primary
+keys are already present in the index.
+*/
+func (self *Coll[Key, Val]) AddUniq(src ...Val) *Coll[Key, Val] {
+	index := MapInit(&self.Index)
+
+	for _, val := range src {
+		key := ValidPk[Key](val)
+		if MapHas(index, key) {
+			panic(Errf(
+				`unexpected redundant %v with key %v`,
+				Type[Val](), key,
+			))
 		}
 		index[key] = AppendIndex(&self.Slice, val)
 	}

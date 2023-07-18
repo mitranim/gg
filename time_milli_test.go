@@ -149,7 +149,7 @@ func testTimeMilli(t *testing.T) {
 
 		test := func(src string, exp gg.TimeMilli) {
 			var tar gg.TimeMilli
-			gtest.NoError(tar.UnmarshalJSON(gg.ToBytes(src)))
+			gtest.NoErr(tar.UnmarshalJSON(gg.ToBytes(src)))
 			gtest.Eq(tar, exp)
 		}
 
@@ -170,11 +170,11 @@ func testTimeMilli(t *testing.T) {
 			var tar gg.TimeMilli
 
 			tar = 0
-			gtest.NoError(tar.Scan(src))
+			gtest.NoErr(tar.Scan(src))
 			gtest.Eq(tar, exp)
 
 			tar = 123
-			gtest.NoError(tar.Scan(src))
+			gtest.NoErr(tar.Scan(src))
 			gtest.Eq(tar, exp)
 		}
 
@@ -227,7 +227,7 @@ func testTimeMilliParse(
 
 		var tar gg.TimeMilli
 
-		gtest.ErrorStr(
+		gtest.ErrStr(
 			`parsing time "wtf" as "2006-01-02T15:04:05Z07:00"`,
 			fun(&tar, `wtf`),
 		)
@@ -238,7 +238,7 @@ func testTimeMilliParse(
 		defer gtest.Catch(t)
 
 		tar := gg.TimeMilli(123)
-		gtest.NoError(fun(&tar, ``))
+		gtest.NoErr(fun(&tar, ``))
 		gtest.Zero(tar)
 	})
 
@@ -247,7 +247,7 @@ func testTimeMilliParse(
 
 		test := func(src string, exp gg.TimeMilli) {
 			var tar gg.TimeMilli
-			gtest.NoError(fun(&tar, src))
+			gtest.NoErr(fun(&tar, src))
 			gtest.Eq(tar, exp)
 		}
 
@@ -273,7 +273,7 @@ func testTimeMilliParse(
 
 		test := func(src string, exp gg.TimeMilli) {
 			var tar gg.TimeMilli
-			gtest.NoError(fun(&tar, src))
+			gtest.NoErr(fun(&tar, src))
 			gtest.Eq(tar, exp)
 
 			inst := timeParse(src)

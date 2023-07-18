@@ -8,6 +8,7 @@ Some features:
 
   * Designed for Go 1.18. Takes massive advantage of generics.
   * Errors with stack traces.
+  * Checked math.
   * Various functional programming utilities: map, filter, fold, and more.
   * Various shortcuts for reflection.
   * Various shortcuts for manipulating slices.

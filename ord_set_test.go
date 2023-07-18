@@ -95,7 +95,7 @@ func TestOrdSet(t *testing.T) {
 		defer gtest.Catch(t)
 
 		gtest.Equal(
-			gg.JsonParseTo[gg.OrdSet[int]](`[20, 10, 30]`),
+			gg.JsonDecodeTo[gg.OrdSet[int]](`[20, 10, 30]`),
 			gg.OrdSetOf(20, 10, 30),
 		)
 	})

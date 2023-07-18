@@ -45,17 +45,17 @@ func BenchmarkFrames_NameWidth(b *testing.B) {
 	}
 }
 
-func BenchmarkFrames_AppendIndentTable(b *testing.B) {
+func BenchmarkFrames_AppendIndentTableTo(b *testing.B) {
 	frames := trace0().Frames()
 	buf := make([]byte, 0, 1<<16)
 	b.ResetTimer()
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(frames.AppendIndentTable(buf, 0))
+		gg.Nop1(frames.AppendIndentTableTo(buf, 0))
 	}
 }
 
-func BenchmarkFrames_AppendIndentTable_rel_path(b *testing.B) {
+func BenchmarkFrames_AppendIndentTableTo_rel_path(b *testing.B) {
 	defer gg.SnapSwap(&gg.TraceSkipLang, true).Done()
 	defer gg.SnapSwap(&gg.TraceBaseDir, gg.Cwd()).Done()
 
@@ -64,7 +64,7 @@ func BenchmarkFrames_AppendIndentTable_rel_path(b *testing.B) {
 	b.ResetTimer()
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(frames.AppendIndentTable(buf, 0))
+		gg.Nop1(frames.AppendIndentTableTo(buf, 0))
 	}
 }
 

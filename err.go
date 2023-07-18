@@ -74,8 +74,7 @@ func (self Err) AppendTo(inout []byte) []byte {
 	}
 
 	buf.AppendString(self.Msg)
-	buf = errAppendInner(buf, self.Cause)
-	return buf
+	return errAppendInner(buf, self.Cause)
 }
 
 /*
@@ -83,68 +82,87 @@ Returns a text representation of the full error message with the stack trace,
 if any. The method's name is chosen for consistency with the getter
 `Error.prototype.stack` in JS, which behaves exactly like this method.
 */
-func (self Err) Stack() string { return ToString(self.AppendStack(nil)) }
+func (self Err) Stack() string { return ToString(self.AppendStackTo(nil)) }
 
 /*
 Appends a text representation of the full error message with the stack trace, if
 any. The representation is the same as in `.Stack`.
 */
-func (self Err) AppendStack(inout []byte) []byte {
-	buf := Buf(inout)
-	cause := self.Cause
-	causeTraced := IsErrTraced(cause)
-
-	if self.Msg == `` {
-		if cause == nil {
-			return PtrGet(self.Trace).AppendIndent(buf, 0)
-		}
-
-		if !causeTraced {
-			buf.AppendError(cause)
-			buf = errAppendTraceIndent(buf, PtrGet(self.Trace))
-			return buf
-		}
-
-		buf.Fprintf(`%+v`, cause)
-		return buf
+func (self Err) AppendStackTo(buf []byte) []byte {
+	if self.Cause == nil {
+		return self.appendStackWithoutCause(buf)
 	}
+	return self.appendStackWithCause(buf)
+}
 
-	if !causeTraced {
-		buf.AppendString(self.Msg)
-		buf = errAppendInner(buf, cause)
-		buf = errAppendTraceIndent(buf, PtrGet(self.Trace))
-		return buf
+func (self Err) appendStackWithoutCause(buf Buf) Buf {
+	trace := self.OwnTrace()
+	if self.Msg == `` {
+		return errAppendTraceIndent(buf, trace)
 	}
 
 	buf.AppendString(self.Msg)
+	return errAppendTraceIndentWithNewline(buf, trace)
+}
 
-	if PtrGet(self.Trace).IsNotEmpty() {
-		buf = errAppendTraceIndent(buf, PtrGet(self.Trace))
-		if cause != nil {
-			buf.AppendNewline()
-			buf.AppendNewline()
-			buf.AppendString(`cause:`)
-			buf.AppendNewline()
-		}
-	} else if cause != nil {
+func (self Err) appendStackWithCause(buf Buf) Buf {
+	if self.Msg == `` {
+		return self.appendStackWithCauseWithoutMsg(buf)
+	}
+	return self.appendStackWithCauseWithMsg(buf)
+}
+
+func (self Err) appendStackWithCauseWithoutMsg(buf Buf) Buf {
+	cause := self.Cause
+	trace := self.OwnTrace()
+
+	if trace.IsEmpty() {
+		buf.AppendErrorStack(cause)
+		return buf
+	}
+
+	if !IsErrTraced(cause) {
+		// Outer doesn't have a message and inner doesn't have a trace, so we treat
+		// them as complements to each other.
+		buf.AppendError(cause)
+		return errAppendTraceIndentWithNewline(buf, trace)
+	}
+
+	buf = errAppendTraceIndent(buf, trace)
+	buf.AppendNewline()
+	buf.AppendErrorStack(cause)
+	return buf
+}
+
+func (self Err) appendStackWithCauseWithMsg(buf Buf) Buf {
+	cause := self.Cause
+	trace := self.OwnTrace()
+
+	if trace.IsEmpty() {
+		buf.AppendString(self.Msg)
 		buf.AppendString(`: `)
+		buf.AppendErrorStack(cause)
+		return buf
 	}
 
-	{
-		val, _ := cause.(interface{ AppendStack([]byte) []byte })
-		if val != nil {
-			return val.AppendStack(buf)
-		}
+	if !IsErrTraced(cause) {
+		buf.AppendString(self.Msg)
+		buf = errAppendInner(buf, cause)
+		return errAppendTraceIndentWithNewline(buf, trace)
 	}
 
-	buf.Fprintf(`%+v`, cause)
+	buf.AppendString(self.Msg)
+	buf = errAppendTraceIndentWithNewline(buf, trace)
+	buf.AppendNewline()
+	buf.AppendString(`cause: `)
+	buf.AppendErrorStack(cause)
 	return buf
 }
 
 // Implement `fmt.Formatter`.
 func (self Err) Format(out fmt.State, verb rune) {
 	if out.Flag('+') {
-		_, _ = out.Write(self.AppendStack(nil))
+		_, _ = out.Write(self.AppendStackTo(nil))
 		return
 	}
 
@@ -157,11 +175,14 @@ func (self Err) Format(out fmt.State, verb rune) {
 	_, _ = io.WriteString(out, self.Error())
 }
 
+// Safely dereferences `.Trace`, returning nil if the pointer is nil.
+func (self Err) OwnTrace() Trace { return PtrGet(self.Trace) }
+
 /*
 Implement `StackTraced`, which allows to retrieve stack traces from nested
 errors.
 */
-func (self Err) StackTrace() []uintptr { return PtrGet(self.Trace).Prim() }
+func (self Err) StackTrace() []uintptr { return self.OwnTrace().Prim() }
 
 // Returns a modified version where `.Msg` is set to the input.
 func (self Err) Msgd(val string) Err {
@@ -217,7 +238,7 @@ func (self Err) TracedOptAt(skip int) Err {
 
 // True if either the error or its cause has a non-empty stack trace.
 func (self Err) IsTraced() bool {
-	return PtrGet(self.Trace).IsNotEmpty() || IsErrTraced(self.Cause)
+	return self.OwnTrace().IsNotEmpty() || IsErrTraced(self.Cause)
 }
 
 /*
@@ -366,6 +387,16 @@ func (self Errs) append(buf Buf) Buf {
 }
 
 /*
+Adds a stack trace to each non-nil error via `WrapTracedAt`. Useful when writing
+tools that internally use goroutines.
+*/
+func (self Errs) WrapTracedAt(skip int) {
+	for ind := range self {
+		self[ind] = WrapTracedAt(self[ind], skip)
+	}
+}
+
+/*
 Implementation of `error` that wraps an arbitrary value. Useful in panic
 recovery. Used internally by `AnyErr` and some other error-related functions.
 */
@@ -415,8 +446,9 @@ argument is a formatting pattern.
 func Errv(val ...any) Err { return Err{}.Msgv(val...).TracedAt(1) }
 
 /*
-Wraps the given error, prepending the given message and idempotently adding a
-stack trace. The message is converted to a string via `Str(msg...)`.
+If the error is nil, returns nil. Otherwise wraps the error, prepending the
+given message and idempotently adding a stack trace. The message is converted
+to a string via `Str(msg...)`.
 */
 func Wrap(err error, msg ...any) error {
 	if err == nil {
@@ -426,16 +458,32 @@ func Wrap(err error, msg ...any) error {
 }
 
 /*
-Wraps the given error, prepending the given message and idempotently adding a
-stack trace. The pattern argument must be a hardcoded pattern string compatible
-with `fmt.Sprintf` and other similar functions. If the pattern argument is an
-expression rather than a hardcoded string, use `Wrap` instead.
+If the error is nil, returns nil. Otherwise wraps the error, prepending the
+given message and idempotently adding a stack trace. The pattern argument must
+be a hardcoded pattern string compatible with `fmt.Sprintf` and other similar
+functions. If the pattern argument is an expression rather than a hardcoded
+string, use `Wrap` instead.
 */
 func Wrapf(err error, pat string, arg ...any) error {
 	if err == nil {
 		return nil
 	}
 	return Err{}.Caused(err).Msgf(pat, arg...).TracedOptAt(1)
+}
+
+/*
+If the error is nil, returns nil. Otherwise wraps the error into an instance of
+`Err` without a message with a new stack trace, skipping the given number of
+frames. Unlike other "traced" functions, this one is NOT idempotent: it doesn't
+check if the existing errors already have traces, and always adds a trace. This
+is useful when writing tools that internally use goroutines, in order to
+"connect" the traces between the goroutine and the caller.
+*/
+func WrapTracedAt(err error, skip int) error {
+	if err == nil {
+		return nil
+	}
+	return Err{Cause: err, Trace: Ptr(CaptureTrace(skip + 1))}
 }
 
 /*

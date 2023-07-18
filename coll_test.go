@@ -431,7 +431,7 @@ func testCollMarshalJSON[Ptr CollPtr[Coll], Coll AnyColl]() {
 }
 
 func testCollUnmarshalJSON[Ptr CollPtr[Coll], Coll AnyColl]() {
-	tar := gg.JsonParseTo[Coll](`[
+	tar := gg.JsonDecodeTo[Coll](`[
 		{"id": 10, "name": "one"},
 		{"id": 20, "name": "two"}
 	]`)

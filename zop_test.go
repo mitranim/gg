@@ -22,10 +22,10 @@ func TestZop_UnmarshalJSON(t *testing.T) {
 
 	type Type = gg.Zop[int]
 
-	gtest.Zero(gg.JsonParseTo[Type](`null`))
+	gtest.Zero(gg.JsonDecodeTo[Type](`null`))
 
 	gtest.Equal(
-		gg.JsonParseTo[Type](`123`),
+		gg.JsonDecodeTo[Type](`123`),
 		gg.ZopVal(123),
 	)
 }

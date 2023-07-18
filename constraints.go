@@ -155,6 +155,13 @@ interface allows significantly more efficient text encoding.
 type AppenderTo interface{ AppendTo([]byte) []byte }
 
 /*
+Appends a text representation of a stack trace to the given buffer, returning
+the modified buffer. Implemented by `Err` and used internally in error
+formatting.
+*/
+type StackAppenderTo interface{ AppendStackTo([]byte) []byte }
+
+/*
 Combination of interfaces related to text encoding implemented by some types in
 this package.
 */

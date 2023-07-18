@@ -730,3 +730,37 @@ func TestAppendNewlineOpt(t *testing.T) {
 func testAppendNewlineOptSame[A gg.Text](src A) {
 	gtest.Is(gg.AppendNewlineOpt(src), src)
 }
+
+func TestSplit(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.Split(``, ``))
+	gtest.Zero(gg.Split(``, ` `))
+	gtest.Zero(gg.Split(``, `_`))
+
+	gtest.Equal(gg.Split(` `, ``), []string{` `})
+	gtest.Equal(gg.Split(` `, ` `), []string{``, ``})
+	gtest.Equal(gg.Split(` `, `_`), []string{` `})
+
+	gtest.Equal(gg.Split(`one`, ``), []string{`o`, `n`, `e`})
+	gtest.Equal(gg.Split(`one`, ` `), []string{`one`})
+	gtest.Equal(gg.Split(`one`, `_`), []string{`one`})
+
+	gtest.Equal(gg.Split(`one two`, ` `), []string{`one`, `two`})
+	gtest.Equal(gg.Split(`one two`, `_`), []string{`one two`})
+
+	gtest.Equal(gg.Split(`one_two`, ` `), []string{`one_two`})
+	gtest.Equal(gg.Split(`one_two`, `_`), []string{`one`, `two`})
+
+	gtest.Equal(gg.Split(`_one_two`, ` `), []string{`_one_two`})
+	gtest.Equal(gg.Split(`_one_two`, `_`), []string{``, `one`, `two`})
+
+	gtest.Equal(gg.Split(`one_two_`, ` `), []string{`one_two_`})
+	gtest.Equal(gg.Split(`one_two_`, `_`), []string{`one`, `two`, ``})
+
+	gtest.Equal(gg.Split(`one two three`, ` `), []string{`one`, `two`, `three`})
+	gtest.Equal(gg.Split(`one two three`, `_`), []string{`one two three`})
+
+	gtest.Equal(gg.Split(`one_two_three`, ` `), []string{`one_two_three`})
+	gtest.Equal(gg.Split(`one_two_three`, `_`), []string{`one`, `two`, `three`})
+}

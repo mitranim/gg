@@ -63,7 +63,7 @@ func (self Timed[A]) MarshalJSON() ([]byte, error) {
 
 /*
 Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
-clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
+clears the receiver via `.Clear`. Otherwise uses `JsonDecodeCatch` to decode
 into the underlying value, and sets the current timestamp on success.
 */
 func (self *Timed[_]) UnmarshalJSON(src []byte) error {
@@ -71,7 +71,7 @@ func (self *Timed[_]) UnmarshalJSON(src []byte) error {
 		self.Clear()
 		return nil
 	}
-	return self.with(JsonParseCatch(src, &self.Val))
+	return self.with(JsonDecodeCatch(src, &self.Val))
 }
 
 // True if the timestamp is unset, or if timestamp + duration > now.

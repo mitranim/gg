@@ -665,7 +665,8 @@ the original. Each element is created by calling the given function on the
 corresponding element of the original slice. The name refers to a well-known
 functional programming abstraction which doesn't have anything in common with
 the Go `map` types. Unlike many other higher-order slice functions, this one
-requires a non-nil function.
+requires a non-nil function; this is a tradeoff for guaranteeing that output
+length is always equal to input length.
 */
 func Map[A, B any](src []A, fun func(A) B) []B {
 	if src == nil {
@@ -1140,6 +1141,9 @@ func Compact[Slice ~[]Elem, Elem any](src Slice) Slice {
 
 // Same as global `Compact`.
 func (self Slice[A]) Compact() Slice[A] { return Compact(self) }
+
+// Same as `Compact` but variadic.
+func Compacted[A any](src ...A) []A { return Compact(src) }
 
 /*
 Tests each element by calling the given function and returns the first element

@@ -22,10 +22,10 @@ func TestOpt_UnmarshalJSON(t *testing.T) {
 
 	type Type = gg.Opt[int]
 
-	gtest.Zero(gg.JsonParseTo[Type](`null`))
+	gtest.Zero(gg.JsonDecodeTo[Type](`null`))
 
 	gtest.Equal(
-		gg.JsonParseTo[Type](`123`),
+		gg.JsonDecodeTo[Type](`123`),
 		gg.OptVal(123),
 	)
 }
@@ -44,11 +44,11 @@ func TestOpt_Scan(t *testing.T) {
 	type Type = gg.Opt[float64]
 
 	var tar Type
-	gtest.NoError(tar.Scan(float64(9.999999682655225e-18)))
+	gtest.NoErr(tar.Scan(float64(9.999999682655225e-18)))
 	gtest.Eq(tar.Val, 9.999999682655225e-18)
 
 	tar.Clear()
 	gtest.Zero(tar)
-	gtest.NoError(tar.Scan(`9.999999682655225e-18`))
+	gtest.NoErr(tar.Scan(`9.999999682655225e-18`))
 	gtest.Eq(tar.Val, 9.999999682655225e-18)
 }

@@ -109,7 +109,7 @@ func TestSet(t *testing.T) {
 		defer gtest.Catch(t)
 
 		test := func(src string, exp IntSet) {
-			gtest.Equal(gg.JsonParseTo[IntSet](src), exp)
+			gtest.Equal(gg.JsonDecodeTo[IntSet](src), exp)
 		}
 
 		test(`[]`, IntSet{})

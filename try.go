@@ -133,6 +133,18 @@ func TryWrapf(err error, pat string, arg ...any) {
 }
 
 /*
+If the given function and error is non-nil, transforms the error by calling the
+given function. Then if the resulting error is non-nil, panics with the that
+error, idempotently adding a stack trace.
+*/
+func TryTrans(fun func(error) error, err error) {
+	if fun != nil && err != nil {
+		err = fun(err)
+	}
+	Try(err)
+}
+
+/*
 Must be deferred. Recovers from panics, writing the resulting error, if any, to
 the given pointer. Should be used together with "try"-style functions.
 Idempotently adds a stack trace.
@@ -468,7 +480,7 @@ easier to read trace. See our types `Err` and `Trace`. Usage example:
 func Fatal() {
 	val := recover()
 	if val != nil {
-		Nop2(os.Stderr.Write(AnyToErrTracedAt(val, 1).AppendStack(nil)))
+		Nop2(os.Stderr.Write(AnyToErrTracedAt(val, 1).AppendStackTo(nil)))
 		os.Exit(1)
 	}
 }

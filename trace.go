@@ -40,22 +40,24 @@ func (self Trace) Capture(skip int) Trace {
 
 /*
 Returns a multi-line text representation of the trace, with no leading
-indentation. See `.AppendIndent`.
+indentation. See `.AppendIndentTo`.
 */
 func (self Trace) String() string { return AppenderString(self) }
 
 /*
 Appends a multi-line text representation of the trace, with no leading
-indentation. See `.AppendIndent`.
+indentation. See `.AppendIndentTo`.
 */
-func (self Trace) AppendTo(buf []byte) []byte { return self.AppendIndent(buf, 0) }
+func (self Trace) AppendTo(buf []byte) []byte {
+	return self.AppendIndentTo(buf, 0)
+}
 
 /*
 Returns a multi-line text representation of the trace with the given leading
-indentation. See `.AppendIndent`.
+indentation. See `.AppendIndentTo`.
 */
 func (self Trace) StringIndent(lvl int) string {
-	return ToString(self.AppendIndent(nil, lvl))
+	return ToString(self.AppendIndentTo(nil, lvl))
 }
 
 /*
@@ -66,28 +68,28 @@ a table, where each frame takes only one line, and names are aligned.
 Otherwise, the trace is formatted similarly to the default representation used
 by the Go runtime.
 */
-func (self Trace) AppendIndent(buf []byte, lvl int) []byte {
+func (self Trace) AppendIndentTo(buf []byte, lvl int) []byte {
 	if TraceTable {
-		return self.AppendIndentTable(buf, lvl)
+		return self.AppendIndentTableTo(buf, lvl)
 	}
-	return self.AppendIndentMulti(buf, lvl)
+	return self.AppendIndentMultiTo(buf, lvl)
 }
 
 /*
 Appends a table-style representation of the trace. Used internally by
-`.AppendIndent` if `TraceTable` is true.
+`.AppendIndentTo` if `TraceTable` is true.
 */
-func (self Trace) AppendIndentTable(buf []byte, lvl int) []byte {
-	return self.Frames().AppendIndentTable(buf, lvl)
+func (self Trace) AppendIndentTableTo(buf []byte, lvl int) []byte {
+	return self.Frames().AppendIndentTableTo(buf, lvl)
 }
 
 /*
 Appends a representation of the trace similar to the default used by the Go
-runtime. Used internally by `.AppendIndent` if `TraceTable` is false.
+runtime. Used internally by `.AppendIndentTo` if `TraceTable` is false.
 */
-func (self Trace) AppendIndentMulti(buf []byte, lvl int) []byte {
+func (self Trace) AppendIndentMultiTo(buf []byte, lvl int) []byte {
 	for _, val := range self {
-		buf = val.AppendNewlineIndent(buf, lvl)
+		buf = val.AppendNewlineIndentTo(buf, lvl)
 	}
 	return buf
 }
@@ -97,7 +99,7 @@ Returns a table-style representation of the trace with the given leading
 indentation.
 */
 func (self Trace) TableIndent(lvl int) string {
-	return ToString(self.AppendIndentTable(nil, lvl))
+	return ToString(self.AppendIndentTableTo(nil, lvl))
 }
 
 /*
@@ -105,7 +107,10 @@ Returns a table-style representation of the trace with no leading indentation.
 */
 func (self Trace) Table() string { return self.TableIndent(0) }
 
-// True if there are any non-zero frames.
+// True if there are no non-zero frames. Inverse of `Trace.IsNotEmpty`.
+func (self Trace) IsEmpty() bool { return !self.IsNotEmpty() }
+
+// True if there are some non-zero frames. Inverse of `Trace.IsEmpty`.
 func (self Trace) IsNotEmpty() bool { return Some(self, IsNotZero[Caller]) }
 
 // Converts to `Frames`, which is used for formatting.
@@ -153,12 +158,12 @@ func (self Caller) AppendTo(buf []byte) []byte {
 	return self.Frame().AppendTo(buf)
 }
 
-func (self Caller) AppendIndent(buf []byte, lvl int) []byte {
-	return self.Frame().AppendIndent(buf, lvl)
+func (self Caller) AppendIndentTo(buf []byte, lvl int) []byte {
+	return self.Frame().AppendIndentTo(buf, lvl)
 }
 
-func (self Caller) AppendNewlineIndent(buf []byte, lvl int) []byte {
-	return self.Frame().AppendNewlineIndent(buf, lvl)
+func (self Caller) AppendNewlineIndentTo(buf []byte, lvl int) []byte {
+	return self.Frame().AppendNewlineIndentTo(buf, lvl)
 }
 
 // Used for stack trace formatting.
@@ -174,10 +179,10 @@ func (self Frames) NameWidth() int {
 	return out
 }
 
-func (self Frames) AppendIndentTable(buf []byte, lvl int) []byte {
+func (self Frames) AppendIndentTableTo(buf []byte, lvl int) []byte {
 	wid := self.NameWidth()
 	for _, val := range self {
-		buf = val.AppendRowIndent(buf, lvl, wid)
+		buf = val.AppendRowIndentTo(buf, lvl, wid)
 	}
 	return buf
 }
@@ -230,7 +235,7 @@ func (self Frame) AppendTo(inout []byte) []byte {
 	return buf
 }
 
-func (self Frame) AppendIndent(inout []byte, lvl int) []byte {
+func (self Frame) AppendIndentTo(inout []byte, lvl int) []byte {
 	buf := Buf(inout)
 	if self.Skip() {
 		return buf
@@ -245,7 +250,7 @@ func (self Frame) AppendIndent(inout []byte, lvl int) []byte {
 	return buf
 }
 
-func (self Frame) AppendNewlineIndent(inout []byte, lvl int) []byte {
+func (self Frame) AppendNewlineIndentTo(inout []byte, lvl int) []byte {
 	buf := Buf(inout)
 	if self.Skip() {
 		return buf
@@ -253,10 +258,10 @@ func (self Frame) AppendNewlineIndent(inout []byte, lvl int) []byte {
 
 	buf.AppendNewline()
 	buf.AppendIndents(lvl)
-	return self.AppendIndent(buf, lvl+1)
+	return self.AppendIndentTo(buf, lvl+1)
 }
 
-func (self Frame) AppendRowIndent(inout []byte, lvl, wid int) []byte {
+func (self Frame) AppendRowIndentTo(inout []byte, lvl, wid int) []byte {
 	buf := Buf(inout)
 	if self.Skip() {
 		return buf

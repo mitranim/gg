@@ -69,16 +69,16 @@ func TestRune_Parse(t *testing.T) {
 }
 
 func testRuneParse(fun func(*s.Rune, string) error) {
-	gtest.ErrorStr(`unable to parse "ab" as char: too many chars`, fun(new(s.Rune), `ab`))
-	gtest.ErrorStr(`unable to parse "abc" as char: too many chars`, fun(new(s.Rune), `abc`))
-	gtest.ErrorStr(`unable to parse "👍👎" as char: too many chars`, fun(new(s.Rune), `👍👎`))
+	gtest.ErrStr(`unable to parse "ab" as char: too many chars`, fun(new(s.Rune), `ab`))
+	gtest.ErrStr(`unable to parse "abc" as char: too many chars`, fun(new(s.Rune), `abc`))
+	gtest.ErrStr(`unable to parse "👍👎" as char: too many chars`, fun(new(s.Rune), `👍👎`))
 
 	var tar s.Rune
 
-	gtest.NoError(fun(&tar, `🙂`))
+	gtest.NoErr(fun(&tar, `🙂`))
 	gtest.Eq(tar, '🙂')
 
-	gtest.NoError(fun(&tar, ``))
+	gtest.NoErr(fun(&tar, ``))
 	gtest.Zero(tar)
 }
 
@@ -160,20 +160,20 @@ func TestRune_UnmarshalJSON(t *testing.T) {
 
 	testRuneParse(charUnmarshalJson)
 
-	gtest.ErrorStr(
+	gtest.ErrStr(
 		`cannot unmarshal number into Go value of type string`,
 		new(s.Rune).UnmarshalJSON(gg.ToBytes(`123`)),
 	)
 
 	{
 		tar := s.Rune('👍')
-		gtest.NoError(tar.UnmarshalJSON(nil))
+		gtest.NoErr(tar.UnmarshalJSON(nil))
 		gtest.Zero(tar)
 	}
 
 	{
 		tar := s.Rune('👍')
-		gtest.NoError(tar.UnmarshalJSON(gg.ToBytes(`null`)))
+		gtest.NoErr(tar.UnmarshalJSON(gg.ToBytes(`null`)))
 		gtest.Zero(tar)
 	}
 }
@@ -211,7 +211,7 @@ func TestRune_Scan(t *testing.T) {
 
 		test := func(src any) {
 			tar := s.Rune('👍')
-			gtest.NoError(tar.Scan(src))
+			gtest.NoErr(tar.Scan(src))
 			gtest.Zero(tar)
 		}
 
@@ -228,7 +228,7 @@ func TestRune_Scan(t *testing.T) {
 
 		test := func(src any, exp s.Rune) {
 			var tar s.Rune
-			gtest.NoError(tar.Scan(src))
+			gtest.NoErr(tar.Scan(src))
 			gtest.Eq(tar, exp)
 		}
 

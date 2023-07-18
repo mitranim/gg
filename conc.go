@@ -42,16 +42,22 @@ Shortcut for concurrent execution. Runs the given functions via `ConcCatch`.
 If there is at least one error, panics with the combined error, adding a stack
 trace pointing to the call site of `Conc`.
 */
-func Conc(val ...func()) { TryAt(Errs(ConcCatch(val...)).Err(), 1) }
+func Conc(val ...func()) {
+	TryAt(ErrMul(ConcCatch(val...)...), 1)
+}
 
 /*
 Concurrently runs the given functions. Catches their panics, converts them to
 `error`, and returns the resulting errors. The error slice always has the same
-length as the number of given functions. Does NOT generate stack traces or
-modify the resulting errors in any way. The error slice can be converted to
-`error` via `ErrMul` or `Errs.Err`. The slice is returned as `[]error` rather
-than `Errs` to avoid accidental incorrect conversion of empty `Errs` to non-nil
-`error`.
+length as the number of given functions.
+
+Ensures that the resulting errors have stack traces, both on the current
+goroutine, and on any sub-goroutines used for concurrent execution, wrapping
+errors as necessary.
+
+The error slice can be converted to `error` via `ErrMul` or `Errs.Err`. The
+slice is returned as `[]error` rather than `Errs` to avoid accidental incorrect
+conversion of empty `Errs` to non-nil `error`.
 */
 func ConcCatch(val ...func()) []error {
 	switch len(val) {
@@ -62,7 +68,9 @@ func ConcCatch(val ...func()) []error {
 		return []error{Catch(val[0])}
 
 	default:
-		return concCatch(val)
+		tar := concCatch(val)
+		Errs(tar).WrapTracedAt(1)
+		return tar
 	}
 }
 
@@ -84,7 +92,7 @@ func concCatch(src []func()) []error {
 
 func concCatchRun(gro *sync.WaitGroup, errPtr *error, fun func()) {
 	defer gro.Add(-1)
-	defer RecErr(errPtr)
+	defer Rec(errPtr)
 	fun()
 }
 
@@ -93,13 +101,21 @@ Concurrently calls the given function on each element of the given slice. If the
 function is nil, does nothing. Also see `Conc`.
 */
 func ConcEach[A any](src []A, fun func(A)) {
-	TryAt(Errs(ConcEachCatch(src, fun)).Err(), 1)
+	TryAt(ErrMul(ConcEachCatch(src, fun)...), 1)
 }
 
 /*
 Concurrently calls the given function on each element of the given slice,
 returning the resulting panics if any. If the function is nil, does nothing and
-returns nil. Also see `ConcCatch`.
+returns nil. Also see `ConcCatch`
+
+Ensures that the resulting errors have stack traces, both on the current
+goroutine, and on any sub-goroutines used for concurrent execution, wrapping
+errors as necessary.
+
+The error slice can be converted to `error` via `ErrMul` or `Errs.Err`. The
+slice is returned as `[]error` rather than `Errs` to avoid accidental incorrect
+conversion of empty `Errs` to non-nil `error`.
 */
 func ConcEachCatch[A any](src []A, fun func(A)) []error {
 	if fun == nil {
@@ -114,7 +130,9 @@ func ConcEachCatch[A any](src []A, fun func(A)) []error {
 		return []error{Catch10(fun, src[0])}
 
 	default:
-		return concEachCatch(src, fun)
+		tar := concEachCatch(src, fun)
+		Errs(tar).WrapTracedAt(1)
+		return tar
 	}
 }
 
@@ -133,7 +151,7 @@ func concEachCatch[A any](src []A, fun func(A)) []error {
 
 func concCatchEachRun[A any](gro *sync.WaitGroup, errPtr *error, fun func(A), val A) {
 	defer gro.Add(-1)
-	defer RecErr(errPtr)
+	defer Rec(errPtr)
 	fun(val)
 }
 
@@ -147,6 +165,14 @@ func ConcMap[A, B any](src []A, fun func(A) B) []B {
 /*
 Like `Map` but concurrent. Returns the resulting values along with the caught
 panics, if any. Also see `ConcCatch`.
+
+Ensures that the resulting errors have stack traces, both on the current
+goroutine, and on any sub-goroutines used for concurrent execution, wrapping
+errors as necessary.
+
+The error slice can be converted to `error` via `ErrMul` or `Errs.Err`. The
+slice is returned as `[]error` rather than `Errs` to avoid accidental incorrect
+conversion of empty `Errs` to non-nil `error`.
 */
 func ConcMapCatch[A, B any](src []A, fun func(A) B) ([]B, []error) {
 	if fun == nil {
@@ -162,7 +188,9 @@ func ConcMapCatch[A, B any](src []A, fun func(A) B) ([]B, []error) {
 		return []B{val}, []error{err}
 
 	default:
-		return concMapCatch(src, fun)
+		out, errs := concMapCatch(src, fun)
+		Errs(errs).WrapTracedAt(1)
+		return out, errs
 	}
 }
 
@@ -182,7 +210,7 @@ func concMapCatch[A, B any](src []A, fun func(A) B) ([]B, []error) {
 
 func concCatchMapRun[A, B any](gro *sync.WaitGroup, tar *B, errPtr *error, fun func(A) B, val A) {
 	defer gro.Add(-1)
-	defer RecErr(errPtr)
+	defer Rec(errPtr)
 	*tar = fun(val)
 }
 
@@ -228,8 +256,11 @@ Runs the functions concurrently. Blocks until all functions complete
 successfully, returning nil. If one of the functions panics, cancels the
 context passed to each function, and immediately returns the resulting error,
 without waiting for the other functions to terminate. In this case, the panics
-in other functions, if any, are caught and ignored. Does NOT generate a stack
-trace or modify the resulting error in any way.
+in other functions, if any, are caught and ignored.
+
+Ensures that the resulting error has a stack trace, both on the current
+goroutine, and on the sub-goroutine used for concurrent execution, wrapping
+errors as necessary.
 */
 func (self ConcRaceSlice) RunCatch(ctx context.Context) (err error) {
 	switch len(self) {
@@ -242,12 +273,12 @@ func (self ConcRaceSlice) RunCatch(ctx context.Context) (err error) {
 			return nil
 		}
 
-		defer RecErr(&err)
+		defer Rec(&err)
 		fun(ctx)
 		return
 
 	default:
-		return self.run(ctx)
+		return WrapTracedAt(self.run(ctx), 1)
 	}
 }
 
@@ -297,7 +328,7 @@ func closeConcCtx(gro *sync.WaitGroup, errChan chan error) {
 }
 
 func recSend(errChan chan error) {
-	err := AnyErr(recover())
+	err := AnyErrTracedAt(recover(), 1)
 	if err != nil {
 		SendOpt(errChan, err)
 	}

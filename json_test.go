@@ -48,30 +48,30 @@ func Benchmark_json_Unmarshal(b *testing.B) {
 	}
 }
 
-func BenchmarkJsonParseTo(b *testing.B) {
+func BenchmarkJsonDecodeTo(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.JsonParseTo[int](`123`))
+		gg.Nop1(gg.JsonDecodeTo[int](`123`))
 	}
 }
 
-func BenchmarkJsonParse(b *testing.B) {
+func BenchmarkJsonDecode(b *testing.B) {
 	var val int
 
 	for ind := 0; ind < b.N; ind++ {
-		gg.JsonParse(`123`, &val)
+		gg.JsonDecode(`123`, &val)
 	}
 }
 
-func TestJsonParseTo(t *testing.T) {
+func TestJsonDecodeTo(t *testing.T) {
 	gtest.Catch(t)
 
 	gtest.Eq(
-		gg.JsonParseTo[SomeModel](`{"id":10}`),
+		gg.JsonDecodeTo[SomeModel](`{"id":10}`),
 		SomeModel{Id: 10},
 	)
 
 	gtest.Eq(
-		gg.JsonParseTo[SomeModel]([]byte(`{"id":10}`)),
+		gg.JsonDecodeTo[SomeModel]([]byte(`{"id":10}`)),
 		SomeModel{Id: 10},
 	)
 }

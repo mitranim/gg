@@ -1,6 +1,7 @@
 package gg
 
 import (
+	"io/fs"
 	"math"
 	"path/filepath"
 	r "reflect"
@@ -26,11 +27,18 @@ func errAppendInner(buf Buf, err error) Buf {
 	return buf
 }
 
-func errAppendTraceIndent(buf Buf, trace Trace) Buf {
+func errAppendTraceIndentWithNewline(buf Buf, trace Trace) Buf {
 	if trace.IsNotEmpty() {
 		buf.AppendNewline()
+		return errAppendTraceIndent(buf, trace)
+	}
+	return buf
+}
+
+func errAppendTraceIndent(buf Buf, trace Trace) Buf {
+	if trace.IsNotEmpty() {
 		buf.AppendString(`trace:`)
-		buf = trace.AppendIndent(buf, 1)
+		buf = trace.AppendIndentTo(buf, 1)
 	}
 	return buf
 }
@@ -186,4 +194,11 @@ func isByteNewline(val byte) bool { return val == '\n' || val == '\r' }
 
 func errCollMissing[Val, Key any](key Key) Err {
 	return Errf(`missing value of type %v for key %v`, Type[Val](), key)
+}
+
+func dirEntryToFileName(src fs.DirEntry) (_ string) {
+	if src == nil || src.IsDir() {
+		return
+	}
+	return src.Name()
 }

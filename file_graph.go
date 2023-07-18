@@ -1,7 +1,6 @@
 package gg
 
 import (
-	"io/fs"
 	"path/filepath"
 	"strings"
 )
@@ -79,7 +78,7 @@ func (self GraphDir) File(key string) GraphFile {
 
 func (self *GraphDir) read() {
 	self.Files = CollFrom[string, GraphFile](ConcMap(
-		MapCompact(ReadDir(self.Path), dirEntryToFileName),
+		ReadDirFileNames(self.Path),
 		self.initFile,
 	))
 }
@@ -232,11 +231,4 @@ func (self *graphWalk) walk(tail *node[string], file GraphFile) {
 		self.walk(&head, self.Dir.File(dep))
 	}
 	self.Valid.Add(file)
-}
-
-func dirEntryToFileName(src fs.DirEntry) (_ string) {
-	if src == nil || src.IsDir() {
-		return
-	}
-	return src.Name()
 }

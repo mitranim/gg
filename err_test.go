@@ -19,10 +19,10 @@ func TestErr(t *testing.T) {
 
 	gtest.Eq(err.Error(), `unable to perform some operation: EOF`)
 
-	gtest.TextHas(err.Stack(), strings.TrimSpace(`
+	gtest.Eq(err.Stack(), strings.TrimSpace(`
 unable to perform some operation: EOF
 trace:
-    TestErr err_test.go
+    TestErr err_test.go:18
 `))
 }
 
@@ -54,13 +54,13 @@ func TestErrs_Error(t *testing.T) {
 	gtest.Zero(gg.Errs{}.Error())
 
 	gtest.Eq(
-		gg.Errs{nil, testErr0, nil}.Error(),
-		`test err 0`,
+		gg.Errs{nil, testErrTraced0, nil}.Error(),
+		`test err traced 0`,
 	)
 
 	gtest.Eq(
-		gg.Errs{nil, testErr0, nil, testErr1, nil}.Error(),
-		`multiple errors; test err 0; test err 1`,
+		gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}.Error(),
+		`multiple errors; test err traced 0; test err traced 1`,
 	)
 }
 
@@ -81,10 +81,10 @@ func TestErrs_Err(t *testing.T) {
 		gtest.Equal(gg.Errs{nil, exp}.Err(), exp)
 	}
 
-	testOne(testErr0)
-	testOne(testErr1)
+	testOne(testErrTraced0)
+	testOne(testErrTraced1)
 
-	errs := gg.Errs{nil, testErr0, nil, testErr1, nil}
+	errs := gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}
 	gtest.Equal(errs.Err(), error(errs))
 }
 
@@ -93,27 +93,27 @@ func TestErrs_Unwrap(t *testing.T) {
 
 	gtest.Zero(gg.Errs(nil).Unwrap())
 	gtest.Zero(gg.Errs{}.Unwrap())
-	gtest.Equal(gg.Errs{nil, testErr0}.Unwrap(), testErr0)
-	gtest.Equal(gg.Errs{nil, testErr0, testErr1}.Unwrap(), testErr0)
+	gtest.Equal(gg.Errs{nil, testErrTraced0}.Unwrap(), testErrTraced0)
+	gtest.Equal(gg.Errs{nil, testErrTraced0, testErrTraced1}.Unwrap(), testErrTraced0)
 }
 
 func TestErrs_Is(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.False(errors.Is(gg.Errs(nil), io.EOF))
-	gtest.False(errors.Is(gg.Errs(nil), testErr0))
+	gtest.False(errors.Is(gg.Errs(nil), testErrTraced0))
 
-	gtest.False(errors.Is(gg.Errs{nil, testErr0, nil, testErr1, nil}, io.EOF))
-	gtest.False(errors.Is(gg.Errs{nil, testErr0, nil, testErr1, nil}, testErr2))
+	gtest.False(errors.Is(gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}, io.EOF))
+	gtest.False(errors.Is(gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}, testErrTraced2))
 
-	gtest.True(errors.Is(gg.Errs{nil, testErr0, nil, testErr1, nil}, testErr0))
-	gtest.True(errors.Is(gg.Errs{nil, testErr0, nil, testErr1, nil}, testErr1))
+	gtest.True(errors.Is(gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}, testErrTraced0))
+	gtest.True(errors.Is(gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}, testErrTraced1))
 
-	gtest.True(errors.Is(gg.Errs{nil, gg.Wrapf(testErr0, ``), nil, testErr1, nil}, testErr0))
-	gtest.True(errors.Is(gg.Errs{nil, gg.Wrapf(io.EOF, ``), nil, testErr1, nil}, io.EOF))
+	gtest.True(errors.Is(gg.Errs{nil, gg.Wrapf(testErrTraced0, ``), nil, testErrTraced1, nil}, testErrTraced0))
+	gtest.True(errors.Is(gg.Errs{nil, gg.Wrapf(io.EOF, ``), nil, testErrTraced1, nil}, io.EOF))
 
-	gtest.True(errors.Is(gg.Errs{nil, testErr0, nil, gg.Wrapf(testErr1, ``), nil}, testErr1))
-	gtest.True(errors.Is(gg.Errs{nil, testErr0, nil, gg.Wrapf(io.EOF, ``), nil}, io.EOF))
+	gtest.True(errors.Is(gg.Errs{nil, testErrTraced0, nil, gg.Wrapf(testErrTraced1, ``), nil}, testErrTraced1))
+	gtest.True(errors.Is(gg.Errs{nil, testErrTraced0, nil, gg.Wrapf(io.EOF, ``), nil}, io.EOF))
 }
 
 func TestErrs_As(t *testing.T) {
@@ -127,13 +127,13 @@ func TestErrs_As(t *testing.T) {
 
 	test(gg.Errs(nil), false, ``)
 	test(gg.Errs{}, false, ``)
-	test(gg.Errs{testErr0}, false, ``)
-	test(gg.Errs{testErr0, testErr1}, false, ``)
-	test(gg.Errs{testErrA, testErr0, testErr1}, true, testErrA)
-	test(gg.Errs{testErr0, testErrA, testErr1}, true, testErrA)
-	test(gg.Errs{testErr0, testErr1, testErrA}, true, testErrA)
-	test(gg.Errs{nil, testErr0, nil, testErr1, nil, testErrA, nil}, true, testErrA)
-	test(gg.Errs{nil, testErrA, nil, testErrB, nil}, true, testErrA)
+	test(gg.Errs{testErrTraced0}, false, ``)
+	test(gg.Errs{testErrTraced0, testErrTraced1}, false, ``)
+	test(gg.Errs{testErrUntracedA, testErrTraced0, testErrTraced1}, true, testErrUntracedA)
+	test(gg.Errs{testErrTraced0, testErrUntracedA, testErrTraced1}, true, testErrUntracedA)
+	test(gg.Errs{testErrTraced0, testErrTraced1, testErrUntracedA}, true, testErrUntracedA)
+	test(gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil, testErrUntracedA, nil}, true, testErrUntracedA)
+	test(gg.Errs{nil, testErrUntracedA, nil, testErrUntracedB, nil}, true, testErrUntracedA)
 }
 
 func TestErrs_Find(t *testing.T) {
@@ -145,17 +145,17 @@ func TestErrs_Find(t *testing.T) {
 		}
 	}
 
-	match := func(err error) bool { return err == testErr0 }
+	match := func(err error) bool { return err == testErrTraced0 }
 
 	for _, src := range []gg.Errs{
-		{testErr0, testErr1, testErrA, testErrB},
-		{testErr1, testErr0, testErrA, testErrB},
-		{testErr1, testErrA, testErr0, testErrB},
-		{testErr1, testErrA, testErrB, testErr0},
-		{testErr1, nil, nil, testErr0},
-		{testErr1, gg.Wrapf(fmt.Errorf(`one: %w`, testErr0), `two`)},
+		{testErrTraced0, testErrTraced1, testErrUntracedA, testErrUntracedB},
+		{testErrTraced1, testErrTraced0, testErrUntracedA, testErrUntracedB},
+		{testErrTraced1, testErrUntracedA, testErrTraced0, testErrUntracedB},
+		{testErrTraced1, testErrUntracedA, testErrUntracedB, testErrTraced0},
+		{testErrTraced1, nil, nil, testErrTraced0},
+		{testErrTraced1, gg.Wrapf(fmt.Errorf(`one: %w`, testErrTraced0), `two`)},
 	} {
-		gtest.Equal(src.Find(match), testErr0)
+		gtest.Equal(src.Find(match), testErrTraced0)
 	}
 }
 
@@ -326,15 +326,18 @@ func TestErrStack(t *testing.T) {
 		gtest.Eq(gg.ErrStack(fmt.Errorf(`str`)), `str`)
 	})
 
-	t.Run(`traced_without_message`, func(t *testing.T) {
+	t.Run(`Err_outer_traced`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
 		err := gg.Err{}.TracedAt(0)
 
-		gtest.Eq(gg.ErrStack(err), gg.Newline+`func2 err_test.go:332`)
+		gtest.Eq(gg.ErrStack(err), strings.TrimSpace(`
+trace:
+    func2 err_test.go:332
+`))
 	})
 
-	t.Run(`wrapped_without_message`, func(t *testing.T) {
+	t.Run(`Err_inner_traced_outer_blank`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
 		inner := gg.Err{Msg: `inner`}.TracedAt(0)
@@ -345,11 +348,11 @@ func TestErrStack(t *testing.T) {
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 inner
 trace:
-    func3 err_test.go:340
+    func3 err_test.go:343
 `))
 	})
 
-	t.Run(`wrapped_with_message`, func(t *testing.T) {
+	t.Run(`Err_inner_messaged_traced_outer_messaged`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
 		inner := gg.Err{Msg: `inner`}.TracedAt(0)
@@ -358,7 +361,38 @@ trace:
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 outer: inner
 trace:
-    func4 err_test.go:355
+    func4 err_test.go:358
+`))
+	})
+
+	t.Run(`Err_inner_messaged_traced_outer_traced`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Cause: inner}.TracedAt(0)
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+trace:
+    func5 err_test.go:372
+inner
+trace:
+    func5 err_test.go:371
+`))
+	})
+
+	t.Run(`Err_inner_messaged_traced_outer_messaged_traced`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Msg: `outer`, Cause: inner}.TracedAt(0)
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+outer
+trace:
+    func6 err_test.go:387
+cause: inner
+trace:
+    func6 err_test.go:386
 `))
 	})
 }

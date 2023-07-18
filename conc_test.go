@@ -2,31 +2,40 @@ package gg_test
 
 import (
 	"context"
+	e "errors"
 	"sync"
 	"testing"
 
 	"github.com/mitranim/gg"
+	"github.com/mitranim/gg/grepr"
 	"github.com/mitranim/gg/gtest"
 )
 
-var (
-	testErr0 = error(gg.Errf(`test err 0`))
-	testErr1 = error(gg.Errf(`test err 1`))
-	testErr2 = error(gg.Errf(`test err 2`))
-)
-
 const (
-	testErrA = gg.ErrStr(`test err A`)
-	testErrB = gg.ErrStr(`test err B`)
+	testErrUntracedA = gg.ErrStr(`test err untraced A`)
+	testErrUntracedB = gg.ErrStr(`test err untraced B`)
+	testErrUntracedC = gg.ErrStr(`test err untraced C`)
 )
 
-func testPanic0() { panic(testErr0) }
-func testPanic1() { panic(testErr1) }
+var (
+	testErrTraced0 = error(gg.Errf(`test err traced 0`))
+	testErrTraced1 = error(gg.Errf(`test err traced 1`))
+	testErrTraced2 = error(gg.Errf(`test err traced 2`))
+)
 
-func testNopCtx(context.Context)    {}
-func testPanicCtx0(context.Context) { panic(testErr0) }
-func testPanicCtx1(context.Context) { panic(testErr1) }
-func testPanicCtx2(context.Context) { panic(testErr2) }
+func testPanicUntracedA() { panic(testErrUntracedA) }
+func testPanicUntracedB() { panic(testErrUntracedB) }
+
+func testPanicTraced0() { panic(testErrTraced0) }
+func testPanicTraced1() { panic(testErrTraced1) }
+
+func testNopCtx(context.Context) {}
+
+func testPanicCtxUntracedA(context.Context) { panic(testErrUntracedA) }
+
+func testPanicCtxTraced0(context.Context) { panic(testErrTraced0) }
+func testPanicCtxTraced1(context.Context) { panic(testErrTraced1) }
+func testPanicCtxTraced2(context.Context) { panic(testErrTraced2) }
 
 func TestConc(t *testing.T) {
 	defer gtest.Catch(t)
@@ -61,36 +70,107 @@ func TestConc(t *testing.T) {
 	t.Run(`only_panic`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.Equal(
-			gg.ConcCatch(testPanic0),
-			[]error{testErr0},
+		testWrappedErrs(
+			gg.ConcCatch(testPanicUntracedA),
+			[]error{testErrUntracedA},
 		)
 
 		gtest.Equal(
-			gg.ConcCatch(testPanic0, testPanic1),
-			[]error{testErr0, testErr1},
+			gg.ConcCatch(testPanicTraced0),
+			[]error{testErrTraced0},
+			`when only one function is provided and it panics with a traced error, that error must be preserved as-is without redundant wrapping`,
+		)
+
+		testWrappedErrs(
+			gg.ConcCatch(testPanicUntracedA, testPanicUntracedB),
+			[]error{testErrUntracedA, testErrUntracedB},
+		)
+
+		testWrappedErrs(
+			gg.ConcCatch(testPanicTraced0, testPanicTraced1),
+			[]error{testErrTraced0, testErrTraced1},
 		)
 	})
 
 	t.Run(`mixed`, func(t *testing.T) {
 		defer gtest.Catch(t)
 
-		gtest.Equal(
-			gg.ConcCatch(gg.Nop, testPanic0, gg.Nop, testPanic1, gg.Nop),
-			gg.Errs{nil, testErr0, nil, testErr1, nil},
+		testWrappedErrs(
+			gg.ConcCatch(gg.Nop, testPanicUntracedA, gg.Nop, testPanicTraced1, gg.Nop),
+			gg.Errs{nil, testErrUntracedA, nil, testErrTraced1, nil},
 		)
 	})
 }
 
+func testWrappedErr(act, exp error, opt ...any) {
+	gtest.ErrIs(act, exp, opt...)
+	gtest.NotIs(act, exp, opt...)
+
+	if act != nil && !gg.IsErrTraced(act) {
+		panic(gg.Errv(gg.JoinLines(
+			`unexpected lack of stack trace in error:`,
+			grepr.StringIndent(act, 1),
+			gtest.MsgExtra(opt...),
+		)))
+	}
+}
+
+func testWrappedErrs(act, exp []error, opt ...any) {
+	gtest.Len(act, len(exp))
+
+	msgAll := gg.JoinLinesOpt(
+		`all errors:`,
+		grepr.StringIndent(act, 1),
+		gtest.MsgExtra(opt...),
+	)
+
+	for ind, val := range act {
+		if val != nil && !gg.IsErrTraced(val) {
+			panic(gg.Errv(gg.JoinLinesOpt(
+				gg.Str(`expected every error to be traced, found untraced at index `, ind),
+				msgAll,
+			)))
+		}
+	}
+
+	for ind, valAct := range act {
+		valExp := exp[ind]
+
+		if valExp == nil {
+			if valAct != nil {
+				panic(gg.JoinLinesOpt(
+					gg.Str(`unexpected non-nil error at index `, ind),
+					msgAll,
+				))
+			}
+			continue
+		}
+
+		if !e.Is(valAct, valExp) {
+			panic(gg.JoinLinesOpt(
+				gtest.MsgErrIsMismatch(valAct, valExp),
+				msgAll,
+			))
+		}
+
+		if gg.Is(valAct, valExp) {
+			panic(gg.JoinLinesOpt(
+				gg.Str(`unexpected unwrapped error at index `, ind),
+				msgAll,
+			))
+		}
+	}
+}
+
 func BenchmarkConcCatch_one(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		_ = gg.ConcCatch(testPanic0)
+		_ = gg.ConcCatch(testPanicTraced0)
 	}
 }
 
 func BenchmarkConcCatch_multi(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		_ = gg.ConcCatch(gg.Nop, testPanic0, gg.Nop, testPanic1, gg.Nop)
+		_ = gg.ConcCatch(gg.Nop, testPanicTraced0, gg.Nop, testPanicTraced1, gg.Nop)
 	}
 }
 
@@ -105,12 +185,12 @@ func TestConcMapCatch(t *testing.T) {
 	gtest.Len(errs, len(src))
 
 	gtest.Equal(vals, []string{`10`, ``, `30`})
-	gtest.Equal(errs, []error{nil, testErr1, nil})
+	testWrappedErrs(errs, []error{nil, testErrTraced1, nil})
 }
 
 func testConcMapFunc(src int) string {
 	if src == 20 {
-		panic(testErr1)
+		panic(testErrTraced1)
 	}
 	return gg.String(src)
 }
@@ -138,38 +218,58 @@ func TestConcRace(t *testing.T) {
 
 	gtest.Is(
 		//nolint:staticcheck
-		gg.ConcRace(testPanicCtx0).RunCatch(nil),
-		testErr0,
+		gg.ConcRace(testPanicCtxTraced0).RunCatch(nil),
+		testErrTraced0,
+	)
+
+	testWrappedErr(
+		gg.ConcRace(testPanicCtxUntracedA).RunCatch(ctx),
+		testErrUntracedA,
+		`when only one function is provided and it panics with an untraced error, that error must be wrapped with a trace`,
 	)
 
 	gtest.Is(
-		gg.ConcRace(testPanicCtx0, testNopCtx).RunCatch(ctx),
-		testErr0,
+		gg.ConcRace(testPanicCtxTraced0).RunCatch(ctx),
+		testErrTraced0,
+		`when only one function is provided and it panics with a traced error, that error must be returned as-is`,
 	)
 
-	gtest.Is(
-		gg.ConcRace(testNopCtx, testPanicCtx0).RunCatch(ctx),
-		testErr0,
+	testWrappedErr(
+		gg.ConcRace(testPanicCtxUntracedA, testNopCtx).RunCatch(ctx),
+		testErrUntracedA,
+		`when multiple functions are provided and one panics with an untraced error, that error must be wrapped with a trace`,
 	)
 
-	gtest.Is(
-		gg.ConcRace(testNopCtx, testPanicCtx0, testNopCtx).RunCatch(ctx),
-		testErr0,
+	testWrappedErr(
+		gg.ConcRace(testPanicCtxTraced0, testNopCtx).RunCatch(ctx),
+		testErrTraced0,
+		`when multiple functions are provided and one panics with a traced error, that error must be wrapped with an additional trace`,
 	)
 
-	gtest.Is(
-		gg.ConcRace(testPanicCtx0, testPanicCtx0).RunCatch(ctx),
-		testErr0,
+	testWrappedErr(
+		gg.ConcRace(testNopCtx, testPanicCtxTraced0).RunCatch(ctx),
+		testErrTraced0,
 	)
 
-	gtest.Is(
-		gg.ConcRace(testPanicCtx0, testPanicCtx0, testPanicCtx0).RunCatch(ctx),
-		testErr0,
+	testWrappedErr(
+		gg.ConcRace(testNopCtx, testPanicCtxTraced0, testNopCtx).RunCatch(ctx),
+		testErrTraced0,
 	)
 
-	gtest.HasEqual(
-		[]error{testErr0, testErr1, testErr2},
-		gg.ConcRace(testPanicCtx0, testPanicCtx1, testPanicCtx2).RunCatch(ctx),
+	testWrappedErr(
+		gg.ConcRace(testPanicCtxTraced0, testPanicCtxTraced0).RunCatch(ctx),
+		testErrTraced0,
+	)
+
+	testWrappedErr(
+		gg.ConcRace(testPanicCtxTraced0, testPanicCtxTraced0, testPanicCtxTraced0).RunCatch(ctx),
+		testErrTraced0,
+	)
+
+	// TODO: would be ideal to also verify wrapping via `testWrappedErr`.
+	gtest.Has(
+		[]string{testErrTraced0.Error(), testErrTraced1.Error(), testErrTraced2.Error()},
+		gg.ConcRace(testPanicCtxTraced0, testPanicCtxTraced1, testPanicCtxTraced2).RunCatch(ctx).Error(),
 	)
 
 	/**
@@ -210,11 +310,11 @@ func TestConcRace(t *testing.T) {
 		test(testNopCtx)
 		test(testNopCtx, testNopCtx)
 		test(testNopCtx, testNopCtx, testNopCtx)
-		test(testPanicCtx0, testNopCtx, testNopCtx)
-		test(testNopCtx, testPanicCtx0, testNopCtx)
-		test(testNopCtx, testNopCtx, testPanicCtx0)
-		test(testPanicCtx0, testNopCtx, testPanicCtx0)
-		test(testPanicCtx0, testPanicCtx0, testPanicCtx0)
+		test(testPanicCtxTraced0, testNopCtx, testNopCtx)
+		test(testNopCtx, testPanicCtxTraced0, testNopCtx)
+		test(testNopCtx, testNopCtx, testPanicCtxTraced0)
+		test(testPanicCtxTraced0, testNopCtx, testPanicCtxTraced0)
+		test(testPanicCtxTraced0, testPanicCtxTraced0, testPanicCtxTraced0)
 	}
 
 	/**
@@ -235,7 +335,7 @@ func TestConcRace(t *testing.T) {
 		gro0.Add(1)
 		gro1.Add(2)
 
-		gtest.Is(
+		testWrappedErr(
 			/**
 			This must terminate and return the error even though some inner functions
 			are still blocked on the wait group, which is unblocked AFTER this test
@@ -251,7 +351,7 @@ func TestConcRace(t *testing.T) {
 				},
 				func(ctx context.Context) {
 					state1 = ToCtxState(ctx)
-					panic(testErr0)
+					panic(testErrTraced0)
 				},
 				func(ctx context.Context) {
 					defer gro1.Add(-1)
@@ -259,7 +359,7 @@ func TestConcRace(t *testing.T) {
 					state2 = ToCtxState(ctx)
 				},
 			).RunCatch(ctx),
-			testErr0,
+			testErrTraced0,
 		)
 
 		// This should unblock the inner functions, whose context must now be
@@ -311,7 +411,7 @@ func testIsCtxCanceled(ctx context.Context) {
 	if !isCtxDone(ctx) {
 		panic(`expected context to be done`)
 	}
-	gtest.ErrorIs(ctx.Err(), context.Canceled)
+	gtest.ErrIs(ctx.Err(), context.Canceled)
 }
 
 /*

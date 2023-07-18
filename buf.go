@@ -193,6 +193,24 @@ func (self *Buf) AppendError(val error) {
 }
 
 /*
+Same as `buf.Fprintf("%+v", val)` but marginally more efficient for `gg.Err`
+or any other error type that implements `StackAppenderTo`.
+*/
+func (self *Buf) AppendErrorStack(val error) {
+	if val == nil {
+		return
+	}
+
+	impl, _ := val.(StackAppenderTo)
+	if impl != nil {
+		*self = impl.AppendStackTo(*self)
+		return
+	}
+
+	self.Fprintf(`%+v`, val)
+}
+
+/*
 Appends the text representation of the input, using the `AppendTo` function.
 Mutates the receiver.
 */

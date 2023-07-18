@@ -9,24 +9,25 @@ import (
 )
 
 // Uses `json.Marshal` to encode the given value as JSON, panicking on error.
-func JsonBytes[A any](val A) []byte {
-	return Try1(JsonBytesCatch(val))
+func JsonEncode[Out Text, Src any](val Src) Out {
+	return Try1(JsonEncodeCatch[Out](val))
 }
 
 /*
 Uses `json.MarshalIndent` to encode the given value as JSON with indentation
 controlled by the `Indent` variable, panicking on error.
 */
-func JsonBytesIndent[A any](val A) []byte {
-	return Try1(JsonBytesIndentCatch(val))
+func JsonEncodeIndent[Out Text, Src any](val Src) Out {
+	return Try1(JsonEncodeIndentCatch[Out](val))
 }
 
 /*
 Same as `json.Marshal` but sometimes marginally more efficient. Avoids spurious
 heap escape of the input.
 */
-func JsonBytesCatch[A any](val A) ([]byte, error) {
-	return json.Marshal(AnyNoEscUnsafe(val))
+func JsonEncodeCatch[Out Text, Src any](val Src) (Out, error) {
+	out, err := json.Marshal(AnyNoEscUnsafe(val))
+	return ToText[Out](out), err
 }
 
 /*
@@ -34,18 +35,22 @@ Same as `json.MarshalIndent`, but uses the default indentation controlled by the
 `Indent` variable. Also sometimes marginally more efficient. Avoids spurious
 heap escape of the input.
 */
-func JsonBytesIndentCatch[A any](val A) ([]byte, error) {
-	return json.MarshalIndent(AnyNoEscUnsafe(val), ``, Indent)
+func JsonEncodeIndentCatch[Out Text, Src any](val Src) (Out, error) {
+	out, err := json.MarshalIndent(AnyNoEscUnsafe(val), ``, Indent)
+	return ToText[Out](out), err
 }
 
-// Encodes the input as a JSON string, panicking on error.
-func JsonString[A any](val A) string { return ToString(JsonBytes(val)) }
+// Shortcut for `JsonEncode` for `[]byte`.
+func JsonBytes[A any](src A) []byte { return JsonEncode[[]byte](src) }
 
-/*
-Encodes the input as a JSON string, using default indentation controlled by the
-`Indent` variable.
-*/
-func JsonStringIndent[A any](val A) string { return ToString(JsonBytesIndent(val)) }
+// Shortcut for `JsonEncodeIndent` for `[]byte`.
+func JsonBytesIndent[A any](src A) []byte { return JsonEncodeIndent[[]byte](src) }
+
+// Shortcut for `JsonEncodeCatch` for `[]byte`.
+func JsonBytesCatch[A any](src A) ([]byte, error) { return JsonEncodeCatch[[]byte](src) }
+
+// Shortcut for `JsonEncodeIndentCatch` for `[]byte`.
+func JsonBytesIndentCatch[A any](src A) ([]byte, error) { return JsonEncodeIndentCatch[[]byte](src) }
 
 /*
 Shortcut for implementing JSON encoding of `Nullable` types.
@@ -58,29 +63,54 @@ func JsonBytesNullCatch[A any, B NullableValGetter[A]](val B) ([]byte, error) {
 	return JsonBytesCatch(val.Get())
 }
 
+// Shortcut for `JsonEncode` for `string`.
+func JsonString[A any](src A) string { return JsonEncode[string](src) }
+
+// Shortcut for `JsonEncodeIndent` for `string`.
+func JsonStringIndent[A any](src A) string { return JsonEncodeIndent[string](src) }
+
+// Shortcut for `JsonEncodeCatch` for `string`.
+func JsonStringCatch[A any](src A) (string, error) { return JsonEncodeCatch[string](src) }
+
+// Shortcut for `JsonEncodeIndentCatch` for `string`.
+func JsonStringIndentCatch[A any](src A) (string, error) { return JsonEncodeIndentCatch[string](src) }
+
 /*
-Shortcut for parsing the given string or byte slice into a value of the given
-type. Panics on errors.
+Shortcut for parsing arbitrary text into the given output, panicking on errors.
+If the output pointer is nil, does nothing.
 */
-func JsonParseTo[Out any, Src Text](src Src) (out Out) {
-	JsonParse(src, &out)
+func JsonDecode[Out any, Src Text](src Src, out *Out) { Try(JsonDecodeCatch(src, out)) }
+
+/*
+Shortcut for parsing the given text into the given output, ignoring errors.
+If the output pointer is nil, does nothing.
+*/
+func JsonDecodeOpt[Out any, Src Text](src Src, out *Out) { Nop1(JsonDecodeCatch(src, out)) }
+
+/*
+Shortcut for parsing the given text into a value of the given type, panicking
+on errors.
+*/
+func JsonDecodeTo[Out any, Src Text](src Src) (out Out) {
+	Try(JsonDecodeCatch(src, &out))
 	return
 }
 
 /*
-Shortcut for parsing the given string or byte slice into a pointer of the given
-type. Panics on errors.
+Shortcut for parsing the given text into the given output, ignoring errors.
+If the output pointer is nil, does nothing.
 */
-func JsonParse[Out any, Src Text](src Src, out *Out) {
-	Try(JsonParseCatch(src, out))
+func JsonDecodeOptTo[Out any, Src Text](src Src) (out Out) {
+	Nop1(JsonDecodeCatch(src, &out))
+	return
 }
 
 /*
-Parses the given string or byte slice into a pointer of the given type. Similar
-to `json.Unmarshal`, but avoids the overhead of byte-string conversion and
-spurious escapes.
+Parses the given text into the given output. Similar to `json.Unmarshal`, but
+avoids the overhead of byte-string conversion and spurious escapes. If the
+output pointer is nil, does nothing.
 */
-func JsonParseCatch[Out any, Src Text](src Src, out *Out) error {
+func JsonDecodeCatch[Out any, Src Text](src Src, out *Out) error {
 	if out != nil {
 		return json.Unmarshal(ToBytes(src), AnyNoEscUnsafe(out))
 	}

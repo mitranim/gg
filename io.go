@@ -112,6 +112,14 @@ func fileInfo(path string) os.FileInfo {
 func ReadDir(path string) []fs.DirEntry { return Try1(os.ReadDir(path)) }
 
 /*
+Shortcut for using `os.ReadDir` to return a list of file names in the given
+directory. Panics on error.
+*/
+func ReadDirFileNames(path string) []string {
+	return MapCompact(ReadDir(path), dirEntryToFileName)
+}
+
+/*
 Shortcut for `os.ReadFile`. Panics on error. Converts the content to the
 requested text type without an additional allocation.
 */

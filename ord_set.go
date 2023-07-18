@@ -62,6 +62,17 @@ func (self *OrdSet[Val]) Add(src ...Val) *OrdSet[Val] {
 	return self
 }
 
+/*
+Replaces `.Slice` with the given slice and rebuilds `.Index`. Uses the slice
+as-is with no reallocation. Callers must be careful to avoid modifying the
+source data, which may invalidate the collection's index.
+*/
+func (self *OrdSet[Val]) Reset(src ...Val) *OrdSet[Val] {
+	self.Slice = src
+	self.Reindex()
+	return self
+}
+
 // Nullifies both the slice and the index. Does not preserve their capacity.
 func (self *OrdSet[Val]) Clear() *OrdSet[Val] {
 	if self != nil {
@@ -77,9 +88,7 @@ the existing index. Can be useful for external code that directly modifies the
 inner `.Slice`, for example by sorting it. This is NOT used when adding items
 via `.Add`, which modifies the index incrementally rather than all-at-once.
 */
-func (self *OrdSet[Val]) Reindex() {
-	self.Index = SetOf(self.Slice...)
-}
+func (self *OrdSet[Val]) Reindex() { self.Index = SetOf(self.Slice...) }
 
 // Implement `json.Marshaler`. Encodes the inner slice, ignoring the index.
 func (self OrdSet[_]) MarshalJSON() ([]byte, error) {

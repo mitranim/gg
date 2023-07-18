@@ -2,14 +2,16 @@ MAKEFLAGS := --silent --always-make
 MAKE_PAR := $(MAKE) -j 128
 GO_FLAGS := -tags=$(tags) -mod=mod
 VERB := $(if $(filter $(verb),true), -v,)
+FAIL := $(if $(filter $(fail),false),,-failfast)
 SHORT := $(if $(filter $(short),true), -short,)
+CLEAR := $(if $(filter $(clear),false),,-c)
 PROF := $(if $(filter $(prof),true), -cpuprofile=cpu.prof -memprofile=mem.prof,)
-TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(SHORT) $(PROF)
+TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(FAIL) $(SHORT) $(PROF)
 TEST := test $(TEST_FLAGS) -timeout=1s -run=$(run)
 PKG := ./$(or $(pkg),...)
 BENCH := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=256ms
-GOW := gow -c -v -e=go,mod,pgsql
-WATCH := watchexec -r -c -d=0 -n
+GOW := gow $(CLEAR) -v -e=go,mod,pgsql
+WATCH := watchexec -r $(CLEAR) -d=0 -n
 DOC_HOST := localhost:58214
 OK = echo [$@] ok
 
@@ -67,7 +69,7 @@ release: prep
 ifeq ($(tag),)
 	$(error missing tag)
 endif
-	git pull --rebase
+	git pull --ff-only
 	git show-ref --tags --quiet "$(tag)" || git tag "$(tag)"
 	git push origin $$(git symbolic-ref --short HEAD) "$(tag)"
 

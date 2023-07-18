@@ -1,6 +1,8 @@
 package gg
 
 import (
+	"bytes"
+	r "reflect"
 	"regexp"
 	"strings"
 	"unicode"
@@ -9,8 +11,8 @@ import (
 )
 
 /*
-Same as `len`. Limited to `Text` types but can be passed to higher-order
-functions.
+Same as `len`. Sometimes useful for higher-order functions. Note that this does
+NOT count Unicode characters. For that, use `CharCount`.
 */
 func TextLen[A Text](val A) int { return len(val) }
 
@@ -311,6 +313,22 @@ func JoinOpt[A Text](src []A, sep string) string {
 }
 
 /*
+Similar to `strings.Split` and `bytes.Split`. Differences:
+
+	* Supports all text types.
+	* Returns nil for empty input.
+*/
+func Split[A Text](src, sep A) []A {
+	if len(src) <= 0 {
+		return nil
+	}
+	if Kind[A]() == r.String {
+		return CastSlice[A](strings.Split(ToString(src), ToString(sep)))
+	}
+	return CastSlice[A](bytes.Split(ToBytes(src), ToBytes(sep)))
+}
+
+/*
 Similar to `strings.SplitN` for N = 1. More efficient: returns a tuple instead
 of allocating a slice. Safer: returns zero values if split doesn't succeed.
 */
@@ -603,11 +621,11 @@ func TextEllipsis[A Text](src A, limit uint) A {
 }
 
 /*
-Truncates the given text to the given total count of Unicode characters
-(not bytes) with a suffix. If the text is under the limit, it's returned
-unchanged, otherwise it's truncated and the given suffix is appended. The total
-count includes the character count of the given suffix string. The limit can't
-exceed `math.MaxInt`. Also see shortcut `TextEllipsis` which uses this with the
+Truncates the given text to the given total count of Unicode characters (not
+bytes) with a suffix. If the text is under the limit, it's returned unchanged,
+otherwise it's truncated and the given suffix is appended. The total count
+includes the character count of the given suffix string. The limit can't exceed
+`math.MaxInt`. Also see shortcut `TextEllipsis` which uses this with the
 ellipsis character '…'.
 */
 func TextTruncWith[A Text](src, suf A, limit uint) A {

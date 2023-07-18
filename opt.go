@@ -93,7 +93,7 @@ func (self Opt[A]) MarshalJSON() ([]byte, error) {
 
 /*
 Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
-clears the receiver via `.Clear`. Otherwise uses `JsonParseCatch` to decode
+clears the receiver via `.Clear`. Otherwise uses `JsonDecodeCatch` to decode
 into the underlying value.
 */
 func (self *Opt[A]) UnmarshalJSON(src []byte) error {
@@ -101,7 +101,7 @@ func (self *Opt[A]) UnmarshalJSON(src []byte) error {
 		self.Clear()
 		return nil
 	}
-	return self.with(JsonParseCatch(src, &self.Val))
+	return self.with(JsonDecodeCatch(src, &self.Val))
 }
 
 /*

@@ -53,7 +53,7 @@ func testParser[
 	},
 ](src string, exp A) {
 	var tar A
-	gtest.NoError(B(&tar).Parse(src))
+	gtest.NoErr(B(&tar).Parse(src))
 	gtest.Equal(tar, exp)
 }
 

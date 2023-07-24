@@ -25,11 +25,11 @@ func OrdSetFrom[Slice ~[]Val, Val comparable](src ...Slice) OrdSet[Val] {
 }
 
 /*
-Represents an ordered set. Similar to the `Coll` type, but behaves like a set
-rather than like a map. This implementation is specialized for easy and
-efficient appending, iteration, and membership testing, but as a tradeoff, it
-does not support deletion. For "proper" ordered sets that support deletion, see
-the library https://github.com/mitranim/gord.
+Represents an ordered set. Compare `OrdMap` which represents an ordered map.
+This implementation is specialized for easy and efficient appending, iteration,
+and membership testing, but as a tradeoff, it does not support deletion.
+For "proper" ordered sets that support deletion, see the library
+https://github.com/mitranim/gord.
 */
 type OrdSet[Val comparable] struct {
 	Slice []Val `role:"ref"`

@@ -47,90 +47,41 @@ func CollFrom[Key comparable, Val Pker[Key], Slice ~[]Val](src ...Slice) Coll[Ke
 
 /*
 Short for "collection". Represents an ordered map where keys are automatically
-derived from values. Keys must be non-zero. Similarly to a map, this ensures
-value uniqueness by primary key, and allows efficient access by key. Unlike a
-map, values in this type are ordered and can be iterated cheaply, because they
-are stored in a publicly-accessible slice. However, as a tradeoff, this type
-does not support deletion.
+derived from values. Compare `OrdMap` where keys are provided externally. Keys
+must be non-zero. Similarly to a map, this ensures value uniqueness by primary
+key, and allows efficient access by key. Unlike a map, values in this type are
+ordered and can be iterated cheaply, because they are stored in a
+publicly-accessible slice. However, as a tradeoff, this type does not support
+deletion.
 */
-type Coll[
-	Key comparable,
-	Val Pker[Key],
-] struct {
-	Slice []Val `role:"ref"`
-	Index map[Key]int
-}
+type Coll[Key comparable, Val Pker[Key]] OrdMap[Key, Val]
 
-// Same as `len(self.Slice)`.
-func (self Coll[_, _]) Len() int { return len(self.Slice) }
+// Same as `OrdMap.Len`.
+func (self Coll[_, _]) Len() int { return self.OrdMap().Len() }
 
-// True if `.Len` <= 0. Inverse of `.IsNotEmpty`.
-func (self Coll[_, _]) IsEmpty() bool { return self.Len() <= 0 }
+// Same as `OrdMap.IsEmpty`.
+func (self Coll[_, _]) IsEmpty() bool { return self.OrdMap().IsEmpty() }
 
-// True if `.Len` > 0. Inverse of `.IsEmpty`.
-func (self Coll[_, _]) IsNotEmpty() bool { return self.Len() > 0 }
+// Same as `OrdMap.IsNotEmpty`.
+func (self Coll[_, _]) IsNotEmpty() bool { return self.OrdMap().IsNotEmpty() }
 
-// True if the index has the given key.
-func (self Coll[Key, _]) Has(key Key) bool {
-	return MapHas(self.Index, key)
-}
+// Same as `OrdMap.Has`.
+func (self Coll[Key, _]) Has(key Key) bool { return self.OrdMap().Has(key) }
 
-// Returns the value indexed on the given key, or the zero value of that type.
-func (self Coll[Key, Val]) Get(key Key) Val {
-	return PtrGet(self.Ptr(key))
-}
+// Same as `OrdMap.Get`.
+func (self Coll[Key, Val]) Get(key Key) Val { return self.OrdMap().Get(key) }
 
-/*
-Short for "get required". Returns the value indexed on the given key. Panics if
-the value is missing.
-*/
-func (self Coll[Key, Val]) GetReq(key Key) Val {
-	ptr := self.Ptr(key)
-	if ptr != nil {
-		return *ptr
-	}
-	panic(errCollMissing[Val](key))
-}
+// Same as `OrdMap.GetReq`.
+func (self Coll[Key, Val]) GetReq(key Key) Val { return self.OrdMap().GetReq(key) }
 
-/*
-Returns the value indexed on the given key and a boolean indicating if the value
-was actually present.
-*/
-func (self Coll[Key, Val]) Got(key Key) (Val, bool) {
-	// Note: we must check `ok` because if the entry is missing, `ind` is `0`,
-	// which is invalid.
-	ind, ok := self.Index[key]
-	if ok {
-		return Got(self.Slice, ind)
-	}
-	return Zero[Val](), false
-}
+// Same as `OrdMap.Got`.
+func (self Coll[Key, Val]) Got(key Key) (Val, bool) { return self.OrdMap().Got(key) }
 
-/*
-Short for "pointer". Returns a pointer to the value indexed on the given key, or
-nil if the value is missing.
-*/
-func (self Coll[Key, Val]) Ptr(key Key) *Val {
-	// Note: we must check `ok` because if the entry is missing, `ind` is `0`,
-	// which is invalid.
-	ind, ok := self.Index[key]
-	if ok {
-		return GetPtr(self.Slice, ind)
-	}
-	return nil
-}
+// Same as `OrdMap.Ptr`.
+func (self Coll[Key, Val]) Ptr(key Key) *Val { return self.OrdMap().Ptr(key) }
 
-/*
-Short for "pointer required". Returns a non-nil pointer to the value indexed
-on the given key, or panics if the value is missing.
-*/
-func (self Coll[Key, Val]) PtrReq(key Key) *Val {
-	ptr := self.Ptr(key)
-	if ptr != nil {
-		return ptr
-	}
-	panic(errCollMissing[Val](key))
-}
+// Same as `OrdMap.PtrReq`.
+func (self Coll[Key, Val]) PtrReq(key Key) *Val { return self.OrdMap().PtrReq(key) }
 
 /*
 Idempotently adds each given value to both the inner slice and the inner index.
@@ -138,18 +89,9 @@ Every value whose key already exists in the index is replaced at the existing
 position in the slice.
 */
 func (self *Coll[Key, Val]) Add(src ...Val) *Coll[Key, Val] {
-	index := MapInit(&self.Index)
-
-	for _, val := range src {
-		key := ValidPk[Key](val)
-		ind, ok := index[key]
-		if ok {
-			self.Slice[ind] = val
-			continue
-		}
-		index[key] = AppendIndex(&self.Slice, val)
+	for _, src := range src {
+		self.OrdMap().Set(ValidPk[Key](src), src)
 	}
-
 	return self
 }
 
@@ -158,19 +100,15 @@ Same as `Coll.Add`, but panics if any inputs are redundant, as in, their primary
 keys are already present in the index.
 */
 func (self *Coll[Key, Val]) AddUniq(src ...Val) *Coll[Key, Val] {
-	index := MapInit(&self.Index)
-
-	for _, val := range src {
-		key := ValidPk[Key](val)
-		if MapHas(index, key) {
-			panic(Errf(
-				`unexpected redundant %v with key %v`,
-				Type[Val](), key,
-			))
-		}
-		index[key] = AppendIndex(&self.Slice, val)
+	for _, src := range src {
+		self.OrdMap().Add(ValidPk[Key](src), src)
 	}
+	return self
+}
 
+// Same as `OrdMap.Clear`.
+func (self *Coll[Key, Val]) Clear() *Coll[Key, Val] {
+	self.OrdMap().Clear()
 	return self
 }
 
@@ -182,15 +120,6 @@ source data, which may invalidate the collection's index.
 func (self *Coll[Key, Val]) Reset(src ...Val) *Coll[Key, Val] {
 	self.Slice = src
 	self.Reindex()
-	return self
-}
-
-// Nullifies both the slice and the index. Does not preserve their capacity.
-func (self *Coll[Key, Val]) Clear() *Coll[Key, Val] {
-	if self != nil {
-		self.Slice = nil
-		self.Index = nil
-	}
 	return self
 }
 
@@ -249,6 +178,16 @@ func (self *Coll[_, _]) UnmarshalJSON(src []byte) error {
 	err := json.Unmarshal(src, &self.Slice)
 	self.Reindex()
 	return err
+}
+
+/*
+Free cast into the equivalent `*OrdMap`. Note that mutating the resulting
+`OrdMap` via methods such as `OrdMap.Add` may violate guarantees of the `Coll`
+type, mainly that each value is stored under the key returned by its `.Pk`
+method.
+*/
+func (self *Coll[Key, Val]) OrdMap() *OrdMap[Key, Val] {
+	return (*OrdMap[Key, Val])(self)
 }
 
 // Free cast to equivalent `LazyColl`.

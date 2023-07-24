@@ -220,10 +220,8 @@ func (self *graphWalk) walk(tail *node[string], file GraphFile) {
 		return
 	}
 
-	pending := tail != nil && tail.has(key)
 	head := tail.cons(key)
-
-	if pending {
+	if tail != nil && tail.has(key) {
 		panic(Errf(`dependency cycle: %q`, Reversed(head.vals())))
 	}
 

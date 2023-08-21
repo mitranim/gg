@@ -9,24 +9,24 @@ import (
 )
 
 // Uses `json.Marshal` to encode the given value as JSON, panicking on error.
-func JsonEncode[Out Text, Src any](val Src) Out {
-	return Try1(JsonEncodeCatch[Out](val))
+func JsonEncode[Out Text, Src any](src Src) Out {
+	return Try1(JsonEncodeCatch[Out](src))
 }
 
 /*
 Uses `json.MarshalIndent` to encode the given value as JSON with indentation
 controlled by the `Indent` variable, panicking on error.
 */
-func JsonEncodeIndent[Out Text, Src any](val Src) Out {
-	return Try1(JsonEncodeIndentCatch[Out](val))
+func JsonEncodeIndent[Out Text, Src any](src Src) Out {
+	return Try1(JsonEncodeIndentCatch[Out](src))
 }
 
 /*
 Same as `json.Marshal` but sometimes marginally more efficient. Avoids spurious
 heap escape of the input.
 */
-func JsonEncodeCatch[Out Text, Src any](val Src) (Out, error) {
-	out, err := json.Marshal(AnyNoEscUnsafe(val))
+func JsonEncodeCatch[Out Text, Src any](src Src) (Out, error) {
+	out, err := json.Marshal(AnyNoEscUnsafe(src))
 	return ToText[Out](out), err
 }
 
@@ -35,8 +35,8 @@ Same as `json.MarshalIndent`, but uses the default indentation controlled by the
 `Indent` variable. Also sometimes marginally more efficient. Avoids spurious
 heap escape of the input.
 */
-func JsonEncodeIndentCatch[Out Text, Src any](val Src) (Out, error) {
-	out, err := json.MarshalIndent(AnyNoEscUnsafe(val), ``, Indent)
+func JsonEncodeIndentCatch[Out Text, Src any](src Src) (Out, error) {
+	out, err := json.MarshalIndent(AnyNoEscUnsafe(src), ``, Indent)
 	return ToText[Out](out), err
 }
 

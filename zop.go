@@ -1,17 +1,18 @@
 package gg
 
 /*
-Short for "zero optional value". Workaround for the lack of type inference in
-struct literals.
+Short for "zero optional value". Syntactic shortcut for creating `Zop` with the
+given value. Workaround for the lack of type inference in struct literals.
 */
 func ZopVal[A any](val A) Zop[A] { return Zop[A]{val} }
 
 /*
-Short for "zero optional". The zero value is considered empty/null in JSON. Note
-that "encoding/json" doesn't support ",omitempty" for structs. This wrapper
-allows empty structs to become "null". This type doesn't implement any other
-encoding or decoding methods, and is intended only for non-scalar values such
-as "models" / "data classes".
+Short for "zero optional". The zero value is considered empty/null in JSON.
+Note that "encoding/json" doesn't support ",omitempty" for structs. This wrapper
+allows empty structs to become "null". This type doesn't implement any encoding
+or decoding methods other than for JSON, and is intended only for non-scalar
+values such as "models" / "data classes". Scalars tend to be compatible with
+",omitempty" in JSON, and don't require such wrappers.
 */
 type Zop[A any] struct {
 	/**

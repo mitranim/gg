@@ -451,7 +451,10 @@ func Tail[Slice ~[]Elem, Elem any](val Slice) Slice {
 // Same as global `Tail`.
 func (self Slice[A]) Tail() Slice[A] { return Tail(self) }
 
-// Returns a subslice containing N elements from the start.
+/*
+Returns a subslice containing up to N elements from the start.
+If there are fewer elements total, returns as many as possible.
+*/
 func Take[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 	return src[:MaxPrim2(0, MinPrim2(size, len(src)))]
 }
@@ -468,11 +471,20 @@ func Drop[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 func (self Slice[A]) Drop(size int) Slice[A] { return Drop(self, size) }
 
 /*
-Returns a subslice containing only elements at the start of the slice
-for which the given function contiguously returned `true`.
+Returns a subslice containing only the elements at the start of the slice for
+which the given function had contiguously returned `true`. If the function is
+nil, it's considered to always return `false`, thus the returned slice is
+empty. Also see `TakeLastWhile`.
 */
 func TakeWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
-	return Take(src, 1+FindIndex(src, func(val Elem) bool { return !fun(val) }))
+	if fun == nil {
+		return src[:0]
+	}
+	ind := FindIndex(src, func(val Elem) bool { return !fun(val) })
+	if ind >= 0 {
+		return src[:ind]
+	}
+	return src
 }
 
 // Same as global `TakeWhile`.
@@ -481,16 +493,71 @@ func (self Slice[A]) TakeWhile(fun func(A) bool) Slice[A] {
 }
 
 /*
-Returns a subslice excluding elements at the start of the slice
-for which the given function contiguously returned `true`.
+Returns a subslice containing only the elements at the end of the slice for
+which the given function had contiguously returned `true`. If the function is
+nil, it's considered to always return `false`, thus the returned slice is
+empty. Elements are tested from the end of the slice in reverse order, but
+the returned subslice has the original element order. Also see `TakeWhile`.
+*/
+func TakeLastWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
+	if fun == nil {
+		return src[len(src):]
+	}
+	ind := FindLastIndex(src, func(val Elem) bool { return !fun(val) })
+	if ind >= 0 {
+		return src[ind+1:]
+	}
+	return src
+}
+
+// Same as global `TakeLastWhile`.
+func (self Slice[A]) TakeLastWhile(fun func(A) bool) Slice[A] {
+	return TakeLastWhile(self, fun)
+}
+
+/*
+Returns a subslice excluding the elements at the start of the slice for which
+the given function had contiguously returned `true`. If the function is nil,
+it's considered to always return `false`, thus the source slice is returned
+as-is. Also see `DropLastWhile`.
 */
 func DropWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
-	return Drop(src, 1+FindIndex(src, fun))
+	if fun == nil {
+		return src
+	}
+	ind := FindIndex(src, func(val Elem) bool { return !fun(val) })
+	if ind >= 0 {
+		return src[ind:]
+	}
+	return src[:0]
 }
 
 // Same as global `DropWhile`.
 func (self Slice[A]) DropWhile(fun func(A) bool) Slice[A] {
 	return DropWhile(self, fun)
+}
+
+/*
+Returns a subslice excluding the elements at the end of the slice for which
+the given function had contiguously returned `true`. If the function is nil,
+it's considered to always return `false`, thus the source slice is returned
+as-is. Elements are tested from the end of the slice in reverse order, but
+the returned subslice has the original element order. Also see `DropWhile`.
+*/
+func DropLastWhile[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Slice {
+	if fun == nil {
+		return src
+	}
+	ind := FindLastIndex(src, func(val Elem) bool { return !fun(val) })
+	if ind >= 0 {
+		return src[:ind+1]
+	}
+	return src[:0]
+}
+
+// Same as global `DropLastWhile`.
+func (self Slice[A]) DropLastWhile(fun func(A) bool) Slice[A] {
+	return DropLastWhile(self, fun)
 }
 
 // Calls the given function for each element of the given slice.
@@ -536,13 +603,15 @@ func Each2[A, B any](one []A, two []B, fun func(A, B)) {
 
 /*
 Returns the smallest value from among the inputs, which must be comparable
-primitives. For non-primitives, see `Min`.
+primitives. Same as built-in `min` (Go 1.21+), expressed as a generic function.
+For non-primitives, see `Min`.
 */
 func MinPrim[A LesserPrim](val ...A) A { return Fold1(val, MinPrim2[A]) }
 
 /*
 Returns the largest value from among the inputs, which must be comparable
-primitives. For non-primitives, see `Max`.
+primitives. Same as built-in `max` (Go 1.21+), expressed as a generic function.
+For non-primitives, see `Max`.
 */
 func MaxPrim[A LesserPrim](val ...A) A { return Fold1(val, MaxPrim2[A]) }
 
@@ -568,8 +637,8 @@ func MinPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
 		return Zero[Out]()
 	}
 
-	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
-		return MinPrim2(acc, fun(src))
+	return Fold(src[1:], fun(src[0]), func(acc Out, val Src) Out {
+		return MinPrim2(acc, fun(val))
 	})
 }
 
@@ -583,8 +652,8 @@ func MinBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
 		return Zero[Out]()
 	}
 
-	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
-		return Min2(acc, fun(src))
+	return Fold(src[1:], fun(src[0]), func(acc Out, val Src) Out {
+		return Min2(acc, fun(val))
 	})
 }
 
@@ -598,8 +667,8 @@ func MaxPrimBy[Src any, Out LesserPrim](src []Src, fun func(Src) Out) Out {
 		return Zero[Out]()
 	}
 
-	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
-		return MaxPrim2(acc, fun(src))
+	return Fold(src[1:], fun(src[0]), func(acc Out, val Src) Out {
+		return MaxPrim2(acc, fun(val))
 	})
 }
 
@@ -613,8 +682,8 @@ func MaxBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
 		return Zero[Out]()
 	}
 
-	return Fold(src[1:], fun(src[0]), func(acc Out, src Src) Out {
-		return Max2(acc, fun(src))
+	return Fold(src[1:], fun(src[0]), func(acc Out, val Src) Out {
+		return Max2(acc, fun(val))
 	})
 }
 
@@ -1146,8 +1215,8 @@ func (self Slice[A]) Compact() Slice[A] { return Compact(self) }
 func Compacted[A any](src ...A) []A { return Compact(src) }
 
 /*
-Tests each element by calling the given function and returns the first element
-for which it returns `true`. If none match, returns `-1`.
+Returns the index of the first element for which the given function returns
+`true`. If none match, returns `-1`. Also see `FindLastIndex`.
 */
 func FindIndex[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) int {
 	if fun != nil {
@@ -1166,9 +1235,51 @@ func (self Slice[A]) FindIndex(fun func(A) bool) int {
 }
 
 /*
+Returns the index of the last element for which the given function returns
+`true`. If none match, returns `-1`. Also see `FindIndex`.
+*/
+func FindLastIndex[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) int {
+	if fun != nil {
+		for ind := len(src) - 1; ind >= 0; ind-- {
+			if fun(src[ind]) {
+				return ind
+			}
+		}
+	}
+	return -1
+}
+
+// Same as global `FindLastIndex`.
+func (self Slice[A]) FindLastIndex(fun func(A) bool) int {
+	return FindLastIndex(self, fun)
+}
+
+/*
+Returns the first element for which the given function returns true.
+If nothing is found, returns a zero value.
+*/
+func Find[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Elem {
+	return Get(src, FindIndex(src, fun))
+}
+
+// Same as global `Find`.
+func (self Slice[A]) Find(fun func(A) bool) A { return Find(self, fun) }
+
+/*
+Returns the last element for which the given function returns true.
+If nothing is found, returns a zero value. Also see `Find`.
+*/
+func FindLast[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Elem {
+	return Get(src, FindLastIndex(src, fun))
+}
+
+// Same as global `FindLast`.
+func (self Slice[A]) FindLast(fun func(A) bool) A { return FindLast(self, fun) }
+
+/*
 Returns the first element for which the given function returns `true`.
 If nothing is found, returns a zero value. The additional boolean indicates
-whether something was actually found.
+whether something was actually found. Also see `FoundLast`.
 */
 func Found[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) (Elem, bool) {
 	ind := FindIndex(src, fun)
@@ -1184,15 +1295,22 @@ func (self Slice[A]) Found(fun func(A) bool) (A, bool) {
 }
 
 /*
-Returns the first element for which the given function returns true.
-If nothing is found, returns a zero value.
+Returns the last element for which the given function returns `true`.
+If nothing is found, returns a zero value. The additional boolean indicates
+whether something was actually found. Also see `Found`.
 */
-func Find[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) Elem {
-	return Get(src, FindIndex(src, fun))
+func FoundLast[Slice ~[]Elem, Elem any](src Slice, fun func(Elem) bool) (Elem, bool) {
+	ind := FindLastIndex(src, fun)
+	if ind >= 0 {
+		return src[ind], true
+	}
+	return Zero[Elem](), false
 }
 
-// Same as global `Find`.
-func (self Slice[A]) Find(fun func(A) bool) A { return Find(self, fun) }
+// Same as global `FoundLast`.
+func (self Slice[A]) FoundLast(fun func(A) bool) (A, bool) {
+	return FoundLast(self, fun)
+}
 
 /*
 Similar to `Found`, but instead of returning an element, returns the first

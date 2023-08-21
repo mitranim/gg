@@ -55,6 +55,12 @@ func (self *Set[A]) Init() Set[A] {
 // Same as `len(set)`. Nil-safe.
 func (self Set[_]) Len() int { return len(self) }
 
+// Same as `len(self) <= 0`. Inverse of `.IsNotEmpty`.
+func (self Set[_]) IsEmpty() bool { return len(self) <= 0 }
+
+// Same as `len(self) > 0`. Inverse of `.IsEmpty`.
+func (self Set[_]) IsNotEmpty() bool { return len(self) > 0 }
+
 // True if the set includes the given value. Nil-safe.
 func (self Set[A]) Has(val A) bool { return MapHas(self, val) }
 

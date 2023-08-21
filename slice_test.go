@@ -244,6 +244,119 @@ func TestDrop(t *testing.T) {
 	gtest.Equal(gg.Drop([]int{10, 20, 30, 40}, 2), []int{30, 40})
 }
 
+func TestTakeWhile(t *testing.T) {
+	defer gtest.Catch(t)
+
+	fun := gg.IsPos[int]
+
+	test := func(src, exp []int) {
+		gtest.Equal(gg.TakeWhile(src, fun), exp)
+		gtest.Equal(gg.TakeWhile(src, nil), src[:0])
+	}
+
+	same := func(src ...int) { test(src, src) }
+
+	test(nil, nil)
+
+	test([]int{0}, []int{})
+	test([]int{-20, -10, 0}, []int{})
+	test([]int{0, -10, -20}, []int{})
+
+	test([]int{20, 10, 0}, []int{20, 10})
+	test([]int{0, 10, 20}, []int{})
+
+	test([]int{-20, -10, 0, 10, 20}, []int{})
+	test([]int{20, 10, 0, -10, -20}, []int{20, 10})
+
+	test([]int{20, 10, 0, 30, 40}, []int{20, 10})
+
+	same(20, 10, 30, 40)
+}
+
+func TestTakeLastWhile(t *testing.T) {
+	defer gtest.Catch(t)
+
+	fun := gg.IsPos[int]
+
+	test := func(src, exp []int) {
+		gtest.Equal(gg.TakeLastWhile(src, fun), exp)
+		gtest.Empty(gg.TakeLastWhile(src, nil))
+		gtest.SliceIs(gg.TakeLastWhile(src, nil), src[len(src):])
+	}
+
+	same := func(src ...int) { test(src, src) }
+
+	test(nil, nil)
+
+	test([]int{0}, []int{})
+	test([]int{-20, -10, 0}, []int{})
+	test([]int{0, -10, -20}, []int{})
+
+	test([]int{20, 10, 0}, []int{})
+	test([]int{0, 10, 20}, []int{10, 20})
+
+	test([]int{-20, -10, 0, 10, 20}, []int{10, 20})
+	test([]int{20, 10, 0, -10, -20}, []int{})
+
+	test([]int{20, 10, 0, 30, 40}, []int{30, 40})
+
+	same(20, 10, 30, 40)
+}
+
+func TestDropWhile(t *testing.T) {
+	defer gtest.Catch(t)
+
+	fun := gg.IsPos[int]
+
+	test := func(src, exp []int) {
+		gtest.Equal(gg.DropWhile(src, fun), exp)
+		gtest.Equal(gg.DropWhile(src, nil), src)
+	}
+
+	test(nil, nil)
+
+	test([]int{10}, []int{})
+
+	test([]int{10, 20}, []int{})
+	test([]int{20, 10}, []int{})
+
+	test([]int{20, 10, 0}, []int{0})
+	test([]int{0, 10, 20}, []int{0, 10, 20})
+
+	test([]int{20, 10, -10, -20}, []int{-10, -20})
+	test([]int{-20, -10, 10, 20}, []int{-20, -10, 10, 20})
+
+	test([]int{20, 10, 0, -10, -20}, []int{0, -10, -20})
+	test([]int{-20, -10, 0, 10, 20}, []int{-20, -10, 0, 10, 20})
+}
+
+func TestDropLastWhile(t *testing.T) {
+	defer gtest.Catch(t)
+
+	fun := gg.IsPos[int]
+
+	test := func(src, exp []int) {
+		gtest.Equal(gg.DropLastWhile(src, fun), exp)
+		gtest.SliceIs(gg.DropLastWhile(src, nil), src)
+	}
+
+	test(nil, nil)
+
+	test([]int{10}, []int{})
+
+	test([]int{10, 20}, []int{})
+	test([]int{20, 10}, []int{})
+
+	test([]int{20, 10, 0}, []int{20, 10, 0})
+	test([]int{0, 10, 20}, []int{0})
+
+	test([]int{20, 10, -10, -20}, []int{20, 10, -10, -20})
+	test([]int{-20, -10, 10, 20}, []int{-20, -10})
+
+	test([]int{20, 10, 0, -10, -20}, []int{20, 10, 0, -10, -20})
+	test([]int{-20, -10, 0, 10, 20}, []int{-20, -10, 0})
+}
+
 func TestMap(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -847,6 +960,34 @@ func TestFindIndex(t *testing.T) {
 	gtest.Eq(gg.FindIndex(Type{10, -10, 20, -20}, gg.IsNeg[int]), 1)
 }
 
+func TestFindLastIndex(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Type = []int
+
+	gtest.Eq(gg.FindLastIndex(Type(nil), nil), -1)
+	gtest.Eq(gg.FindLastIndex(Type{}, nil), -1)
+	gtest.Eq(gg.FindLastIndex(Type{0}, nil), -1)
+	gtest.Eq(gg.FindLastIndex(Type{10}, nil), -1)
+	gtest.Eq(gg.FindLastIndex(Type{10, 20}, nil), -1)
+	gtest.Eq(gg.FindLastIndex(Type{10, 20, 30}, nil), -1)
+
+	gtest.Eq(gg.FindLastIndex(Type{10}, False1[int]), -1)
+	gtest.Eq(gg.FindLastIndex(Type{10, 20}, False1[int]), -1)
+	gtest.Eq(gg.FindLastIndex(Type{10, 20, 30}, False1[int]), -1)
+
+	gtest.Eq(gg.FindLastIndex(Type{10}, True1[int]), 0)
+	gtest.Eq(gg.FindLastIndex(Type{10, 20}, True1[int]), 1)
+	gtest.Eq(gg.FindLastIndex(Type{10, 20, 30}, True1[int]), 2)
+
+	gtest.Eq(gg.FindLastIndex(Type{10}, gg.IsNeg[int]), -1)
+	gtest.Eq(gg.FindLastIndex(Type{-10}, gg.IsNeg[int]), 0)
+	gtest.Eq(gg.FindLastIndex(Type{-10, 10}, gg.IsNeg[int]), 0)
+	gtest.Eq(gg.FindLastIndex(Type{10, -10}, gg.IsNeg[int]), 1)
+	gtest.Eq(gg.FindLastIndex(Type{10, -10, 20}, gg.IsNeg[int]), 1)
+	gtest.Eq(gg.FindLastIndex(Type{10, -10, 20, -20}, gg.IsNeg[int]), 3)
+}
+
 func TestFound(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -885,6 +1026,44 @@ func TestFound(t *testing.T) {
 	)
 }
 
+func TestFoundLast(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Type = []int
+
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type(nil), nil)))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{}, nil)))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{10}, nil)))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{10, 20}, nil)))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{10, 20, 30}, nil)))
+
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type(nil), False1[int])))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{}, False1[int])))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{10}, False1[int])))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{10, 20}, False1[int])))
+	gtest.Zero(gg.Tuple2(gg.FoundLast(Type{10, 20, 30}, False1[int])))
+
+	gtest.Eq(
+		gg.Tuple2(gg.FoundLast(Type{10}, True1[int])),
+		gg.Tuple2(10, true),
+	)
+
+	gtest.Eq(
+		gg.Tuple2(gg.FoundLast(Type{10, 20}, True1[int])),
+		gg.Tuple2(20, true),
+	)
+
+	gtest.Eq(
+		gg.Tuple2(gg.FoundLast(Type{-10, 10, -20, 20}, gg.IsNeg[int])),
+		gg.Tuple2(-20, true),
+	)
+
+	gtest.Eq(
+		gg.Tuple2(gg.FoundLast(Type{-10, 10, -20, 20}, gg.IsPos[int])),
+		gg.Tuple2(20, true),
+	)
+}
+
 func TestFind(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -906,6 +1085,29 @@ func TestFind(t *testing.T) {
 	gtest.Eq(gg.Find(Type{10, 20}, True1[int]), 10)
 	gtest.Eq(gg.Find(Type{-10, 10, -20, 20}, gg.IsNeg[int]), -10)
 	gtest.Eq(gg.Find(Type{-10, 10, -20, 20}, gg.IsPos[int]), 10)
+}
+
+func TestFindLast(t *testing.T) {
+	defer gtest.Catch(t)
+
+	type Type = []int
+
+	gtest.Zero(gg.FindLast(Type(nil), nil))
+	gtest.Zero(gg.FindLast(Type{}, nil))
+	gtest.Zero(gg.FindLast(Type{10}, nil))
+	gtest.Zero(gg.FindLast(Type{10, 20}, nil))
+	gtest.Zero(gg.FindLast(Type{10, 20, 30}, nil))
+
+	gtest.Zero(gg.FindLast(Type(nil), False1[int]))
+	gtest.Zero(gg.FindLast(Type{}, False1[int]))
+	gtest.Zero(gg.FindLast(Type{10}, False1[int]))
+	gtest.Zero(gg.FindLast(Type{10, 20}, False1[int]))
+	gtest.Zero(gg.FindLast(Type{10, 20, 30}, False1[int]))
+
+	gtest.Eq(gg.FindLast(Type{10}, True1[int]), 10)
+	gtest.Eq(gg.FindLast(Type{10, 20}, True1[int]), 20)
+	gtest.Eq(gg.FindLast(Type{-10, 10, -20, 20}, gg.IsNeg[int]), -20)
+	gtest.Eq(gg.FindLast(Type{-10, 10, -20, 20}, gg.IsPos[int]), 20)
 }
 
 func TestProcured(t *testing.T) {

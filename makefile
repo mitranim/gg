@@ -1,9 +1,9 @@
 MAKEFLAGS := --silent --always-make
 MAKE_PAR := $(MAKE) -j 128
 GO_FLAGS := -tags=$(tags) -mod=mod
-VERB := $(if $(filter $(verb),true), -v,)
+VERB := $(if $(filter $(verb),true),-v,)
 FAIL := $(if $(filter $(fail),false),,-failfast)
-SHORT := $(if $(filter $(short),true), -short,)
+SHORT := $(if $(filter $(short),true),-short,)
 CLEAR := $(if $(filter $(clear),false),,-c)
 PROF := $(if $(filter $(prof),true), -cpuprofile=cpu.prof -memprofile=mem.prof,)
 TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(FAIL) $(SHORT) $(PROF)
@@ -14,6 +14,7 @@ GOW := gow $(CLEAR) -v -e=go,mod,pgsql
 WATCH := watchexec -r $(CLEAR) -d=0 -n
 DOC_HOST := localhost:58214
 OK = echo [$@] ok
+TAG := $(or $(and $(ver),v0.1.$(ver)),$(tag))
 
 default: test_w
 
@@ -64,14 +65,16 @@ doc:
 prep:
 	$(MAKE_PAR) test lint
 
-# Example: `make release tag=v0.0.1`.
+# Examples:
+# `make release ver=1`.
+# `make release tag=v0.0.1`.
 release: prep
-ifeq ($(tag),)
+ifeq ($(TAG),)
 	$(error missing tag)
 endif
 	git pull --ff-only
-	git show-ref --tags --quiet "$(tag)" || git tag "$(tag)"
-	git push origin $$(git symbolic-ref --short HEAD) "$(tag)"
+	git show-ref --tags --quiet "$(TAG)" || git tag "$(TAG)"
+	git push origin $$(git symbolic-ref --short HEAD) "$(TAG)"
 
 # Assumes MacOS and Homebrew.
 deps:

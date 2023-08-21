@@ -25,8 +25,8 @@ where 1 corresponds to the caller's frame.
 func CaptureTrace(skip int) Trace { return make(Trace, 64).Capture(skip + 1) }
 
 /*
-Alias of `[]uintptr` with various methods for capturing and printing
-stack traces.
+Represents a Go stack trace. Alias of `[]uintptr` with various methods for
+capturing and printing stack traces.
 */
 type Trace []Caller
 

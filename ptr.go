@@ -36,6 +36,11 @@ func PtrInit[A any](val **A) *A {
 Zeroes the memory referenced by the given pointer. If the pointer is nil, does
 nothing. Also see the interface `Clearer` and method `.Clear` implemented by
 various types.
+
+Note the difference from built-in `clear` (Go 1.21+): when receiving a pointer
+to a map or slice, this sets the target to `nil`, erasing the existing
+capacity, while built-in `clear` would delete all map elements or zero all
+slice elements (preserving length).
 */
 func PtrClear[A any](val *A) {
 	if val != nil {

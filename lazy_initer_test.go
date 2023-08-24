@@ -22,14 +22,28 @@ func TestLazyIniter(t *testing.T) {
 
 	var tar gg.LazyIniter[IniterStr, *IniterStr]
 
+	test := func(exp gg.Opt[IniterStr]) {
+		// Note: `gg.CastUnsafe[A](tar)` would have been simpler, but technically
+		// involves passing `tar` by value, which is invalid due to inner mutex.
+		// Wouldn't actually matter.
+		gtest.Eq(*gg.CastUnsafe[*gg.Opt[IniterStr]](&tar), exp)
+	}
+
+	test(gg.Zero[gg.Opt[IniterStr]]())
+
 	gtest.Eq(tar.Get(), `inited`)
 	gtest.Eq(tar.Get(), tar.Get())
+	test(gg.OptVal(IniterStr(`inited`)))
 
-	// Note: `gg.CastUnsafe[string](tar)` would have been simpler, but
-	// technically involves passing `tar` by value, which is invalid due
-	// to inner mutex. Wouldn't actually matter.
-	gtest.Eq(*gg.CastUnsafe[*string](&tar), `inited`)
+	tar.Clear()
+	test(gg.Zero[gg.Opt[IniterStr]]())
 
-	gtest.Eq(tar.Ptr(), gg.CastUnsafe[*IniterStr](&tar))
-	gtest.Eq(tar.Ptr(), tar.Ptr())
+	gtest.Eq(tar.Get(), `inited`)
+	gtest.Eq(tar.Get(), tar.Get())
+	test(gg.OptVal(IniterStr(`inited`)))
+
+	tar.Reset(`inited_1`)
+	gtest.Eq(tar.Get(), `inited_1`)
+	gtest.Eq(tar.Get(), tar.Get())
+	test(gg.OptVal(IniterStr(`inited_1`)))
 }

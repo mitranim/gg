@@ -313,7 +313,7 @@ and the stack trace.
 func PanicStr(exp string, fun func(), opt ...any) {
 	if exp == `` {
 		panic(ErrAt(1, gg.JoinLinesOpt(
-			`refusing to test for panic without a non-empty expected error message`,
+			`refusing to test for panic with an empty expected error message`,
 			MsgFun(fun),
 			MsgExtra(opt...),
 		)))

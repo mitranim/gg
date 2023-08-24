@@ -26,35 +26,54 @@ type LazyIniter[Val any, Ptr IniterPtr[Val]] struct {
 }
 
 // Returns the underlying value, lazily initializing it on the first call.
-func (self *LazyIniter[Val, _]) Get() Val { return *self.Ptr() }
+func (self *LazyIniter[Val, _]) Get() Val {
+	out, ok := self.got()
+	if ok {
+		return out
+	}
+	return self.get()
+}
 
 /*
-Returns a pointer to the underlying value, lazily initializing it on the first
-call.
+Clears the underlying value. After this call, the next call to `LazyIniter.Get`
+or `LazyIniter.Ptr` will reinitialize by invoking the `.Init` method of the
+underlying value.
 */
-func (self *LazyIniter[_, Ptr]) Ptr() Ptr {
-	if self.inited() {
-		return self.ptr()
-	}
-	return self.init()
-}
-
-func (self *LazyIniter[_, Ptr]) ptr() Ptr { return &self.val.Val }
-
-func (self *LazyIniter[_, _]) inited() bool {
-	self.lock.RLock()
-	defer self.lock.RUnlock()
-	return self.val.IsNotNull()
-}
-
-func (self *LazyIniter[_, Ptr]) init() Ptr {
+func (self *LazyIniter[_, _]) Clear() {
 	self.lock.Lock()
 	defer self.lock.Unlock()
+	self.val.Clear()
+}
+
+/*
+Resets the underlying value to the given input. After this call, the underlying
+value is considered to be initialized. Further calls to `LazyIniter.Get` or
+`LazyIniter.Ptr` will NOT reinitialize until `.Clear` is called.
+*/
+func (self *LazyIniter[Val, _]) Reset(src Val) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	self.val.Set(src)
+}
+
+func (self *LazyIniter[Val, _]) got() (_ Val, _ bool) {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+
 	if self.val.IsNotNull() {
-		return self.ptr()
+		return self.val.Val, true
+	}
+	return
+}
+
+func (self *LazyIniter[Val, Ptr]) get() Val {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	if self.val.IsNull() {
+		Ptr(&self.val.Val).Init()
+		self.val.Ok = true
 	}
 
-	Ptr(&self.val.Val).Init()
-	self.val.Ok = true
-	return self.ptr()
+	return self.val.Val
 }

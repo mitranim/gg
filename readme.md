@@ -25,11 +25,11 @@ Some features:
 
 Submodules:
 
+* `gtest`: testing and assertion tools.
+* `grepr`: tools for printing Go data structures as Go code.
 * `gsql`: SQL tools:
   * Support for scanning SQL rows into Go structs.
   * Support for SQL arrays.
-* `gtest`: testing and assertion tools.
-* `grepr`: tools for printing Go data structures as Go code.
 
 Current limitations:
 

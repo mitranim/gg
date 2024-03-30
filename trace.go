@@ -9,7 +9,7 @@ import (
 var (
 	TraceTable     = true
 	TraceSkipLang  = true
-	TraceShortName = true
+	TraceShortName = false
 	TraceBaseDir   = `` // Set to `Cwd()` for better traces.
 )
 

@@ -10,14 +10,18 @@ import (
 )
 
 /*
-Creates a read-closer able to read from the given string or byte slice. Similar
-to the following, but shorter and avoids allocation in case of bytes-to-string
-or string-to-bytes conversion:
+Creates a read-closer able to read from the given string or byte slice, where
+the "close" operation does nothing. Similar to combining stdlib functions, but
+shorter and avoids allocation in case of bytes-to-string or string-to-bytes
+conversion:
 
-	gg.NewReadCloser(string(`some_data`))
-	gg.NewReadCloser([]byte(`some_data`))
-	io.NopCloser(strings.NewReader(string(`some_data`)))
+	// Longer and marginally less efficient:
 	io.NopCloser(bytes.NewReader([]byte(`some_data`)))
+	io.NopCloser(strings.NewReader(string(`some_data`)))
+
+	// Equivalent, shorter, marginally more efficient:
+	gg.NewReadCloser([]byte(`some_data`))
+	gg.NewReadCloser(string(`some_data`))
 */
 func NewReadCloser[A Text](val A) io.ReadCloser {
 	if Kind[A]() == r.String {

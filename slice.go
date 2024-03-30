@@ -50,6 +50,9 @@ methods that can be passed to higher-order functions. Example:
 */
 type Slice[A any] []A
 
+// Free cast from a typedef to a plain slice.
+func (self Slice[A]) Plain() []A { return self }
+
 // True if len <= 0. Inverse of `.IsNotEmpty`.
 func IsEmpty[Slice ~[]Elem, Elem any](val Slice) bool { return len(val) <= 0 }
 
@@ -177,7 +180,10 @@ func TruncLen[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 // Same as global `TruncLen`.
 func (self Slice[A]) TruncLen(size int) Slice[A] { return TruncLen(self, size) }
 
-// Zeroes each element of the given slice.
+/*
+Zeroes each element of the given slice. Note that Go 1.21 and higher have an
+equivalent built-in function `clear`.
+*/
 func SliceZero[A any](val []A) {
 	var zero A
 	for ind := range val {
@@ -232,6 +238,16 @@ func Get[A any](src []A, ind int) A {
 
 // Same as global `Get`.
 func (self Slice[A]) Get(ind int) A { return Get(self, ind) }
+
+/*
+Same as `slice[index]`, expressed as a function. Panics if the index is out of
+bounds. Sometimes useful with higher-order functions. Also see `Get` which
+returns zero value instead of panicking when the index is out of bounds.
+*/
+func GetStrict[A any](src []A, ind int) A { return src[ind] }
+
+// Same as global `GetStrict`.
+func (self Slice[A]) GetStrict(ind int) A { return self[ind] }
 
 /*
 If the index is within bounds, returns a pointer to the value at that index.
@@ -1379,15 +1395,10 @@ func Intersect[Slice ~[]Elem, Elem comparable](one, two Slice) Slice {
 
 /*
 Combines the given slices, deduplicating their elements and preserving the order
-of first occurrence for each element. As a special case, if the arguments
-contain exactly one non-empty slice, it's returned as-is without deduplication.
-To ensure uniqueness in all cases, call `Uniq`.
+of first occurrence for each element. Similar to `Uniq` which takes only one
+slice.
 */
 func Union[Slice ~[]Elem, Elem comparable](val ...Slice) Slice {
-	if Count(val, IsNotEmpty[Slice]) == 1 {
-		return Find(val, IsNotEmpty[Slice])
-	}
-
 	var tar Slice
 	var set Set[Elem]
 
@@ -1408,7 +1419,8 @@ func Union[Slice ~[]Elem, Elem comparable](val ...Slice) Slice {
 Deduplicates the elements of the given slice, preserving the order of initial
 occurrence for each element. The output is always either nil or a newly
 allocated slice with at least one element. Compare `UniqBy` which compares
-elements by keys obtained by calling the given function.
+elements by keys obtained by calling the given function. Also compare `Union`
+which takes any number of slices.
 */
 func Uniq[Slice ~[]Elem, Elem comparable](src Slice) Slice {
 	var tar Slice

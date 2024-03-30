@@ -661,7 +661,7 @@ Returns an error that describes a failure to decode the given string into the
 given output type. Used internally in various conversions.
 */
 func ErrParse[A Text](err error, src A, typ r.Type) error {
-	return Wrapf(err, `unable to decode %q into type %v`, src, typ)
+	return Wrapf(err, `unable to decode %q into %v`, src, typ)
 }
 
 /*

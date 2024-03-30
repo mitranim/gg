@@ -26,12 +26,15 @@ func Test_structMetaCache(t *testing.T) {
 	gtest.Equal(
 		typeMetaCache.Get(gg.Type[Outer]()),
 		typeMeta{
-			`outer_id`:             []int{0},
-			`outer_name`:           []int{1},
-			`inner_zop.inner_id`:   []int{2, 0, 0},
-			`inner_zop.inner_name`: []int{2, 0, 1},
-			`inner.inner_id`:       []int{3, 0},
-			`inner.inner_name`:     []int{3, 1},
+			typ: gg.Type[Outer](),
+			dict: map[string][]int{
+				`outer_id`:             []int{0},
+				`outer_name`:           []int{1},
+				`inner_zop.inner_id`:   []int{2, 0, 0},
+				`inner_zop.inner_name`: []int{2, 0, 1},
+				`inner.inner_id`:       []int{3, 0},
+				`inner.inner_name`:     []int{3, 1},
+			},
 		},
 	)
 }

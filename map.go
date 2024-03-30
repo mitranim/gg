@@ -170,7 +170,8 @@ func (self Dict[Key, _]) Del(key Key) { delete(self, key) }
 /*
 Deletes all entries, returning the resulting map. Passing nil is safe.
 Note that this involves iterating the map, which is inefficient in Go.
-In many cases, it's more efficient to make a new map.
+In many cases, it's more efficient to make a new map. Also note that
+Go 1.21 and higher have an equivalent built-in function `clear`.
 */
 func MapClear[Map ~map[Key]Val, Key comparable, Val any](tar Map) {
 	for key := range tar {

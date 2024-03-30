@@ -168,10 +168,33 @@ func ChanInitCap[Tar ~chan Val, Val any](ptr *Tar, cap int) Tar {
 	return *ptr
 }
 
+// Same as global `Send`.
+func (self Chan[A]) Send(val A) { Send(self, val) }
+
+/*
+Same as using `<-` to send a value over a channel, but with a sanity check:
+the target channel must be non-nil. If the channel is nil, this panics.
+Note that unlike `SendOpt`, this will block if the channel is non-nil but
+has no buffer space.
+*/
+func Send[Tar ~chan Val, Val any](tar Tar, val Val) {
+	if tar == nil {
+		panic(errNilChanSend[Tar, Val]())
+	}
+	tar <- val
+}
+
+func errNilChanSend[Tar, Val any]() error {
+	return Errf(`unable to send %v over nil %v`, Type[Val](), Type[Tar]())
+}
+
 // Same as global `SendOpt`.
 func (self Chan[A]) SendOpt(val A) { SendOpt(self, val) }
 
-// Shortcut for sending a value over a channel in a non-blocking fashion.
+/*
+Shortcut for sending a value over a channel in a non-blocking fashion.
+If the channel is nil or there's no free buffer space, this does nothing.
+*/
 func SendOpt[Tar ~chan Val, Val any](tar Tar, val Val) {
 	select {
 	case tar <- val:
@@ -188,4 +211,24 @@ func SendZeroOpt[Tar ~chan Val, Val any](tar Tar) {
 	case tar <- Zero[Val]():
 	default:
 	}
+}
+
+// Same as global `Receive`.
+func (self Chan[A]) Receive() A { return Receive(self) }
+
+/*
+Same as using `<-` to receive a value from a channel, but with a sanity check:
+the source channel must be non-nil. If the channel is nil, this panics. Note
+that unlike `ReceiveOpt`, this will block if the channel is non-nil but has
+nothing in the buffer.
+*/
+func Receive[Src ~chan Val, Val any](src Src) Val {
+	if src == nil {
+		panic(errNilChanReceive[Src, Val]())
+	}
+	return <-src
+}
+
+func errNilChanReceive[Src, Val any]() error {
+	return Errf(`unable to receive %v from nil %v`, Type[Val](), Type[Src]())
 }

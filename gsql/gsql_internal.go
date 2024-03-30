@@ -56,22 +56,26 @@ func isTypeNonScannableStruct(typ r.Type) bool {
 
 var typeMetaCache = gg.TypeCacheOf[typeMeta]()
 
-type typeMeta map[string][]int
+type typeMeta struct {
+	typ  r.Type
+	dict map[string][]int
+}
 
 func (self typeMeta) Get(key string) []int {
-	val, ok := self[key]
+	val, ok := self.dict[key]
 	if !ok {
-		panic(gg.Errf(`unknown column %q`, key))
+		panic(gg.Errf(`unknown column %q in type %v`, key, self.typ))
 	}
 	return val
 }
 
-func (self typeMeta) IsScalar() bool { return self == nil }
+func (self typeMeta) IsScalar() bool { return self.dict == nil }
 
 // Called by `TypeCache`.
-func (self *typeMeta) Init(typ r.Type) { self.addAny(nil, nil, typ) }
-
-func (self *typeMeta) initMap() typeMeta { return gg.MapInit(self) }
+func (self *typeMeta) Init(typ r.Type) {
+	self.typ = typ
+	self.addAny(nil, nil, typ)
+}
 
 func (self *typeMeta) addAny(index []int, cols []string, typ r.Type) {
 	field, ok := typeReferenceField(typ)
@@ -118,6 +122,10 @@ func (self *typeMeta) addField(index []int, cols []string, field r.StructField) 
 		`unsupported embedded type %q; embedded fields must be structs`,
 		typ,
 	))
+}
+
+func (self *typeMeta) initMap() map[string][]int {
+	return gg.MapInit(&self.dict)
 }
 
 func scanNextScalar[Row any, Src ColumnerScanner](src Src) (out Row) {

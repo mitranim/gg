@@ -1264,13 +1264,11 @@ func TestUnion(t *testing.T) {
 	gtest.Zero(gg.Union[Slice](nil, nil))
 	gtest.Zero(gg.Union[Slice](nil, nil, Slice{}, nil, Slice{}))
 
-	// Special case: if the arguments have exactly one non-empty slice, return it
-	// as-is, even if it contains dupes.
 	gtest.Equal(gg.Union(Slice{10}), Slice{10})
-	gtest.Equal(gg.Union(Slice{10, 10}), Slice{10, 10})
-	gtest.Equal(gg.Union(nil, Slice{10, 10}), Slice{10, 10})
-	gtest.Equal(gg.Union(Slice{10, 10}, nil), Slice{10, 10})
-	gtest.Equal(gg.Union(nil, Slice{10, 10}, nil), Slice{10, 10})
+	gtest.Equal(gg.Union(Slice{10, 10}), Slice{10})
+	gtest.Equal(gg.Union(nil, Slice{10, 10}), Slice{10})
+	gtest.Equal(gg.Union(Slice{10, 10}, nil), Slice{10})
+	gtest.Equal(gg.Union(nil, Slice{10, 10}, nil), Slice{10})
 
 	gtest.Equal(gg.Union(Slice{10}, Slice{10}), Slice{10})
 	gtest.Equal(gg.Union(Slice{10, 20}, Slice{10}), Slice{10, 20})

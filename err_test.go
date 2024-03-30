@@ -22,7 +22,7 @@ func TestErr(t *testing.T) {
 	gtest.Eq(err.Stack(), strings.TrimSpace(`
 unable to perform some operation: EOF
 trace:
-    TestErr err_test.go:18
+    gg_test.TestErr err_test.go:18
 `))
 }
 
@@ -333,7 +333,7 @@ func TestErrStack(t *testing.T) {
 
 		gtest.Eq(gg.ErrStack(err), strings.TrimSpace(`
 trace:
-    func2 err_test.go:332
+    gg_test.TestErrStack.func2 err_test.go:332
 `))
 	})
 
@@ -348,7 +348,7 @@ trace:
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 inner
 trace:
-    func3 err_test.go:343
+    gg_test.TestErrStack.func3 err_test.go:343
 `))
 	})
 
@@ -361,7 +361,7 @@ trace:
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 outer: inner
 trace:
-    func4 err_test.go:358
+    gg_test.TestErrStack.func4 err_test.go:358
 `))
 	})
 
@@ -373,10 +373,10 @@ trace:
 
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 trace:
-    func5 err_test.go:372
+    gg_test.TestErrStack.func5 err_test.go:372
 inner
 trace:
-    func5 err_test.go:371
+    gg_test.TestErrStack.func5 err_test.go:371
 `))
 	})
 
@@ -389,10 +389,10 @@ trace:
 		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
 outer
 trace:
-    func6 err_test.go:387
+    gg_test.TestErrStack.func6 err_test.go:387
 cause: inner
 trace:
-    func6 err_test.go:386
+    gg_test.TestErrStack.func6 err_test.go:386
 `))
 	})
 }

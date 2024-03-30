@@ -186,6 +186,36 @@ func Benchmark_is_zero_int_non_zero(b *testing.B) {
 	}
 }
 
+type NullString string
+
+func (self NullString) IsZero() bool { return self == `` }
+
+type Weekday struct{ NullString }
+
+func Benchmark_is_zero_struct_wrapping_string_typedef_IsZero(b *testing.B) {
+	val := Weekday{`wednesday`}
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.IsZero(val))
+	}
+}
+
+func Benchmark_is_zero_struct_wrapping_string_typedef_method_call(b *testing.B) {
+	val := Weekday{`wednesday`}
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(val.IsZero())
+	}
+}
+
+func Benchmark_is_zero_struct_wrapping_string_typedef_inline(b *testing.B) {
+	val := Weekday{`wednesday`}
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(val == (Weekday{}))
+	}
+}
+
 func TestIsTrueZero(t *testing.T) {
 	defer gtest.Catch(t)
 

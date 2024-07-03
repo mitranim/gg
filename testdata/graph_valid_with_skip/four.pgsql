@@ -1,6 +1,6 @@
 /*
 @import main.pgsql
-@import one.pgsql
+@skip
 */
 
 create table four ();

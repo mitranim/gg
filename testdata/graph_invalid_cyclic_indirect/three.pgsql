@@ -1,5 +1,5 @@
 /*
-@import schema.pgsql
+@import main.pgsql
 @import four.pgsql
 */
 

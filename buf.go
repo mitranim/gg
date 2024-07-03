@@ -226,7 +226,11 @@ func (self *Buf) AppendAnys(val ...any) {
 /*
 Like `(*Buf).AppendAnys` but ensures a trailing newline in the appended content,
 similarly to `fmt.Println`. As a special case, if the buffer was empty and the
-appended content is empty, no newline is appended. TODO better name.
+appended content is empty, no newline is appended.
+
+TODO better name.
+
+TODO generalize for joining with arbitrary infix.
 */
 func (self *Buf) AppendAnysln(val ...any) {
 	start := self.Len()

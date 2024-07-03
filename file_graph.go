@@ -23,17 +23,27 @@ from the filesystem, validating the dependency graph, and calculating valid
 execution order for the resulting graph. Mostly designed and suited for
 emulating a module system for SQL files. May be useful in other similar cases.
 
-The import annotation is currently not customizable and must look like the
-following example. Each entry must be placed at the beginning of a line. In
-files that contain code, do this within multi-line comments without any prefix.
+Supported annotations:
 
-	@import some_file_name_0
-	@import some_file_name_1
+	@skip
+	@import
+
+Each annotation must be placed at the beginning of a line. In files that contain
+code, do this within multi-line comments. Annotations are currently not
+customizable.
+
+The `@skip` annotation tells the graph tool to completely ignore the current
+file.
+
+The `@import` annotation must be followed by whitespace and the name of another
+file in the same directory. Example import annotations:
+
+	@import some_file_name_0.some_extension
+	@import some_file_name_1.some_extension
 
 Current limitations:
 
-	* The import annotation is non-customizable.
-	* No support for file filtering.
+	* Annotations are non-customizable.
 	* No support for relative paths. Imports must refer to files by base names.
 	* No support for `fs.FS` or other ways to customize reading.
 	  Always uses the OS filesystem.
@@ -77,10 +87,9 @@ func (self GraphDir) File(key string) GraphFile {
 }
 
 func (self *GraphDir) read() {
-	self.Files = CollFrom[string, GraphFile](ConcMap(
-		ReadDirFileNames(self.Path),
-		self.initFile,
-	))
+	files := ConcMap(ReadDirFileNames(self.Path), self.initFile)
+	files = Reject(files, graphFileSkip)
+	self.Files = CollFrom[string, GraphFile](files)
 }
 
 func (self GraphDir) initFile(name string) (out GraphFile) {
@@ -155,6 +164,7 @@ type GraphFile struct {
 	Path string   // Valid FS path. Directory must match parent `GraphDir`.
 	Body string   // Read from disk by `.Init`.
 	Deps []string // Parsed from `.Body` by `.Init`.
+	Skip bool     // Parsed from `.Body` by `.Init`.
 }
 
 // Implement `Pker` for compatibility with `Coll`. See `GraphDir.Files`.
@@ -177,6 +187,11 @@ func (self *GraphFile) parse() {
 	var deps []string
 
 	for _, line := range SplitLines(self.Body) {
+		if line == `@skip` {
+			self.Skip = true
+			continue
+		}
+
 		rest := strings.TrimPrefix(line, `@import `)
 		if rest != line {
 			deps = append(deps, strings.TrimSpace(rest))
@@ -230,3 +245,5 @@ func (self *graphWalk) walk(tail *node[string], file GraphFile) {
 	}
 	self.Valid.Add(file)
 }
+
+func graphFileSkip(src GraphFile) bool { return src.Skip }

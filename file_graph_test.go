@@ -85,11 +85,21 @@ func TestGraphDir_valid_non_empty(t *testing.T) {
 	defer gtest.Catch(t)
 
 	testGraphDir(`testdata/graph_valid_non_empty`, []string{
-		`schema.pgsql`,
+		`main.pgsql`,
 		`one.pgsql`,
 		`two.pgsql`,
 		`three.pgsql`,
 		`four.pgsql`,
+	})
+}
+
+func TestGraphDir_valid_with_skip(t *testing.T) {
+	defer gtest.Catch(t)
+
+	testGraphDir(`testdata/graph_valid_with_skip`, []string{
+		`main.pgsql`,
+		`one.pgsql`,
+		`three.pgsql`,
 	})
 }
 

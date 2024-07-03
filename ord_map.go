@@ -15,10 +15,9 @@ and membership testing, but as a tradeoff, it does not support deletion.
 For "proper" ordered sets that support deletion, see the library
 https://github.com/mitranim/gord.
 
-Known limitations:
-
-	* Lack of support for JSON encoding and decoding. An implementation using Go
-	  maps would be easy but incorrect: element positions would be randomized.
+Known limitation: lack of support for JSON encoding and decoding. Using Go maps
+for encoding would be easy but incorrect, because it would randomize element
+positions. Compare the types `Coll` and `LazyColl` which do support JSON.
 */
 type OrdMap[Key comparable, Val any] struct {
 	Slice []Val `role:"ref"`

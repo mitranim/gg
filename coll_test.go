@@ -342,6 +342,7 @@ func testCollAdd[Ptr CollPtr[Coll], Coll AnyColl]() {
 		testCollIndex(tar, map[SomeKey]int{10: 0, 20: 1})
 		testCollSlice(tar, []SomeModel{{10, `three`}, {20, `two`}})
 	}
+
 	// This happens when `LazyColl` is not indexed.
 	{
 		var tar SomeLazyColl
@@ -351,6 +352,7 @@ func testCollAdd[Ptr CollPtr[Coll], Coll AnyColl]() {
 		testCollIndex(tar, nil)
 		testCollSlice(tar, []SomeModel{{10, `one`}, {20, `two`}, {10, `three`}})
 	}
+
 	// Reindexing (for any reason) avoids the problem.
 	{
 		var tar SomeLazyColl

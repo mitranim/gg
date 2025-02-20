@@ -25,12 +25,12 @@ func TestMem(t *testing.T) {
 		var mem gg.Mem[gg.DurSecond, IniterStr, *IniterStr]
 
 		test := func() {
-			testMemZero[IniterStr](&mem)
+			testPeekerZero[IniterStr](&mem)
 			gtest.Eq(mem.Get(), `inited`)
 			gtest.Eq(mem.Get(), `inited`)
 			gtest.Eq(mem.Peek(), `inited`)
 			gtest.Eq(mem.Peek(), `inited`)
-			testMemNotZero[IniterStr](&mem)
+			testPeekerNotZero[IniterStr](&mem)
 		}
 
 		test()
@@ -44,16 +44,14 @@ func TestMem(t *testing.T) {
 		var mem gg.Mem[gg.DurSecond, IniterStrs, *IniterStrs]
 
 		test := func() {
-			testMemZero[IniterStrs](&mem)
+			testPeekerZero[IniterStrs](&mem)
 
 			prev := mem.Get()
 			gtest.Equal(prev, []string{`one`, `two`, `three`})
 			gtest.SliceIs(mem.Get(), prev)
 			gtest.SliceIs(mem.Get(), prev)
-			gtest.NotZero(mem.Timed().Inst)
-			gtest.NotZero(mem.Timed().Inst)
 
-			testMemNotZero[IniterStrs](&mem)
+			testPeekerNotZero[IniterStrs](&mem)
 		}
 
 		test()
@@ -65,23 +63,12 @@ func TestMem(t *testing.T) {
 	}
 }
 
-type Peeker[Tar any] interface {
-	gg.Peeker[Tar]
-	PeekTimed() gg.Timed[Tar]
+func testPeekerZero[Tar any, Src gg.Peeker[Tar]](src Src) {
+	gtest.Zero(src.Peek())
+	gtest.Zero(src.Peek())
 }
 
-func testMemZero[Tar any, Mem Peeker[Tar]](mem Mem) {
-	gtest.Zero(mem.Peek())
-	gtest.Zero(mem.Peek())
-	gtest.Zero(mem.PeekTimed())
-	gtest.Zero(mem.PeekTimed())
-}
-
-func testMemNotZero[Tar any, Mem Peeker[Tar]](mem Mem) {
-	gtest.NotZero(mem.Peek())
-	gtest.NotZero(mem.Peek())
-	gtest.NotZero(mem.PeekTimed())
-	gtest.NotZero(mem.PeekTimed())
-	gtest.NotZero(mem.PeekTimed().Inst)
-	gtest.NotZero(mem.PeekTimed().Inst)
+func testPeekerNotZero[Tar any, Src gg.Peeker[Tar]](src Src) {
+	gtest.NotZero(src.Peek())
+	gtest.NotZero(src.Peek())
 }

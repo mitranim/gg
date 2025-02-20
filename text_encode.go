@@ -39,7 +39,7 @@ string, allowing only INTENTIONALLY stringable values. Rules:
 
 	* Nil is considered "".
 	* A string is returned as-is.
-	* A byte slice is cast to a string.
+	* A byte slice is cast to a string without copying.
 	* Any other primitive value (see constraint `Prim`) is encoded via `strconv`.
 	* Types that support `fmt.Stringer`, `AppenderTo` or `encoding.TextMarshaler`
 	  are encoded by using the corresponding method.

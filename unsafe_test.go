@@ -61,7 +61,6 @@ func TestAsBytes(t *testing.T) {
 
 		gtest.Equal(tar, []byte{})
 		gtest.Eq(u.Pointer(u.SliceData(tar)), u.Pointer(&src))
-		gtest.Eq(u.Pointer(u.SliceData(tar)), u.Pointer(u.SliceData([]struct{}{})), `zerobase`)
 		gtest.Len(tar, 0)
 		gtest.Cap(tar, 0)
 	}

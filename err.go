@@ -249,7 +249,7 @@ func ErrMul(src ...error) error { return Errs(src).Err() }
 
 /*
 Combines multiple errors. Used by `Conc`. Caution: although this implements the
-`error` interface, avoid casting this to `error`. Even when the slice is nil,
+`error` interface, avoid converting this to `error`. Even when the slice is nil,
 the resulting interface value would be non-nil, which is incorrect. Instead,
 call the method `Errs.Err`, which will correctly return a nil interface value
 when all errors are nil.
@@ -307,46 +307,59 @@ unwrapping if possible. Otherwise returns nil. Does NOT generate a stack trace
 or modify the errors in any way.
 */
 func (self Errs) Err() error {
-	switch self.LenNotNil() {
+	err, count := self.find()
+
+	switch count {
 	case 0:
 		return nil
 
 	case 1:
-		return self.First()
+		return err
 
 	default:
 		return self
 	}
 }
 
-// Counts nil errors.
-func (self Errs) LenNil() int { return Count(self, IsErrNil) }
+/*
+Counts successes (represented with nil errors) and failures (represented with
+non-nil errors). The order of return parameters matches the general convention
+for returning values followed by errors, in that order.
+*/
+func (self Errs) Count() (nils, notNils int) {
+	for _, val := range self {
+		if val == nil {
+			nils++
+		} else {
+			notNils++
+		}
+	}
+	return
+}
 
-// Counts non-nil errors.
-func (self Errs) LenNotNil() int { return Count(self, IsErrNotNil) }
-
-// True if there are no non-nil errors. Inverse of `.IsNotEmpty`.
-func (self Errs) IsEmpty() bool { return self.LenNotNil() <= 0 }
-
-// True if there are any non-nil errors. Inverse of `.IsEmpty`.
-func (self Errs) IsNotEmpty() bool { return self.LenNotNil() > 0 }
+// True if there is at least one non-nil error.
+func (self Errs) HasErr() bool {
+	_, notNils := self.Count()
+	return notNils > 0
+}
 
 // First non-nil error.
 func (self Errs) First() error { return Find(self, IsErrNotNil) }
 
 // Returns an error message. Same as `.Error`.
 func (self Errs) String() string {
+	err, count := self.find()
+
 	/**
 	TODO also implement `fmt.Formatter` with support for %+v, show stacktraces for
 	inner errors.
 	*/
-
-	switch self.LenNotNil() {
+	switch count {
 	case 0:
 		return ``
 
 	case 1:
-		return self.First().Error()
+		return err.Error()
 
 	default:
 		return ToString(self.AppendTo(nil))
@@ -358,13 +371,15 @@ Appends a text representation of the error or errors. The text is the same as
 returned by `.Error`.
 */
 func (self Errs) AppendTo(buf []byte) []byte {
-	switch self.LenNotNil() {
+	err, count := self.find()
+
+	switch count {
 	case 0:
 		return buf
 
 	case 1:
 		buf := Buf(buf)
-		buf.AppendError(self.First())
+		buf.AppendError(err)
 		return buf
 
 	default:
@@ -394,6 +409,19 @@ func (self Errs) WrapTracedAt(skip int) {
 	for ind := range self {
 		self[ind] = WrapTracedAt(self[ind], skip)
 	}
+}
+
+func (self Errs) find() (err error, count int) {
+	for _, val := range self {
+		if val == nil {
+			continue
+		}
+		if err == nil {
+			err = val
+		}
+		count++
+	}
+	return
 }
 
 /*
@@ -637,7 +665,7 @@ func AnyToErrTracedAt(val any, skip int) (_ Err) {
 	}
 }
 
-// If the error is nil, returns ``. Otherwise uses `.Error`.
+// If the error is nil, returns "". Otherwise uses `.Error`.
 func ErrString(val error) string {
 	if val != nil {
 		return val.Error()
@@ -693,13 +721,13 @@ func ErrEq(err0, err1 error) bool {
 /*
 Similar to `errors.As`. Differences:
 
-	* Instead of taking a pointer and returning a boolean, this returns the
-	  unwrapped error value. On success, output is non-zero. On failure, output
-	  is zero.
-	* Automatically tries non-pointer and pointer versions of the given type. The
-	  caller should always specify a non-pointer type. This provides nil-safety
-	  for types that implement `error` on the pointer type. The caller doesn't
-	  have to remember whether to use pointer or non-pointer.
+  - Instead of taking a pointer and returning a boolean, this returns the
+    unwrapped error value. On success, output is non-zero. On failure, output
+    is zero.
+  - Automatically tries non-pointer and pointer versions of the given type. The
+    caller should always specify a non-pointer type. This provides nil-safety
+    for types that implement `error` on the pointer type. The caller doesn't
+    have to remember whether to use pointer or non-pointer.
 */
 func ErrAs[
 	Tar any,

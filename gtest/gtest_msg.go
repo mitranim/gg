@@ -88,29 +88,22 @@ func MsgErrNone(test func(error) bool) string {
 }
 
 // Internal shortcut for generating parts of an error message.
-func MsgErrActual(err error) string {
-	return gg.JoinLinesOpt(
-		Msg(`actual error trace:`, errTrace(err)),
-		Msg(`actual error string:`, gg.StringAny(err)),
-	)
-}
-
-// Internal shortcut for generating parts of an error message.
 func MsgErrMismatch(fun func(), test func(error) bool, err error) string {
 	return gg.JoinLinesOpt(
 		`unexpected error mismatch`,
 		MsgErrFunTest(fun, test),
-		MsgErrActual(err),
+		Msg(`error trace:`, errTrace(err)),
+		Msg(`error string:`, gg.StringAny(err)),
 	)
 }
 
 // Internal shortcut for generating parts of an error message.
 func MsgErrMsgMismatch(fun func(), exp, act string) string {
 	return gg.JoinLinesOpt(
-		`unexpected error message mismatch`,
+		`unexpected error string mismatch`,
 		MsgFun(fun),
-		Msg(`actual error message:`, act),
-		Msg(`expected error message substring:`, exp),
+		Msg(`actual error string:`, act),
+		Msg(`expected error string substring:`, exp),
 	)
 }
 
@@ -118,7 +111,8 @@ func MsgErrMsgMismatch(fun func(), exp, act string) string {
 func MsgErrIsMismatch(err, exp error) string {
 	return gg.JoinLinesOpt(
 		`unexpected error mismatch`,
-		MsgErrActual(err),
+		Msg(`actual error trace:`, errTrace(err)),
+		Msg(`actual error string:`, gg.StringAny(err)),
 		Msg(`expected error via errors.Is:`, gg.StringAny(exp)),
 	)
 }

@@ -11,21 +11,23 @@ import (
 /*
 Returns `reflect.Type` of the given type. Differences from `reflect.TypeOf`:
 
-	* Avoids spurious heap escape and copying.
-	* Output is always non-nil.
-	* When the given type is an interface, including the empty interface `any`,
-	  the output is a non-nil `reflect.Type` describing the given interface,
-	  rather than the concrete underlying type.
+  - Avoids spurious heap escape and copying.
+  - Output is always non-nil.
+  - When the given type is an interface, including the empty interface `any`,
+    the output is a non-nil `reflect.Type` describing the given interface,
+    rather than the concrete underlying type.
+
+Go 1.22 introduced `reflect.TypeFor`, possibly making this redundant.
 */
 func Type[A any]() r.Type { return r.TypeOf((*A)(nil)).Elem() }
 
 /*
 Similar to `reflect.TypeOf`, with the following differences:
 
-	* Avoids spurious heap escape and copying.
-	* Output is always non-nil.
-	* When the given type is an interface, including the empty interface `any`,
-	  the output is a non-nil `reflect.Type` describing the given interface.
+  - Avoids spurious heap escape and copying.
+  - Output is always non-nil.
+  - When the given type is an interface, including the empty interface `any`,
+    the output is a non-nil `reflect.Type` describing the given interface.
 */
 func TypeOf[A any](A) r.Type { return Type[A]() }
 
@@ -402,8 +404,8 @@ func FieldJsonName(val r.StructField) string {
 }
 
 /*
-Self-explanatory. For some reason this is not provided in usable form by
-the "reflect" package.
+Same as `StructField.IsExported`. Provided here for older Go versions where the
+method did not exist.
 */
 func IsFieldPublic(val r.StructField) bool { return val.PkgPath == `` }
 
@@ -467,11 +469,11 @@ For any "indirect" type, reassignment is insufficient to make a copy.
 
 Special exceptions:
 
-	* Strings are considered to be direct, despite containing a pointer.
-	  Generally in Go, strings are considered to be immutable.
-	* Chans are ignored / considered to be direct.
-	* Funcs are ignored / considered to be direct.
-	* For structs, only public fields are checked.
+  - Strings are considered to be direct, despite containing a pointer.
+    Generally in Go, strings are considered to be immutable.
+  - Chans are ignored / considered to be direct.
+  - Funcs are ignored / considered to be direct.
+  - For structs, only public fields are checked.
 */
 func IsIndirect(typ r.Type) bool {
 	switch TypeKind(typ) {

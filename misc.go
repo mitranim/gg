@@ -140,6 +140,9 @@ by using a `range` loop. Usage:
 Because `struct{}` is zero-sized, `[]struct{}` is backed by "zerobase" (see Go
 source → "runtime/malloc.go") and does not allocate. Loops using this should
 compile to approximately the same instructions as "normal" counted loops.
+
+This function is unnecessary in Go 1.22 and higher, where the `for` loop
+has built-in support for ranging over an integer.
 */
 func Iter(size int) []struct{} { return make([]struct{}, size) }
 

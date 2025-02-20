@@ -59,34 +59,33 @@ func ScanNext[Row any, Src ColumnerScanner](src Src) Row {
 
 /*
 Decodes `Rows` into the given dynamically typed output. Counterpart to
-`ScanVals` and `ScanVal` which are statically typed. Output must be a non-nil
-pointer to one of the following:
+`ScanVals` and `ScanVal` which are statically typed. The output must be
+a non-nil pointer, any amount of levels deep, to one of the following:
 
-	* Slice of scalars.
-	* Slice of structs.
-	* Single scalar.
-	* Single struct.
+  - Slice of scalars.
+  - Slice of structs.
+  - Single scalar.
+  - Single struct.
+  - Interface value hosting a concrete type.
 
-Always closes the rows. If output is not a slice, verifies that there is EXACTLY
-one row in total, otherwise panics.
+Always closes the rows. If the output is not a slice, verifies that there is
+EXACTLY one row in total, otherwise panics.
 */
 func ScanAny[Src Rows](src Src, out any) {
 	ScanReflect(src, r.ValueOf(out))
 }
 
-// Variant of `ScanAny` that takes a reflect value rather than `any`.
+// Variant of `ScanAny` that takes `reflect.Value` rather than `any`.
 func ScanReflect[Src Rows](src Src, out r.Value) {
-	if out.Kind() != r.Pointer {
-		panic(gg.Errf(`scan destination must be a pointer, got %q`, out.Type()))
-	}
-	if out.IsNil() {
-		panic(gg.Errf(`scan destination must be non-nil, got nil %q`, out.Type()))
-	}
-	out = gg.ValueDerefAlloc(out)
+	tar, iface := derefAlloc(out)
 
-	if out.Kind() == r.Slice {
-		scanValsReflect(src, out)
+	if tar.Kind() == r.Slice {
+		scanValsReflect(src, tar)
 	} else {
-		scanValReflect(src, out)
+		scanValReflect(src, tar)
+	}
+
+	if iface.CanSet() {
+		iface.Set(tar.Convert(iface.Type()))
 	}
 }

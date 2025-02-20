@@ -276,13 +276,23 @@ func TestIs(t *testing.T) {
 	gtest.True(gg.Is([]int(nil), []int(nil)))
 	gtest.True(gg.Is([]string(nil), []string(nil)))
 
-	// Slices of zero-sized types and empty slices of non-zero-sized types are
-	// backed by the same "zerobase" pointer, which makes them identical.
-	// This may vary between Go implementations and versions.
+	/**
+	At the time of writing (in Go 1.23), slices of zero-sized types tend to be
+	backed by the same non-zero pointer, internally called "zerobase", which
+	makes them identical. In some older versions, zerobase is also used for
+	empty slices of non-zero-sized types. This may vary between Go
+	implementations and versions. This test may not work in later versions.
+	*/
 	gtest.True(gg.Is([]struct{}{}, []struct{}{}))
 	gtest.True(gg.Is(make([]struct{}, 128), make([]struct{}, 128)))
-	gtest.True(gg.Is([]int{}, []int{}))
-	gtest.True(gg.Is([]string{}, []string{}))
+
+	/**
+	The following lines passed in Go 1.20, but fail in Go 1.23.
+	Unimportant for us.
+
+		gtest.True(gg.Is([]int{}, []int{}))
+		gtest.True(gg.Is([]string{}, []string{}))
+	*/
 
 	// Non-empty slices of non-zero-sized types must always be distinct.
 	gtest.False(gg.Is([]int{0}, []int{0}))

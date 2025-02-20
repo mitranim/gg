@@ -237,7 +237,7 @@ func TestRange(t *testing.T) {
 	gtest.Equal(gg.Range(math.MinInt, math.MinInt+1), []int{math.MinInt})
 	gtest.Equal(gg.Range(math.MaxInt-1, math.MaxInt), []int{math.MaxInt - 1})
 
-	gtest.PanicStr(`unable to safely convert uint 18446744073709551614 to int -2`, func() {
+	gtest.PanicStr(`unable to safely convert uint 18446744073709551614 to int`, func() {
 		gg.Range[uint](math.MaxUint-1, math.MaxUint)
 	})
 }
@@ -302,7 +302,7 @@ func TestRangeIncl(t *testing.T) {
 	gtest.Equal(gg.RangeIncl(math.MinInt, math.MinInt+1), []int{math.MinInt, math.MinInt + 1})
 	gtest.Equal(gg.RangeIncl(math.MaxInt-1, math.MaxInt), []int{math.MaxInt - 1, math.MaxInt})
 
-	gtest.PanicStr(`unable to safely convert uint 18446744073709551614 to int -2`, func() {
+	gtest.PanicStr(`unable to safely convert uint 18446744073709551614 to int`, func() {
 		gg.RangeIncl[uint](math.MaxUint-1, math.MaxUint)
 	})
 }

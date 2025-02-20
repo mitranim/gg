@@ -94,7 +94,10 @@ func (self *typeMeta) addAny(index []int, cols []string, typ r.Type) {
 }
 
 func (self *typeMeta) addStruct(index []int, cols []string, typ r.Type) {
+	// Makes `.dict` non-nil, marking this type as a non-scalar.
+	// See `.IsScalar`.
 	self.initMap()
+
 	for _, field := range gg.StructPublicFieldCache.Get(typ) {
 		self.addField(index, cols, field)
 	}
@@ -182,15 +185,15 @@ func scanValsReflect[Src Rows](src Src, tar r.Value) {
 		tar.Grow(off)
 		tar.SetLen(ind + off)
 
-		// Settable, addressable reference to the newly appended zero value.
+		// Settable, addressable reference to newly appended zero value.
 		out := tar.Index(ind)
 
-		// Hide new value from consumer code until scan is successful.
+		// Hide new value from consumer code until scan successful.
 		tar.SetLen(ind)
 
 		scanReflect(src, out)
 
-		// After successful scan, we can reveal new element to consumer code.
+		// After successful scan, reveal new element to consumer code.
 		tar.SetLen(ind + off)
 	}
 
@@ -230,4 +233,65 @@ func isScalar[A any]() bool {
 
 func isValueScalar(val r.Value) bool {
 	return typeMetaCache.Get(val.Type()).IsScalar()
+}
+
+/*
+Similar and related to `gg.ValueDerefAlloc`, but with additional support for
+intermediary settable interface values.
+
+Without an intermediary iface, this is equivalent to `gg.ValueDerefAlloc`,
+directly dereferencing down to a settable `reflect.Value`, allocating as
+needed. This means that during a scan, changes will be reflected in the memory
+referenced by the provided pointer and thus observable by the caller. If the
+caller provided a pointer to a slice, or a pointer to a pointer to a slice,
+every row scan appends a value to that slice, and if the scanning is
+interrupted between some rows, the caller can observe the partial growth of
+that slice.
+
+We can also perform the above with an intermediary iface hosting a concrete
+pointer.
+
+With an intermediary iface hosting a non-pointer type, we have to be more
+indirect. We have to allocate a copy of the concrete value behind the iface,
+fully scan into that, then convert the value into the iface and set it. That's
+because the language treats iface conversions as copying, and does not let us
+obtain a settable `reflect.Value` referencing the iface value, we can only
+obtain a copy.
+*/
+func derefAlloc(src r.Value) (_, _ r.Value) {
+	if src.Kind() != r.Pointer {
+		panic(gg.Errf(`scan destination must be a pointer, got %q`, src.Type()))
+	}
+	if src.IsNil() {
+		panic(gg.Errf(`scan destination must be non-nil, got nil %q`, src.Type()))
+	}
+
+	src = gg.ValueDerefAlloc(src)
+	if src.Kind() != r.Interface {
+		return src, r.Value{}
+	}
+
+	if src.IsNil() {
+		panic(gg.Errf(`unable to scan into nil interface %q`, src.Type()))
+	}
+
+	/**
+	We're not prepared to support recursive ifaces, which could be provided in the
+	form of ifaces that contain pointers to more ifaces. We're prepared only for
+	one iface indirection. However, multiple concrete indirections are fine.
+	*/
+	iface := src
+	src = src.Elem()
+
+	if src.Kind() == r.Pointer {
+		if src.IsNil() {
+			src = r.New(src.Type().Elem())
+			iface.Set(src.Convert(iface.Type()))
+		}
+		return gg.ValueDerefAlloc(src), r.Value{}
+	}
+
+	tar := r.New(src.Type()).Elem()
+	tar.Set(src)
+	return tar, iface
 }

@@ -23,7 +23,7 @@ func JsonEncodeIndent[Out Text, Src any](src Src) Out {
 
 /*
 Same as `json.Marshal` but sometimes marginally more efficient. Avoids spurious
-heap escape of the input.
+heap escape of the input. May be redundant in later Go versions.
 */
 func JsonEncodeCatch[Out Text, Src any](src Src) (Out, error) {
 	out, err := json.Marshal(AnyNoEscUnsafe(src))

@@ -8,7 +8,7 @@ import (
 
 /*
 Shortcut for converting to `Arr`. Workaround for the lack of type inference in
-type literals and casts. This is a free cast with no reallocation.
+type literals and type conversions. This is a free cast with no reallocation.
 */
 func ToArr[A any](val []A) Arr[A] { return val }
 

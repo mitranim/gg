@@ -40,13 +40,13 @@ func (self Trace) Capture(skip int) Trace {
 
 /*
 Returns a multi-line text representation of the trace, with no leading
-indentation. See `.AppendIndentTo`.
+indentation. See `.StringIndent` for the indented version.
 */
 func (self Trace) String() string { return AppenderString(self) }
 
 /*
 Appends a multi-line text representation of the trace, with no leading
-indentation. See `.AppendIndentTo`.
+indentation. Also see `.AppendIndentTo`.
 */
 func (self Trace) AppendTo(buf []byte) []byte {
 	return self.AppendIndentTo(buf, 0)
@@ -54,7 +54,7 @@ func (self Trace) AppendTo(buf []byte) []byte {
 
 /*
 Returns a multi-line text representation of the trace with the given leading
-indentation. See `.AppendIndentTo`.
+indentation. Uses `.AppendIndentTo`.
 */
 func (self Trace) StringIndent(lvl int) string {
 	return ToString(self.AppendIndentTo(nil, lvl))

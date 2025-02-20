@@ -32,3 +32,43 @@ func TestDetailf(t *testing.T) {
 	gtest.Equal(err.Cause, error(gg.ErrStr(`string_panic`)))
 	gtest.True(err.Trace.IsNotEmpty())
 }
+
+/*
+func BenchmarkPanicSkip(b *testing.B) {
+	defer gtest.Catch(b)
+
+	for ind := 0; ind < b.N; ind++ {
+		benchmarkPanicSkip()
+	}
+}
+
+func BenchmarkPanicSkipTraced(b *testing.B) {
+	defer gtest.Catch(b)
+
+	for ind := 0; ind < b.N; ind++ {
+		benchmarkPanicSkipTraced()
+	}
+}
+
+func BenchmarkFileExists(b *testing.B) {
+	defer gtest.Catch(b)
+
+	for ind := 0; ind < b.N; ind++ {
+		benchmarkFileExists()
+	}
+}
+
+func benchmarkPanicSkip() {
+	defer gg.Skip()
+	panic(`error_message`)
+}
+
+func benchmarkPanicSkipTraced() {
+	defer gg.Skip()
+	panic(gg.Err{}.Msgd(`error_message`).TracedAt(1))
+}
+
+func benchmarkFileExists() {
+	gtest.True(gg.FileExists(`try_test.go`))
+}
+*/

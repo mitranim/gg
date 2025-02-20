@@ -139,6 +139,12 @@ func BenchmarkKindOf(b *testing.B) {
 	}
 }
 
+func BenchmarkKind(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(gg.Kind[SomeModel]())
+	}
+}
+
 func BenchmarkAnyToString_miss(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop2(gg.AnyToString(SomeModel{}))
@@ -562,37 +568,65 @@ func TestValueDeref(t *testing.T) {
 func TestValueDerefAlloc(t *testing.T) {
 	defer gtest.Catch(t)
 
-	deref := func(src any) r.Value {
-		return gg.ValueDerefAlloc(r.ValueOf(src))
-	}
-
+	deref := func(src any) r.Value { return gg.ValueDerefAlloc(r.ValueOf(src)) }
 	testZero := func(src any) { gtest.Eq(deref(src), r.Value{}) }
-
 	testZero(nil)
 	testZero((*string)(nil))
 	testZero((**string)(nil))
 
 	{
 		var tar string
-		gtest.Equal(deref(&tar).Interface(), any(``))
+		gtest.Eq(deref(&tar).Interface(), any(``))
+
+		deref(&tar).SetString(`one`)
+		gtest.Eq(deref(&tar).Interface(), any(`one`))
+	}
+
+	{
+		tar := `one`
+		gtest.Eq(deref(&tar).Interface(), any(`one`))
+
+		deref(&tar).SetString(`two`)
+		gtest.Eq(deref(&tar).Interface(), any(`two`))
 	}
 
 	{
 		var tar *string
-		gtest.Equal(deref(&tar).Interface(), any(``))
+		gtest.Eq(deref(&tar).Interface(), any(``))
 		gtest.Equal(tar, gg.Ptr(``))
 
-		deref(&tar).SetString(`str`)
-		gtest.Equal(tar, gg.Ptr(`str`))
+		deref(&tar).SetString(`one`)
+		gtest.Equal(tar, gg.Ptr(`one`))
+	}
+
+	{
+		base := `one`
+		tar := &base
+		gtest.Eq(deref(&tar).Interface(), any(`one`))
+		gtest.Equal(tar, gg.Ptr(`one`))
+
+		deref(&tar).SetString(`two`)
+		gtest.Equal(tar, gg.Ptr(`two`))
 	}
 
 	{
 		var tar **string
-		gtest.Equal(deref(&tar).Interface(), any(``))
+		gtest.Eq(deref(&tar).Interface(), any(``))
 		gtest.Equal(tar, gg.Ptr(gg.Ptr(``)))
 
 		deref(&tar).SetString(`str`)
 		gtest.Equal(tar, gg.Ptr(gg.Ptr(`str`)))
+	}
+
+	{
+		base := `one`
+		mid := &base
+		tar := &mid
+		gtest.Eq(deref(&tar).Interface(), any(`one`))
+		gtest.Equal(tar, gg.Ptr(gg.Ptr(`one`)))
+
+		deref(&tar).SetString(`two`)
+		gtest.Equal(tar, gg.Ptr(gg.Ptr(`two`)))
 	}
 }
 

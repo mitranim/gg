@@ -42,8 +42,8 @@ func SetMapped[Elem any, Val comparable](src []Elem, fun func(Elem) Val) Set[Val
 type Set[A comparable] map[A]struct{}
 
 /*
-Idempotently inits the map via `make`, making it writable. The output pointer
-must be non-nil.
+Idempotently inits the map via `make`, making it writable.
+The output is always non-nil.
 */
 func (self *Set[A]) Init() Set[A] {
 	if *self == nil {

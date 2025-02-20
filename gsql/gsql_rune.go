@@ -9,7 +9,7 @@ import (
 )
 
 /*
-Shortcut for casting an arbitrary rune-like into `Rune`.
+Shortcut for converting an arbitrary rune-like to `Rune`.
 Useful for higher-order functions such as `gg.Map`.
 */
 func RuneFrom[A ~rune](val A) Rune { return Rune(val) }

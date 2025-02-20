@@ -5,6 +5,21 @@ import (
 )
 
 /*
+Safe integer ranges for floating point numbers. Fractionless floats within these
+ranges can represent integers contiguously, and be correctly converted to and
+from the corresponding integer types with the same width. Floats outside these
+ranges do not represent integers contiguously. Conversions between integers and
+floats outside these ranges should only be made with the expectation of
+inaccuracy.
+*/
+const (
+	MinSafeIntFloat32 = -(2 << 23) + 1
+	MaxSafeIntFloat32 = (2 << 23) - 1
+	MinSafeIntFloat64 = -(2 << 52) + 1
+	MaxSafeIntFloat64 = (2 << 52) - 1
+)
+
+/*
 Short for "is finite". Missing feature of the standard "math" package.
 True if the input is neither NaN nor infinity.
 */
@@ -30,6 +45,12 @@ divisor.
 */
 func IsDivisibleBy[A Int](dividend, divisor A) bool {
 	return divisor != 0 && dividend%divisor == 0
+}
+
+// True if the input has a fractional component.
+func IsFrac[A Float](val A) bool {
+	_, frac := math.Modf(float64(val))
+	return frac != 0 && !math.IsNaN(frac)
 }
 
 // Same as `Add(val, 1)`. Panics on overflow.
@@ -146,29 +167,5 @@ func errMul[A Int](one, two, out A) Err {
 	return Errf(
 		`multiplication overflow for %v: %v * %v = %v`,
 		Type[A](), one, two, out,
-	)
-}
-
-/*
-Checked numeric conversion. Same as `Out(src)` but with additional assertions.
-Panics in case of overflow, underflow, imprecision such as converting large
-integers to floats that don't support integers in that range, or anything
-involving NaN. Performance overhead is minimal.
-*/
-func NumConv[Out, Src Num](src Src) Out {
-	out := Out(src)
-	if !(src == Src(out)) ||
-		(src < 0 && out >= 0) ||
-		(src >= 0 && out < 0) {
-		panic(errNumConv(src, out))
-	}
-	return out
-}
-
-// Uses `String` to avoid the scientific notation for floats.
-func errNumConv[Out, Src Num](src Src, out Out) Err {
-	return Errf(
-		`unable to safely convert %v %v to %v %v due to overflow, underflow, or imprecision`,
-		Type[Src](), String(src), Type[Out](), String(out),
 	)
 }

@@ -78,7 +78,9 @@ func TestGraphDir_invalid_cyclic_indirect(t *testing.T) {
 func TestGraphDir_valid_empty(t *testing.T) {
 	defer gtest.Catch(t)
 
-	testGraphDir(`testdata/empty`, nil)
+	const DIR = `testdata/empty`
+	gg.MkdirAll(DIR)
+	testGraphDir(DIR, nil)
 }
 
 func TestGraphDir_valid_non_empty(t *testing.T) {

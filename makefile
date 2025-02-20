@@ -10,7 +10,7 @@ TEST_FLAGS := $(GO_FLAGS) -count=1 $(VERB) $(FAIL) $(SHORT) $(PROF)
 TEST := test $(TEST_FLAGS) -timeout=1s -run=$(run)
 PKG := ./$(or $(pkg),...)
 BENCH := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=256ms
-GOW := gow $(CLEAR) -v -e=go,mod,pgsql
+GOW := gow $(CLEAR) -v -e=go,mod,pgsql -r=$(if $(filter $(MAKELEVEL),0),true,false)
 WATCH := watchexec -r $(CLEAR) -d=0 -n
 DOC_HOST := localhost:58214
 OK = echo [$@] ok
@@ -66,9 +66,9 @@ prep:
 	$(MAKE_PAR) test lint
 
 # Examples:
-# `make release ver=1`.
-# `make release tag=v0.0.1`.
-release: prep
+# `make pub ver=1`.
+# `make pub tag=v0.0.1`.
+pub: prep
 ifeq ($(TAG),)
 	$(error missing tag)
 endif

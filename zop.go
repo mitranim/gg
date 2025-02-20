@@ -56,7 +56,7 @@ func (self Zop[A]) MarshalJSON() ([]byte, error) {
 
 /*
 Implement `json.Unmarshaler`. If the input is empty or represents JSON null,
-clears the receiver via `.Clear`. Otherwise uses `JsonDecodeCatch` to decode
+clears the receiver via `.Clear`. Otherwise uses `json.Unmarshal` to decode
 into the underlying value.
 */
 func (self *Zop[_]) UnmarshalJSON(src []byte) error {

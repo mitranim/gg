@@ -26,16 +26,14 @@ type (
 	Complex128 complex128
 )
 
-/*
-TODO consider making public. This should really be provided by "math" instead.
-Also TODO better names.
-*/
-const (
-	MinSafeFloat32 = -(2 << 24)
-	MaxSafeFloat32 = 2 << 24
-	MinSafeFloat64 = -(2 << 53)
-	MaxSafeFloat64 = 2 << 53
-)
+func Test_safe_int_floats(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Eq(gg.MinSafeIntFloat32, -16_777_215)
+	gtest.Eq(gg.MaxSafeIntFloat32, 16_777_215)
+	gtest.Eq(gg.MinSafeIntFloat64, -9_007_199_254_740_991)
+	gtest.Eq(gg.MaxSafeIntFloat64, 9_007_199_254_740_991)
+}
 
 func TestIsFin(t *testing.T) {
 	defer gtest.Catch(t)
@@ -150,6 +148,64 @@ func TestIsDivisibleBy(t *testing.T) {
 	gtest.False(gg.IsDivisibleBy(-4, -16))
 }
 
+func TestIsFrac(t *testing.T) {
+	defer gtest.Catch(t)
+	testIsFrac[float32]()
+	testIsFrac[float64]()
+}
+
+func testIsFrac[A gg.Float]() {
+	gtest.False(gg.IsFrac(A(math.NaN())))
+	gtest.False(gg.IsFrac(A(math.Inf(-1))))
+	gtest.False(gg.IsFrac(A(math.Inf(+1))))
+	gtest.False(gg.IsFrac(A(-0)))
+	gtest.False(gg.IsFrac(A(+0)))
+	gtest.False(gg.IsFrac(A(-1)))
+	gtest.False(gg.IsFrac(A(+1)))
+	gtest.False(gg.IsFrac(A(-2)))
+	gtest.False(gg.IsFrac(A(+2)))
+	gtest.False(gg.IsFrac(A(-12)))
+	gtest.False(gg.IsFrac(A(+12)))
+	gtest.False(gg.IsFrac(A(gg.MinSafeIntFloat32)))
+	gtest.False(gg.IsFrac(A(gg.MaxSafeIntFloat32)))
+
+	gtest.True(gg.IsFrac(A(-0.000001)))
+	gtest.True(gg.IsFrac(A(+0.000001)))
+	gtest.True(gg.IsFrac(A(-1.000001)))
+	gtest.True(gg.IsFrac(A(+1.000001)))
+	gtest.True(gg.IsFrac(A(-2.000001)))
+	gtest.True(gg.IsFrac(A(+2.000001)))
+	gtest.True(gg.IsFrac(A(-12.000001)))
+	gtest.True(gg.IsFrac(A(+12.000001)))
+
+	gtest.True(gg.IsFrac(A(-0.111111)))
+	gtest.True(gg.IsFrac(A(+0.111111)))
+	gtest.True(gg.IsFrac(A(-1.111111)))
+	gtest.True(gg.IsFrac(A(+1.111111)))
+	gtest.True(gg.IsFrac(A(-2.111111)))
+	gtest.True(gg.IsFrac(A(+2.111111)))
+	gtest.True(gg.IsFrac(A(-12.111111)))
+	gtest.True(gg.IsFrac(A(+12.111111)))
+
+	gtest.True(gg.IsFrac(A(-0.5)))
+	gtest.True(gg.IsFrac(A(+0.5)))
+	gtest.True(gg.IsFrac(A(-1.5)))
+	gtest.True(gg.IsFrac(A(+1.5)))
+	gtest.True(gg.IsFrac(A(-2.5)))
+	gtest.True(gg.IsFrac(A(+2.5)))
+	gtest.True(gg.IsFrac(A(-12.5)))
+	gtest.True(gg.IsFrac(A(+12.5)))
+
+	gtest.True(gg.IsFrac(A(-0.999999)))
+	gtest.True(gg.IsFrac(A(+0.999999)))
+	gtest.True(gg.IsFrac(A(-1.999999)))
+	gtest.True(gg.IsFrac(A(+1.999999)))
+	gtest.True(gg.IsFrac(A(-2.999999)))
+	gtest.True(gg.IsFrac(A(+2.999999)))
+	gtest.True(gg.IsFrac(A(-12.999999)))
+	gtest.True(gg.IsFrac(A(+12.999999)))
+}
+
 func TestInc(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -233,12 +289,12 @@ func TestPow(t *testing.T) {
 	testPowFloat(gg.Pow[float64, float64])
 
 	gtest.PanicStr(
-		`unable to safely convert float64 1162261467 to uint8 219`,
+		`unable to safely convert float64 1162261467 to uint8`,
 		func() { gg.Pow[uint8](3, 19) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float64 1162261467 to int8 -37`,
+		`unable to safely convert float64 1162261467 to int8`,
 		func() { gg.Pow[int8](3, 19) },
 	)
 }
@@ -319,11 +375,9 @@ func TestFac(t *testing.T) {
 	test(16, 20922789888000)
 	test(17, 355687428096000)
 	test(18, 6402373705728000)
-	test(19, 121645100408832000)
-	test(20, 2432902008176640000)
 
 	gtest.PanicStr(
-		`unable to safely convert float64 720 to uint8 208`,
+		`unable to safely convert float64 720 to uint8`,
 		func() { gg.Fac[uint8](6) },
 	)
 }
@@ -410,17 +464,17 @@ func TestNumConv_width_decrease_sign_mismatch(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert int16 -1 to uint8 255`,
+		`unable to safely convert int16 -1 to uint8`,
 		func() { gg.NumConv[uint8](int16(-1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int16 -128 to uint8 128`,
+		`unable to safely convert int16 -128 to uint8`,
 		func() { gg.NumConv[uint8](int16(-128)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -128 to uint8 128`,
+		`unable to safely convert float32 -128 to uint8`,
 		func() { gg.NumConv[uint8](float32(-128)) },
 	)
 }
@@ -429,57 +483,57 @@ func TestNumConv_width_decrease_out_of_bounds(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert int16 256 to uint8 0`,
+		`unable to safely convert int16 256 to uint8`,
 		func() { gg.NumConv[uint8](int16(256)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 256 to uint8 0`,
+		`unable to safely convert float32 256 to uint8`,
 		func() { gg.NumConv[uint8](float32(256)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int16 128 to int8 -128`,
+		`unable to safely convert int16 128 to int8`,
 		func() { gg.NumConv[int8](int16(128)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -170141173319264430000000000000000000000 to int16 0`,
+		`unable to safely convert float32 -170141173319264430000000000000000000000 to int16`,
 		func() { gg.NumConv[int16](float32(-math.MaxFloat32 / 2)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 170141173319264430000000000000000000000 to int16 0`,
+		`unable to safely convert float32 170141173319264430000000000000000000000 to int16`,
 		func() { gg.NumConv[int16](float32(math.MaxFloat32 / 2)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float64 680564693277057700000000000000000000000 to float32 +Inf`,
+		`unable to safely convert float64 680564693277057700000000000000000000000 to float32`,
 		func() { gg.NumConv[float32](float64(math.MaxFloat32 * 2)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float64 -680564693277057700000000000000000000000 to float32 -Inf`,
+		`unable to safely convert float64 -680564693277057700000000000000000000000 to float32`,
 		func() { gg.NumConv[float32](float64(-math.MaxFloat32 * 2)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 128 to int8 -128`,
+		`unable to safely convert float32 128 to int8`,
 		func() { gg.NumConv[int8](float32(128)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 NaN to int16 0`,
+		`unable to safely convert float32 NaN to int16`,
 		func() { gg.NumConv[int16](float32(math.NaN())) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 +Inf to int16 0`,
+		`unable to safely convert float32 +Inf to int16`,
 		func() { gg.NumConv[int16](float32(math.Inf(1))) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -Inf to int16 0`,
+		`unable to safely convert float32 -Inf to int16`,
 		func() { gg.NumConv[int16](float32(math.Inf(-1))) },
 	)
 }
@@ -488,12 +542,12 @@ func TestNumConv_width_decrease_imprecision(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 10.5 to int16 10`,
+		`unable to safely convert float32 10.5 to int16`,
 		func() { gg.NumConv[int16](float32(10.5)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -10.5 to int16 -10`,
+		`unable to safely convert float32 -10.5 to int16`,
 		func() { gg.NumConv[int16](float32(-10.5)) },
 	)
 }
@@ -513,55 +567,43 @@ func TestNumConv_width_match_within_bounds(t *testing.T) {
 	gtest.Eq(gg.NumConv[int32](float32(0)), 0)
 	gtest.Eq(gg.NumConv[int32](float32(0)), 0)
 
-	gtest.Eq(gg.NumConv[int32](float32(MinSafeFloat32)), MinSafeFloat32)
-	gtest.Eq(gg.NumConv[int32](float32(MaxSafeFloat32)), MaxSafeFloat32)
+	gtest.Eq(gg.NumConv[int32](float32(gg.MinSafeIntFloat32)), gg.MinSafeIntFloat32)
+	gtest.Eq(gg.NumConv[int32](float32(gg.MaxSafeIntFloat32)), gg.MaxSafeIntFloat32)
 
-	gtest.Eq(gg.NumConv[float32](int32(MinSafeFloat32)), MinSafeFloat32)
-	gtest.Eq(gg.NumConv[float32](int32(MaxSafeFloat32)), MaxSafeFloat32)
-
-	/**
-	This is technically out of the safe range, but the value seems to match by
-	accident. TODO: consider forbidding conversion from integers to floats
-	when the output is outside of its safe range.
-	*/
-	gtest.Eq(gg.NumConv[float32](int32(math.MinInt32)), math.MinInt32)
-	gtest.Eq(int32(gg.NumConv[float32](int32(math.MinInt32))), int32(math.MinInt32))
-
-	// Same as above.
-	gtest.Eq(gg.NumConv[float64](int64(math.MinInt64)), math.MinInt64)
-	gtest.Eq(int64(gg.NumConv[float64](int64(math.MinInt64))), int64(math.MinInt64))
+	gtest.Eq(gg.NumConv[float32](int32(gg.MinSafeIntFloat32)), gg.MinSafeIntFloat32)
+	gtest.Eq(gg.NumConv[float32](int32(gg.MaxSafeIntFloat32)), gg.MaxSafeIntFloat32)
 }
 
 func TestNumConv_width_match_sign_mismatch(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert int8 -1 to uint8 255`,
+		`unable to safely convert int8 -1 to uint8`,
 		func() { gg.NumConv[uint8](int8(-1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int8 -128 to uint8 128`,
+		`unable to safely convert int8 -128 to uint8`,
 		func() { gg.NumConv[uint8](int8(-128)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert uint8 128 to int8 -128`,
+		`unable to safely convert uint8 128 to int8`,
 		func() { gg.NumConv[int8](uint8(128)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert uint8 255 to int8 -1`,
+		`unable to safely convert uint8 255 to int8`,
 		func() { gg.NumConv[int8](uint8(255)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -1 to uint32 4294967295`,
+		`unable to safely convert float32 -1 to uint32`,
 		func() { gg.NumConv[uint32](float32(-1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float64 -1 to uint64 18446744073709551615`,
+		`unable to safely convert float64 -1 to uint64`,
 		func() { gg.NumConv[uint64](float64(-1)) },
 	)
 }
@@ -570,33 +612,53 @@ func TestNumConv_width_match_out_of_bounds(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert uint 9223372036854775808 to int -9223372036854775808`,
+		`unable to safely convert uint 9223372036854775808 to int`,
 		func() { gg.NumConv[int](uint(math.MaxInt + 1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -170141173319264430000000000000000000000 to int32 -2147483648`,
+		`unable to safely convert float32 -170141173319264430000000000000000000000 to int32`,
 		func() { gg.NumConv[int32](float32(-math.MaxFloat32 / 2)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 170141173319264430000000000000000000000 to int32 -2147483648`,
+		`unable to safely convert float32 170141173319264430000000000000000000000 to int32`,
 		func() { gg.NumConv[int32](float32(math.MaxFloat32 / 2)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 NaN to int32 -2147483648`,
+		`unable to safely convert float32 NaN to int32`,
 		func() { gg.NumConv[int32](float32(math.NaN())) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 +Inf to int32 -2147483648`,
+		`unable to safely convert float32 +Inf to int32`,
 		func() { gg.NumConv[int32](float32(math.Inf(1))) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -Inf to int32 -2147483648`,
+		`unable to safely convert float32 -Inf to int32`,
 		func() { gg.NumConv[int32](float32(math.Inf(-1))) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert int32 -2147483648 to float32`,
+		func() { gg.NumConv[float32](int32(math.MinInt32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert int32 2147483647 to float32`,
+		func() { gg.NumConv[float32](int32(math.MaxInt32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert int64 -9223372036854775808 to float64`,
+		func() { gg.NumConv[float64](int64(math.MinInt64)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert int64 9223372036854775807 to float64`,
+		func() { gg.NumConv[float64](int64(math.MaxInt64)) },
 	)
 }
 
@@ -604,43 +666,103 @@ func TestNumConv_width_match_imprecision(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 10.5 to int32 10`,
-		func() { gg.NumConv[int32](float32(10.5)) },
+		`unable to safely convert int32 16777216 to float32`,
+		func() { gg.NumConv[float32](int32(gg.MaxSafeIntFloat32 + 1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -10.5 to int32 -10`,
-		func() { gg.NumConv[int32](float32(-10.5)) },
+		`unable to safely convert int32 -16777216 to float32`,
+		func() { gg.NumConv[float32](int32(gg.MinSafeIntFloat32 - 1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int32 33554433 to float32 33554432`,
-		func() { gg.NumConv[float32](int32(MaxSafeFloat32 + 1)) },
-	)
-
-	gtest.PanicStr(
-		`unable to safely convert int32 -33554433 to float32 -33554432`,
-		func() { gg.NumConv[float32](int32(MinSafeFloat32 - 1)) },
-	)
-
-	gtest.PanicStr(
-		`unable to safely convert int32 2147483647 to float32 2147483648`,
+		`unable to safely convert int32 2147483647 to float32`,
 		func() { gg.NumConv[float32](int32(math.MaxInt32)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int64 18014398509481985 to float64 18014398509481984`,
-		func() { gg.NumConv[float64](int64(MaxSafeFloat64 + 1)) },
+		`unable to safely convert int64 9007199254740992 to float64`,
+		func() { gg.NumConv[float64](int64(gg.MaxSafeIntFloat64 + 1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int64 -18014398509481985 to float64 -18014398509481984`,
-		func() { gg.NumConv[float64](int64(MinSafeFloat64 - 1)) },
+		`unable to safely convert int64 -9007199254740992 to float64`,
+		func() { gg.NumConv[float64](int64(gg.MinSafeIntFloat64 - 1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int64 9223372036854775807 to float64 9223372036854776000`,
+		`unable to safely convert int64 9223372036854775807 to float64`,
 		func() { gg.NumConv[float64](int64(math.MaxInt64)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 10.5 to int32`,
+		func() { gg.NumConv[int32](float32(10.5)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 -10.5 to int32`,
+		func() { gg.NumConv[int32](float32(-10.5)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 16777216 to int32`,
+		func() { gg.NumConv[int32](float32(gg.MaxSafeIntFloat32 + 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 -16777216 to int32`,
+		func() { gg.NumConv[int32](float32(gg.MinSafeIntFloat32 - 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 2147483648 to int32`,
+		func() { gg.NumConv[int32](float32(math.MaxInt32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 -2147483648 to int32`,
+		func() { gg.NumConv[int32](float32(math.MinInt32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 16777216 to uint32`,
+		func() { gg.NumConv[uint32](float32(gg.MaxSafeIntFloat32 + 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 4294967296 to uint32`,
+		func() { gg.NumConv[uint32](float32(math.MaxUint32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float64 9007199254740992 to int64`,
+		func() { gg.NumConv[int64](float64(gg.MaxSafeIntFloat64 + 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float64 -9007199254740992 to int64`,
+		func() { gg.NumConv[int64](float64(gg.MinSafeIntFloat64 - 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float64 9223372036854776000 to int64`,
+		func() { gg.NumConv[int64](float64(math.MaxInt64)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float64 -9223372036854776000 to int64`,
+		func() { gg.NumConv[int64](float64(math.MinInt64)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float64 9007199254740992 to uint64`,
+		func() { gg.NumConv[uint64](float64(gg.MaxSafeIntFloat64 + 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float64 18446744073709552000 to uint64`,
+		func() { gg.NumConv[uint64](float64(math.MaxUint64)) },
 	)
 }
 
@@ -660,10 +782,10 @@ func TestNumConv_width_increase_within_bounds(t *testing.T) {
 	gtest.Eq(gg.NumConv[int16](int8(-128)), -128)
 
 	gtest.Eq(gg.NumConv[float64](int32(math.MaxInt32)), math.MaxInt32)
-	gtest.Eq(gg.NumConv[int64](float32(MaxSafeFloat32)), MaxSafeFloat32)
+	gtest.Eq(gg.NumConv[int64](float32(gg.MaxSafeIntFloat32)), gg.MaxSafeIntFloat32)
 
 	gtest.Eq(gg.NumConv[float64](int32(math.MinInt32)), math.MinInt32)
-	gtest.Eq(gg.NumConv[int64](float32(MinSafeFloat32)), MinSafeFloat32)
+	gtest.Eq(gg.NumConv[int64](float32(gg.MinSafeIntFloat32)), gg.MinSafeIntFloat32)
 
 	gtest.Eq(gg.NumConv[float64](float32(0)), 0)
 	gtest.Eq(gg.NumConv[float64](float32(math.MaxFloat32)), math.MaxFloat32)
@@ -674,17 +796,17 @@ func TestNumConv_width_increase_sign_mismatch(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert int8 -1 to uint16 65535`,
+		`unable to safely convert int8 -1 to uint16`,
 		func() { gg.NumConv[uint16](int8(-1)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert int8 -128 to uint16 65408`,
+		`unable to safely convert int8 -128 to uint16`,
 		func() { gg.NumConv[uint16](int8(-128)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -1 to uint64 18446744073709551615`,
+		`unable to safely convert float32 -1 to uint64`,
 		func() { gg.NumConv[uint64](float32(-1)) },
 	)
 }
@@ -693,12 +815,12 @@ func TestNumConv_width_increase_out_of_bounds(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -170141173319264430000000000000000000000 to int64 -9223372036854775808`,
+		`unable to safely convert float32 -170141173319264430000000000000000000000 to int64`,
 		func() { gg.NumConv[int64](float32(-math.MaxFloat32 / 2)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 170141173319264430000000000000000000000 to int64 -9223372036854775808`,
+		`unable to safely convert float32 170141173319264430000000000000000000000 to int64`,
 		func() { gg.NumConv[int64](float32(math.MaxFloat32 / 2)) },
 	)
 }
@@ -707,64 +829,149 @@ func TestNumConv_width_increase_imprecision(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 10.5 to int64 10`,
+		`unable to safely convert float32 10.5 to int64`,
 		func() { gg.NumConv[int64](float32(10.5)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -10.5 to int64 -10`,
+		`unable to safely convert float32 -10.5 to int64`,
 		func() { gg.NumConv[int64](float32(-10.5)) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 NaN to int64 -9223372036854775808`,
+		`unable to safely convert float32 NaN to int64`,
 		func() { gg.NumConv[int64](float32(math.NaN())) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 +Inf to int64 -9223372036854775808`,
+		`unable to safely convert float32 +Inf to int64`,
 		func() { gg.NumConv[int64](float32(math.Inf(1))) },
 	)
 
 	gtest.PanicStr(
-		`unable to safely convert float32 -Inf to int64 -9223372036854775808`,
+		`unable to safely convert float32 -Inf to int64`,
 		func() { gg.NumConv[int64](float32(math.Inf(-1))) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 16777216 to int64`,
+		func() { gg.NumConv[int64](float32(gg.MaxSafeIntFloat32 + 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 -16777216 to int64`,
+		func() { gg.NumConv[int64](float32(gg.MinSafeIntFloat32 - 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 2147483648 to int64`,
+		func() { gg.NumConv[int64](float32(math.MaxInt32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 -2147483648 to int64`,
+		func() { gg.NumConv[int64](float32(math.MinInt32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 9223372036854776000 to int64`,
+		func() { gg.NumConv[int64](float32(math.MaxInt64)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 -9223372036854776000 to int64`,
+		func() { gg.NumConv[int64](float32(math.MinInt64)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 16777216 to uint64`,
+		func() { gg.NumConv[uint64](float32(gg.MaxSafeIntFloat32 + 1)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 4294967296 to uint64`,
+		func() { gg.NumConv[uint64](float32(math.MaxUint32)) },
+	)
+
+	gtest.PanicStr(
+		`unable to safely convert float32 18446744073709552000 to uint64`,
+		func() { gg.NumConv[uint64](float32(math.MaxUint64)) },
 	)
 }
 
-/*
-This behavior is an artefact of the implementation.
-We might want to fix it, but without incurring overheads.
-*/
 func TestNumConv_NaN(t *testing.T) {
 	defer gtest.Catch(t)
 
-	gtest.PanicStr(
-		`unable to safely convert float64 NaN to float32 NaN`,
-		func() { gg.NumConv[float32](math.NaN()) },
-	)
+	gtest.True(math.IsNaN(float64(gg.NumConv[float32](float32(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float32](float32(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[float64](float32(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float64](float32(math.NaN())))))
 
-	gtest.PanicStr(
-		`unable to safely convert float64 NaN to gg_test.Float32 NaN`,
-		func() { gg.NumConv[Float32](math.NaN()) },
-	)
+	gtest.True(math.IsNaN(float64(gg.NumConv[float32](float64(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float32](float64(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[float64](float64(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float64](float64(math.NaN())))))
 
-	gtest.PanicStr(
-		`unable to safely convert float64 NaN to float64 NaN`,
-		func() { gg.NumConv[float64](math.NaN()) },
-	)
+	gtest.True(math.IsNaN(float64(gg.NumConv[float32](Float32(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float32](Float32(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[float64](Float32(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float64](Float32(math.NaN())))))
 
-	gtest.PanicStr(
-		`unable to safely convert float64 NaN to gg_test.Float64 NaN`,
-		func() { gg.NumConv[Float64](math.NaN()) },
-	)
+	gtest.True(math.IsNaN(float64(gg.NumConv[float32](Float64(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float32](Float64(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[float64](Float64(math.NaN())))))
+	gtest.True(math.IsNaN(float64(gg.NumConv[Float64](Float64(math.NaN())))))
+}
+
+func TestNumConv_Inf(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](float32(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](float32(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](float32(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](float32(math.Inf(-1)))), -1))
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](float32(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](float32(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](float32(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](float32(math.Inf(+1)))), +1))
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](float64(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](float64(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](float64(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](float64(math.Inf(-1)))), -1))
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](float64(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](float64(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](float64(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](float64(math.Inf(+1)))), +1))
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](Float32(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](Float32(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](Float32(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](Float32(math.Inf(-1)))), -1))
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](Float32(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](Float32(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](Float32(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](Float32(math.Inf(+1)))), +1))
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](Float64(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](Float64(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](Float64(math.Inf(-1)))), -1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](Float64(math.Inf(-1)))), -1))
+
+	gtest.True(math.IsInf(float64(gg.NumConv[float32](Float64(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float32](Float64(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[float64](Float64(math.Inf(+1)))), +1))
+	gtest.True(math.IsInf(float64(gg.NumConv[Float64](Float64(math.Inf(+1)))), +1))
 }
 
 //go:noinline
-func makeInt32() int32 { return MaxSafeFloat32 }
+func makeInt32() int32 { return gg.MaxSafeIntFloat32 }
 
 //go:noinline
-func makeFloat32() float32 { return MaxSafeFloat32 }
+func makeFloat32() float32 { return gg.MaxSafeIntFloat32 }
 
 //go:noinline
 func numConvNativeIntToFloat(src int32) float64 { return float64(src) }
@@ -777,6 +984,12 @@ func numConvOursIntToFloat(src int32) float64 { return gg.NumConv[float64](src) 
 
 //go:noinline
 func numConvOursFloatToInt(src float32) int64 { return gg.NumConv[int64](src) }
+
+//go:noinline
+func numConvOursIntToInt(src int32) Int32 { return gg.NumConv[Int32](src) }
+
+//go:noinline
+func numConvOursFloatToFloat(src float32) Float32 { return gg.NumConv[Float32](src) }
 
 func Benchmark_NumConv_int_to_float_native(b *testing.B) {
 	defer gtest.Catch(b)
@@ -811,6 +1024,24 @@ func Benchmark_NumConv_float_to_int_ours(b *testing.B) {
 
 	for ind := 0; ind < b.N; ind++ {
 		gg.Nop1(numConvOursFloatToInt(src))
+	}
+}
+
+func Benchmark_NumConv_equivalent_int_ours(b *testing.B) {
+	defer gtest.Catch(b)
+	src := makeInt32()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(numConvOursIntToInt(src))
+	}
+}
+
+func Benchmark_NumConv_equivalent_float_ours(b *testing.B) {
+	defer gtest.Catch(b)
+	src := makeFloat32()
+
+	for ind := 0; ind < b.N; ind++ {
+		gg.Nop1(numConvOursFloatToFloat(src))
 	}
 }
 

@@ -56,6 +56,12 @@ func (self Arr[A]) AppendInner(buf []byte) []byte {
 			buf = append(buf, ',')
 		}
 		found = true
+		/**
+		Technical note. We're not bothering to validate that the appended value is
+		well-formed. That's because we expect `Arr` to be passed to SQL via an SQL
+		parameter, which already prevents SQL injection. This saves us effort and
+		performance.
+		*/
 		buf = gg.AppendTo(buf, val)
 	}
 	return buf

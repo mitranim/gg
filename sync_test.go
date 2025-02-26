@@ -94,16 +94,16 @@ func TestSendOpt(t *testing.T) {
 	defer gtest.Catch(t)
 
 	var tar chan string
-	gg.SendOpt(tar, `val`)
-	gg.SendOpt(tar, `val`)
-	gg.SendOpt(tar, `val`)
+	gg.SendOpt(tar, `one`)
+	gg.SendOpt(tar, `two`)
+	gg.SendOpt(tar, `three`)
 
 	tar = make(chan string, 1)
-	gg.SendOpt(tar, `val`)
-	gg.SendOpt(tar, `val`)
-	gg.SendOpt(tar, `val`)
+	gg.SendOpt(tar, `one`)
+	gg.SendOpt(tar, `two`)
+	gg.SendOpt(tar, `three`)
 
-	gtest.Eq(<-tar, `val`)
+	gtest.Eq(<-tar, `one`)
 }
 
 func TestSendZeroOpt(t *testing.T) {

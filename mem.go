@@ -99,6 +99,9 @@ underlying value, even if expired. Like other methods, this is safe for
 concurrent use.
 */
 func (self *Mem[_, _, _]) MarshalJSON() ([]byte, error) {
+	if self == nil {
+		return ToBytes(`null`), nil
+	}
 	defer Lock(self.lock.RLocker()).Unlock()
 	if !self.ok {
 		return ToBytes(`null`), nil
@@ -123,7 +126,7 @@ func (self *Mem[_, Tar, _]) UnmarshalJSON(src []byte) error {
 	}
 
 	var tar Tar
-	err := JsonDecodeCatch(src, &self.val)
+	err := JsonDecodeCatch(src, &tar)
 	if err != nil {
 		return err
 	}

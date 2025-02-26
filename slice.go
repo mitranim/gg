@@ -478,6 +478,17 @@ func Take[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 // Same as global `Take`.
 func (self Slice[A]) Take(size int) Slice[A] { return Take(self, size) }
 
+/*
+Returns a subslice containing up to N elements from the end.
+If there are fewer elements total, returns as many as possible.
+*/
+func TakeLast[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
+	return src[MaxPrim2(0, len(src)-MaxPrim2(0, size)):]
+}
+
+// Same as global `TakeLast`.
+func (self Slice[A]) TakeLast(size int) Slice[A] { return TakeLast(self, size) }
+
 // Returns a subslice excluding N elements from the start.
 func Drop[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
 	return src[MaxPrim2(0, MinPrim2(size, len(src))):]

@@ -6,6 +6,21 @@ import (
 )
 
 /*
+Safe integer ranges for floating point numbers. Fractionless floats within these
+ranges can represent integers contiguously, and be correctly converted to and
+from the corresponding integer types with the same width. Floats outside these
+ranges do not represent integers contiguously. Conversions between integers and
+floats outside these ranges should only be made with the expectation of
+inaccuracy.
+*/
+const (
+	MinSafeIntFloat32 = -(2 << 23) + 1
+	MaxSafeIntFloat32 = (2 << 23) - 1
+	MinSafeIntFloat64 = -(2 << 52) + 1
+	MaxSafeIntFloat64 = (2 << 52) - 1
+)
+
+/*
 Checked numeric conversion. Same as a built-in Go conversion, but panics in case
 of overflow, underflow, or imprecision when converting between integers and
 floats. Converting NaN and infinities between different floating point types

@@ -14,7 +14,11 @@ func CacheOf[
 	return new(Cache[Key, Val, Ptr])
 }
 
-// Concurrency-safe cache. See the method reference.
+/*
+Concurrency-safe cache that creates and initializes values on demand, using keys
+as inputs. Does not support eviction or expiration. Suitable when values are
+unambiguously related to keys and don't need to be evicted or refreshed.
+*/
 type Cache[
 	Key comparable,
 	Val any,
@@ -31,9 +35,9 @@ resulting value is non-copyable, for example when it contains a mutex.
 func (self *Cache[Key, Val, Ptr]) Get(key Key) Val { return *self.Ptr(key) }
 
 /*
-Returns the cached value for the given key. If the value did not previously
-exist, idempotently initializes it by calling `.Init` (by pointer) and caches
-the result. For any given key, the value is initialized exactly once, even if
+Returns the cached value for the given key, by pointer. If the value did not
+previously exist, idempotently initializes it by calling `.Init` and caches the
+result. For any given key, the value is initialized exactly once, even if
 multiple goroutines are trying to access it simultaneously.
 */
 func (self *Cache[Key, Val, Ptr]) Ptr(key Key) Ptr {

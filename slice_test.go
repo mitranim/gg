@@ -204,6 +204,52 @@ func TestTake(t *testing.T) {
 	gtest.Equal(gg.Take([]int{10, 20, 30, 40}, 2), []int{10, 20})
 }
 
+func TestTakeLast(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Equal(gg.TakeLast([]int(nil), -2), nil)
+	gtest.Equal(gg.TakeLast([]int(nil), -1), nil)
+	gtest.Equal(gg.TakeLast([]int(nil), 0), nil)
+	gtest.Equal(gg.TakeLast([]int(nil), 1), nil)
+	gtest.Equal(gg.TakeLast([]int(nil), 2), nil)
+
+	gtest.Equal(gg.TakeLast([]int{}, -2), []int{})
+	gtest.Equal(gg.TakeLast([]int{}, -1), []int{})
+	gtest.Equal(gg.TakeLast([]int{}, 0), []int{})
+	gtest.Equal(gg.TakeLast([]int{}, 1), []int{})
+	gtest.Equal(gg.TakeLast([]int{}, 2), []int{})
+
+	gtest.Equal(gg.TakeLast([]int{10}, -2), []int{})
+	gtest.Equal(gg.TakeLast([]int{10}, -1), []int{})
+	gtest.Equal(gg.TakeLast([]int{10}, 0), []int{})
+	gtest.Equal(gg.TakeLast([]int{10}, 1), []int{10})
+	gtest.Equal(gg.TakeLast([]int{10}, 2), []int{10})
+
+	gtest.Equal(gg.TakeLast([]int{10, 20}, -2), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20}, -1), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20}, 0), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20}, 1), []int{20})
+	gtest.Equal(gg.TakeLast([]int{10, 20}, 2), []int{10, 20})
+	gtest.Equal(gg.TakeLast([]int{10, 20}, 3), []int{10, 20})
+
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30}, -2), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30}, -1), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30}, 0), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30}, 1), []int{30})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30}, 2), []int{20, 30})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30}, 3), []int{10, 20, 30})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30}, 4), []int{10, 20, 30})
+
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, -2), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, -1), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, 0), []int{})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, 1), []int{40})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, 2), []int{30, 40})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, 3), []int{20, 30, 40})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, 4), []int{10, 20, 30, 40})
+	gtest.Equal(gg.TakeLast([]int{10, 20, 30, 40}, 5), []int{10, 20, 30, 40})
+}
+
 func TestDrop(t *testing.T) {
 	defer gtest.Catch(t)
 

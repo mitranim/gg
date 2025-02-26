@@ -26,6 +26,94 @@ trace:
 `))
 }
 
+/*
+Placed early in the file because this hardcodes line numbers, which could change
+when adding or modifying tests.
+*/
+func TestErrStack(t *testing.T) {
+	defer gtest.Catch(t)
+
+	gtest.Zero(gg.ErrStack(nil))
+
+	t.Run(`without_trace`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Eq(gg.ErrStack(gg.ErrStr(`str`)), `str`)
+		gtest.Eq(gg.ErrStack(gg.Err{Msg: `str`}), `str`)
+		gtest.Eq(gg.ErrStack(fmt.Errorf(`str`)), `str`)
+	})
+
+	t.Run(`Err_outer_traced`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		err := gg.Err{}.TracedAt(0)
+
+		gtest.Eq(gg.ErrStack(err), strings.TrimSpace(`
+trace:
+    gg_test.TestErrStack.func2 err_test.go:49
+`))
+	})
+
+	t.Run(`Err_inner_traced_outer_blank`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Cause: inner}
+
+		gtest.Eq(gg.ErrStack(outer), inner.Stack())
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+inner
+trace:
+    gg_test.TestErrStack.func3 err_test.go:60
+`))
+	})
+
+	t.Run(`Err_inner_messaged_traced_outer_messaged`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Msg: `outer`, Cause: inner}
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+outer: inner
+trace:
+    gg_test.TestErrStack.func4 err_test.go:75
+`))
+	})
+
+	t.Run(`Err_inner_messaged_traced_outer_traced`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Cause: inner}.TracedAt(0)
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+trace:
+    gg_test.TestErrStack.func5 err_test.go:89
+inner
+trace:
+    gg_test.TestErrStack.func5 err_test.go:88
+`))
+	})
+
+	t.Run(`Err_inner_messaged_traced_outer_messaged_traced`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		inner := gg.Err{Msg: `inner`}.TracedAt(0)
+		outer := gg.Err{Msg: `outer`, Cause: inner}.TracedAt(0)
+
+		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
+outer
+trace:
+    gg_test.TestErrStack.func6 err_test.go:104
+cause: inner
+trace:
+    gg_test.TestErrStack.func6 err_test.go:103
+`))
+	})
+}
+
 func TestErrTrace(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -49,19 +137,117 @@ func TestAnyErr(t *testing.T) {
 
 func TestErrs_Error(t *testing.T) {
 	defer gtest.Catch(t)
+	testErrsError(gg.Errs.Error)
+}
 
-	gtest.Zero(gg.Errs(nil).Error())
-	gtest.Zero(gg.Errs{}.Error())
+func testErrsError(fun func(gg.Errs) string) {
+	gtest.Zero(fun(gg.Errs(nil)))
+	gtest.Zero(fun(gg.Errs{}))
 
 	gtest.Eq(
-		gg.Errs{nil, testErrTraced0, nil}.Error(),
+		fun(gg.Errs{nil, testErrTraced0, nil}),
 		`test err traced 0`,
 	)
 
 	gtest.Eq(
-		gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}.Error(),
+		fun(gg.Errs{nil, testErrTraced0, nil, testErrTraced1, nil}),
 		`multiple errors; test err traced 0; test err traced 1`,
 	)
+}
+
+func TestErrs_Format_basic(t *testing.T) {
+	defer gtest.Catch(t)
+	testErrsError(func(val gg.Errs) string {
+		return fmt.Sprintf(`%v`, val)
+	})
+}
+
+func TestErrs_Format(t *testing.T) {
+	defer gtest.Catch(t)
+
+	t.Run(`empty`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		gtest.Eq(fmt.Sprintf(`%v`, gg.Errs(nil)), ``)
+		gtest.Eq(fmt.Sprintf(`%+v`, gg.Errs(nil)), ``)
+		gtest.Eq(fmt.Sprintf(`%#v`, gg.Errs(nil)), `gg.Errs(nil)`)
+
+		gtest.Eq(fmt.Sprintf(`%v`, gg.Errs{}), ``)
+		gtest.Eq(fmt.Sprintf(`%+v`, gg.Errs{}), ``)
+		gtest.Eq(fmt.Sprintf(`%#v`, gg.Errs{}), `gg.Errs{}`)
+	})
+
+	const errStr = gg.ErrStr(`err_simple`)
+	errTraced := gg.Errf(`err_traced`)
+	errWrapped := gg.Wrapf(io.EOF, `err_wrapped`)
+
+	t.Run(`single_untraced`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		err := errStr
+		src := gg.Errs{err}
+
+		gtest.Eq(fmt.Sprintf(`%v`, src), err.Error())
+		gtest.Eq(fmt.Sprintf(`%+v`, src), err.Error())
+		gtest.Eq(fmt.Sprintf(`%#v`, src), `gg.Errs{"err_simple"}`)
+	})
+
+	t.Run(`single_traced`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		err := errTraced
+		src := gg.Errs{err}
+
+		gtest.Eq(fmt.Sprintf(`%v`, src), err.Error())
+		gtest.Eq(fmt.Sprintf(`%+v`, src), err.Stack())
+		gtest.Eq(fmt.Sprintf(`%#v`, src), `gg.Errs{`+fmt.Sprintf(`%#v`, err)+`}`)
+	})
+
+	t.Run(`multiple_mixed`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		src := gg.Errs{nil, errStr, nil, errTraced, nil, errWrapped, nil}
+
+		gtest.Eq(
+			fmt.Sprintf(`%v`, src),
+			`multiple errors; err_simple; err_traced; err_wrapped: EOF`,
+		)
+
+		var buf gg.Buf
+		buf.AppendString(`multiple errors:`)
+
+		buf.AppendNewlines(2)
+		buf.AppendString(errStr.Error())
+
+		buf.AppendNewlines(2)
+		buf.Fprintf(`%+v`, errTraced)
+
+		buf.AppendNewlines(2)
+		buf.Fprintf(`%+v`, errWrapped)
+
+		gtest.Eq(fmt.Sprintf(`%+v`, src), buf.String())
+
+		gtest.Eq(
+			fmt.Sprintf(`%#v`, src),
+			gg.Str(
+				`gg.Errs{`,
+				`error(nil)`,
+				`, `,
+				`"err_simple"`,
+				`, `,
+				`error(nil)`,
+				`, `,
+				fmt.Sprintf(`%#v`, errTraced),
+				`, `,
+				`error(nil)`,
+				`, `,
+				fmt.Sprintf(`%#v`, errWrapped),
+				`, `,
+				`error(nil)`,
+				`}`,
+			),
+		)
+	})
 }
 
 func TestErrs_Err(t *testing.T) {
@@ -311,88 +497,4 @@ func TestErrFind(t *testing.T) {
 
 	test := func(err error) bool { return err == inner }
 	gtest.Equal(gg.ErrFind(outer, test), inner)
-}
-
-func TestErrStack(t *testing.T) {
-	defer gtest.Catch(t)
-
-	gtest.Zero(gg.ErrStack(nil))
-
-	t.Run(`without_trace`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		gtest.Eq(gg.ErrStack(gg.ErrStr(`str`)), `str`)
-		gtest.Eq(gg.ErrStack(gg.Err{Msg: `str`}), `str`)
-		gtest.Eq(gg.ErrStack(fmt.Errorf(`str`)), `str`)
-	})
-
-	t.Run(`Err_outer_traced`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		err := gg.Err{}.TracedAt(0)
-
-		gtest.Eq(gg.ErrStack(err), strings.TrimSpace(`
-trace:
-    gg_test.TestErrStack.func2 err_test.go:332
-`))
-	})
-
-	t.Run(`Err_inner_traced_outer_blank`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		inner := gg.Err{Msg: `inner`}.TracedAt(0)
-		outer := gg.Err{Cause: inner}
-
-		gtest.Eq(gg.ErrStack(outer), inner.Stack())
-
-		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
-inner
-trace:
-    gg_test.TestErrStack.func3 err_test.go:343
-`))
-	})
-
-	t.Run(`Err_inner_messaged_traced_outer_messaged`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		inner := gg.Err{Msg: `inner`}.TracedAt(0)
-		outer := gg.Err{Msg: `outer`, Cause: inner}
-
-		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
-outer: inner
-trace:
-    gg_test.TestErrStack.func4 err_test.go:358
-`))
-	})
-
-	t.Run(`Err_inner_messaged_traced_outer_traced`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		inner := gg.Err{Msg: `inner`}.TracedAt(0)
-		outer := gg.Err{Cause: inner}.TracedAt(0)
-
-		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
-trace:
-    gg_test.TestErrStack.func5 err_test.go:372
-inner
-trace:
-    gg_test.TestErrStack.func5 err_test.go:371
-`))
-	})
-
-	t.Run(`Err_inner_messaged_traced_outer_messaged_traced`, func(t *testing.T) {
-		defer gtest.Catch(t)
-
-		inner := gg.Err{Msg: `inner`}.TracedAt(0)
-		outer := gg.Err{Msg: `outer`, Cause: inner}.TracedAt(0)
-
-		gtest.Eq(gg.ErrStack(outer), strings.TrimSpace(`
-outer
-trace:
-    gg_test.TestErrStack.func6 err_test.go:387
-cause: inner
-trace:
-    gg_test.TestErrStack.func6 err_test.go:386
-`))
-	})
 }

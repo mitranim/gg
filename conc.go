@@ -263,9 +263,9 @@ func closeConcCtx(gro *sync.WaitGroup, errChan chan error) {
 	gro.Wait()
 }
 
-func recSend(errChan chan error) {
+func recSend(tar chan error) {
 	err := AnyErrTracedAt(recover(), 1)
 	if err != nil {
-		SendOpt(errChan, err)
+		SendOpt(tar, err)
 	}
 }

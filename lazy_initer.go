@@ -40,8 +40,7 @@ or `LazyIniter.Ptr` will reinitialize by invoking the `.Init` method of the
 underlying value.
 */
 func (self *LazyIniter[_, _]) Clear() {
-	self.lock.Lock()
-	defer self.lock.Unlock()
+	defer Lock(&self.lock).Unlock()
 	self.val.Clear()
 }
 
@@ -51,15 +50,12 @@ value is considered to be initialized. Further calls to `LazyIniter.Get` or
 `LazyIniter.Ptr` will NOT reinitialize until `.Clear` is called.
 */
 func (self *LazyIniter[Val, _]) Reset(src Val) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
+	defer Lock(&self.lock).Unlock()
 	self.val.Set(src)
 }
 
 func (self *LazyIniter[Val, _]) got() (_ Val, _ bool) {
-	self.lock.RLock()
-	defer self.lock.RUnlock()
-
+	defer Lock(self.lock.RLocker()).Unlock()
 	if self.val.IsNotNull() {
 		return self.val.Val, true
 	}
@@ -67,8 +63,7 @@ func (self *LazyIniter[Val, _]) got() (_ Val, _ bool) {
 }
 
 func (self *LazyIniter[Val, Ptr]) get() Val {
-	self.lock.Lock()
-	defer self.lock.Unlock()
+	defer Lock(&self.lock).Unlock()
 
 	if self.val.IsNull() {
 		Ptr(&self.val.Val).Init()

@@ -401,6 +401,51 @@ func (self Errs) append(buf Buf) Buf {
 	return buf
 }
 
+// Implement `fmt.Formatter`.
+func (self Errs) Format(out fmt.State, verb rune) {
+	if out.Flag('+') {
+		_, _ = out.Write(self.AppendStackTo(nil))
+		return
+	}
+
+	if out.Flag('#') {
+		type Errs []error
+		fmt.Fprintf(out, `%#v`, Errs(self))
+		return
+	}
+
+	_, _ = io.WriteString(out, self.Error())
+}
+
+// Appends a text representation of the errors with stack traces, if any.
+func (self Errs) AppendStackTo(buf []byte) []byte {
+	err, count := self.find()
+
+	switch count {
+	case 0:
+		return buf
+
+	case 1:
+		buf := Buf(buf)
+		buf.AppendErrorStack(err)
+		return buf
+
+	default:
+		buf := Buf(buf)
+		buf.AppendString(`multiple errors:`)
+
+		for _, val := range self {
+			if val == nil {
+				continue
+			}
+			buf.AppendNewlines(2)
+			buf.AppendErrorStack(val)
+		}
+
+		return buf
+	}
+}
+
 /*
 Adds a stack trace to each non-nil error via `WrapTracedAt`. Useful when writing
 tools that internally use goroutines.

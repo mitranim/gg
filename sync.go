@@ -6,9 +6,10 @@ import (
 )
 
 /*
-Shortcut for mutexes. Usage:
+Shortcut for single-line mutex usage. Usage:
 
 	defer Lock(someLock).Unlock()
+	defer Lock(someLock.RLocker()).Unlock()
 */
 func Lock[A sync.Locker](val A) A {
 	val.Lock()
@@ -40,8 +41,8 @@ func LockSet[Lock sync.Locker, Val any](lock Lock, ptr *Val, val Val) {
 Typed version of `atomic.Value`. Currently implemented as a typedef of
 `atomic.Value` where the value is internally stored as `any`. Converting
 non-interface values to `any` may automatically create a copy on the heap.
-Values other than booleans and machine numbers should be stored by pointer to
-minimize copying. This may change in the future.
+Values wider than a machine number should be stored by pointer to minimize
+copying. This may change in the future.
 */
 type Atom[A any] atomic.Value
 
@@ -78,8 +79,8 @@ func (self *Atom[A]) CompareAndSwap(prev, next A) bool {
 Typed version of `sync.Map`. Currently implemented as a typedef of `sync.Map`
 where both keys and valus are internally stored as `any`. Converting
 non-interface values to `any` may automatically create a copy on the heap.
-Values other than booleans and machine numbers should be stored by pointer to
-minimize copying. This may change in the future.
+Values wider than a machine number should be stored by pointer to minimize
+copying. This may change in the future.
 */
 type SyncMap[Key comparable, Val any] sync.Map
 
@@ -194,6 +195,7 @@ func (self Chan[A]) SendOpt(val A) { SendOpt(self, val) }
 /*
 Shortcut for sending a value over a channel in a non-blocking fashion.
 If the channel is nil or there's no free buffer space, this does nothing.
+If the channel is non-nil and closed, this panics.
 */
 func SendOpt[Tar ~chan Val, Val any](tar Tar, val Val) {
 	select {

@@ -97,6 +97,27 @@ func TestAsBytes(t *testing.T) {
 
 		gtest.Eq(src, math.MaxUint64)
 	}
+
+	{
+		type Tar struct {
+			One   uint64
+			Two   uint64
+			Three uint64
+		}
+
+		src := Tar{10, 20, 30}
+		bytes := gg.AsBytes(&src)
+		tar := *gg.CastUnsafe[*Tar](bytes)
+
+		gtest.Eq(src, tar)
+		gtest.Eq(tar, Tar{10, 20, 30})
+
+		gg.CastUnsafe[*Tar](bytes).Two = 40
+		tar = *gg.CastUnsafe[*Tar](bytes)
+
+		gtest.Eq(src, tar)
+		gtest.Eq(src, Tar{10, 40, 30})
+	}
 }
 
 func TestCast(t *testing.T) {

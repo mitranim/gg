@@ -139,3 +139,27 @@ func (self *OrdMap[Key, Val]) Clear() *OrdMap[Key, Val] {
 	}
 	return self
 }
+
+/*
+Returns a newly allocated slice of keys.
+Order matches the values in `.Slice`.
+*/
+func (self OrdMap[Key, _]) Keys() []Key {
+	var tar []keyIndex[Key]
+	for key, ind := range self.Index {
+		tar = append(tar, keyIndex[Key]{key, ind})
+	}
+	Sort(tar)
+	return Map(tar, keyIndex[Key].getKey)
+}
+
+type keyIndex[A comparable] struct {
+	key A
+	ind int
+}
+
+func (self keyIndex[A]) Less(val keyIndex[A]) bool {
+	return self.ind < val.ind
+}
+
+func (self keyIndex[A]) getKey() A { return self.key }

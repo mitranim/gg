@@ -936,8 +936,8 @@ func Test_cyclic_2(t *testing.T) {
 /*
 For now, this verifies the following:
 
-	* We eventually terminate.
-	* We mark visited references.
+  - We eventually terminate.
+  - We mark visited references.
 
 TODO verify the exact output structure. It can be broken by unsafe hacks such as
 `gg.AnyNoEscUnsafe`.

@@ -147,7 +147,7 @@ func Str(src ...any) string { return JoinAny(src, ``) }
 /*
 Similar to `Str`. Concatenates string representations of the input values.
 Additionally, if the output is non-empty and doesn't end with a newline
-character, appends `Newline` at the end.
+character, appends a newline at the end.
 */
 func Strln(src ...any) string {
 	switch len(src) {
@@ -169,7 +169,7 @@ Converts arguments to strings and joins the results with a single space. See
 `StringCatch` for encoding rules. Also see `JoinSpaced` for a more limited but
 more efficient version that doesn't involve `any`.
 */
-func Spaced(src ...any) string { return JoinAny(src, Space) }
+func Spaced(src ...any) string { return JoinAny(src, ` `) }
 
 /*
 Converts arguments to strings and joins the results with a single space,
@@ -177,7 +177,7 @@ ignoring empty strings. See `StringCatch` for the encoding rules. Also see
 `JoinSpacedOpt` for a more limited but more efficient version that doesn't
 involve `any`.
 */
-func SpacedOpt(src ...any) string { return JoinAnyOpt(src, Space) }
+func SpacedOpt(src ...any) string { return JoinAnyOpt(src, ` `) }
 
 /*
 Similar to `strings.Join` but takes `[]any`, converting elements to strings. See
@@ -238,16 +238,16 @@ func JoinAnyOpt(src []any, sep string) string {
 func JoinDense[A Text](val ...A) string { return Join(val, ``) }
 
 // Joins the given strings with a space.
-func JoinSpaced[A Text](val ...A) string { return Join(val, Space) }
+func JoinSpaced[A Text](val ...A) string { return Join(val, ` `) }
 
 // Joins non-empty strings with a space.
-func JoinSpacedOpt[A Text](val ...A) string { return JoinOpt(val, Space) }
+func JoinSpacedOpt[A Text](val ...A) string { return JoinOpt(val, ` `) }
 
 // Joins the given strings with newlines.
-func JoinLines[A Text](val ...A) string { return Join(val, Newline) }
+func JoinLines[A Text](val ...A) string { return Join(val, "\n") }
 
 // Joins non-empty strings with newlines.
-func JoinLinesOpt[A Text](val ...A) string { return JoinOpt(val, Newline) }
+func JoinLinesOpt[A Text](val ...A) string { return JoinOpt(val, "\n") }
 
 /*
 Similar to `strings.Join` but works on any input compatible with the `Text`
@@ -291,7 +291,7 @@ func JoinOpt[A Text](src []A, sep string) string {
 		for _, src := range src {
 			wid := len(src)
 			if wid > 0 {
-				size = size + wid + len(sep)
+				size += wid + len(sep)
 			}
 		}
 
@@ -315,8 +315,8 @@ func JoinOpt[A Text](src []A, sep string) string {
 /*
 Similar to `strings.Split` and `bytes.Split`. Differences:
 
-	* Supports all text types.
-	* Returns nil for empty input.
+  - Supports all text types.
+  - Returns nil for empty input.
 */
 func Split[A Text](src, sep A) []A {
 	if len(src) <= 0 {
@@ -454,14 +454,14 @@ func HasNewlineSuffix[A Text](src A) bool {
 
 /*
 If the given text is non-empty and does not end with a newline character,
-appends `Newline` and returns the result. Otherwise returns the text unchanged.
+appends a newline and returns the result. Otherwise returns the text unchanged.
 If the input type is a typedef of `[]byte` and has enough capacity, it's
 mutated. In other cases, the text is reallocated. Also see
 `Buf.AppendNewlineOpt` and `Strln`.
 */
 func AppendNewlineOpt[A Text](val A) A {
 	if len(val) > 0 && !HasNewlineSuffix(val) {
-		return ToText[A](append([]byte(val), Newline...))
+		return ToText[A](append([]byte(val), '\n'))
 	}
 	return val
 }

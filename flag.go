@@ -7,7 +7,7 @@ import (
 
 /*
 Parses CLI flags into an instance of the given type, which must be a struct.
-For parsing rules, see `FlagParser`.
+For the parsing rules, see `FlagParser`.
 */
 func FlagParseTo[A any](src []string) (out A) {
 	FlagParse(src, &out)
@@ -16,7 +16,7 @@ func FlagParseTo[A any](src []string) (out A) {
 
 /*
 Parses CLI flags into the given value, which must be a struct.
-Panics on error. For parsing rules, see `FlagParser`.
+Panics on error. For the parsing rules, see `FlagParser`.
 */
 func FlagParse[A any](src []string, out *A) {
 	if out != nil {
@@ -26,7 +26,7 @@ func FlagParse[A any](src []string, out *A) {
 
 /*
 Parses CLI flags into the given value, which must be a struct.
-For parsing rules, see `FlagParser`.
+For the parsing rules, see `FlagParser`.
 */
 func FlagParseCatch[A any](src []string, out *A) (err error) {
 	defer Rec(&err)
@@ -36,7 +36,7 @@ func FlagParseCatch[A any](src []string, out *A) (err error) {
 
 /*
 Parses CLI flags into the given output, which must be a settable struct value.
-For parsing rules, see `FlagParser`.
+For the parsing rules, see `FlagParser`.
 */
 func FlagParseReflect(src []string, out r.Value) {
 	if !out.IsValid() {
@@ -77,24 +77,24 @@ standard library package "flag". Example:
 
 Supported struct tags:
 
-	* `flag`: must be "" or a valid flag like "-v" or "--verbose".
-	  Fields without the `flag` tag are ignored. Flags must be unique.
-	* Field with `flag:""` is used for remaining non-flag args.
-	  It must have a type convertible to `[]string`.
-	* `init`: initial value. Used if the flag was not provided.
-	* `desc`: description. Used for help printing.
+  - `flag`: must be "" or a valid flag like "-v" or "--verbose".
+    Fields without the `flag` tag are ignored. Flags must be unique.
+  - Field with `flag:""` is used for remaining non-flag args.
+    It must have a type convertible to `[]string`.
+  - `init`: initial value. Used if the flag was not provided.
+  - `desc`: description. Used for help printing.
 
 Parsing rules:
 
-	* Supports all primitive types.
-	* Supports slices of arbitrary types.
-	* Supports `gg.Parser`.
-	* Supports `encoding.TextUnmarshaler`.
-	* Supports `flag.Value`.
-	* Each flag may be listed multiple times.
-		* If the target is a parser, invoke its parsing method.
-		* If the target is a scalar, replace the old value with the new value.
-		* If the target is a slice, append the new value.
+  - Supports all primitive types.
+  - Supports slices of arbitrary types.
+  - Supports `gg.Parser`.
+  - Supports `encoding.TextUnmarshaler`.
+  - Supports `flag.Value`.
+  - Each flag may be listed multiple times.
+  - If the target is a parser, invoke its parsing method.
+  - If the target is a scalar, replace the old value with the new value.
+  - If the target is a slice, append the new value.
 */
 type FlagParser struct {
 	Tar r.Value
@@ -428,7 +428,6 @@ func (self FlagFmt) AppendTo(src []byte, def FlagDef) []byte {
 
 	prefixLen := CharCount(self.Prefix)
 	sepLen := CharCount(self.Infix)
-	newlineLen := CharCount(Newline)
 	flagLen := MaxPrimBy(flags, FlagDefField.GetFlagLen)
 
 	var flagHeadLen int
@@ -471,6 +470,7 @@ func (self FlagFmt) AppendTo(src []byte, def FlagDef) []byte {
 		descLenOuter = sepLen + descLen
 	}
 
+	const newlineLen = 1
 	rowLenInner := prefixLen + flagLen + initLenOuter + descLenOuter
 	rowLen := rowLenInner + newlineLen
 	headUnderLen := CharCount(self.HeadUnder)
@@ -500,12 +500,12 @@ func (self FlagFmt) AppendTo(src []byte, def FlagDef) []byte {
 			buf.AppendString(self.DescHead)
 		}
 
-		buf.AppendString(Newline)
+		buf.AppendNewline()
 
 		if rowLenInner > 0 && headUnderLen > 0 {
 			buf.AppendString(self.Prefix)
 			buf.AppendStringN(self.HeadUnder, rowLenInner/headUnderLen)
-			buf.AppendString(Newline)
+			buf.AppendNewline()
 		}
 	}
 
@@ -529,7 +529,7 @@ func (self FlagFmt) AppendTo(src []byte, def FlagDef) []byte {
 			buf.AppendString(self.Infix)
 			buf.AppendString(field.Desc)
 		}
-		buf.AppendString(Newline)
+		buf.AppendNewline()
 	}
 
 	return buf

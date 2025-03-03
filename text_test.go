@@ -1,6 +1,7 @@
 package gg_test
 
 import (
+	"fmt"
 	"math"
 	"regexp"
 	"strings"
@@ -638,6 +639,18 @@ func BenchmarkStr_2(b *testing.B) {
 func BenchmarkStr_3(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		gg.Str(`one`, `two`, `three`)
+	}
+}
+
+func BenchmarkStr_3_JoinDense(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		gg.JoinDense(`one`, `two`, `three`)
+	}
+}
+
+func BenchmarkStr_3_fmt_Sprint(b *testing.B) {
+	for ind := 0; ind < b.N; ind++ {
+		fmt.Sprint(`one`, `two`, `three`)
 	}
 }
 

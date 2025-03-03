@@ -9,17 +9,22 @@ import (
 	"github.com/mitranim/gg"
 )
 
+/*
+TODO:
+  - Properly support multiple delimiter types: braces, parens, quotes.
+  - Decode recursively to any level.
+*/
 func popSqlArrSegment(ptr *string) string {
 	var lvl int
 	src := *ptr
 
 	for ind, char := range src {
-		if char == '{' {
+		if char == '{' || char == '"' {
 			lvl++
 			continue
 		}
 
-		if char == '}' {
+		if char == '}' || char == '"' {
 			lvl--
 			if lvl < 0 {
 				panic(gg.ErrInvalidInput)
@@ -200,10 +205,13 @@ func scanValsReflect[Src Rows](src Src, tar r.Value) {
 	gg.ErrOk(src)
 }
 
-func scanValReflect[Src Rows](src Src, tar r.Value) {
+func scanValReflect[Src Rows](src Src, tar r.Value, strict bool) {
 	defer gg.Close(src)
 
 	if !src.Next() {
+		if !strict {
+			return
+		}
 		panic(gg.AnyErrTraced(sql.ErrNoRows))
 	}
 

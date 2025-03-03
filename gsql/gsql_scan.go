@@ -82,7 +82,31 @@ func ScanReflect[Src Rows](src Src, out r.Value) {
 	if tar.Kind() == r.Slice {
 		scanValsReflect(src, tar)
 	} else {
-		scanValReflect(src, tar)
+		scanValReflect(src, tar, true)
+	}
+
+	if iface.CanSet() {
+		iface.Set(tar.Convert(iface.Type()))
+	}
+}
+
+/*
+Similar to `ScanAny`, but when scanning into a single value (not a slice),
+doesn't panic if there are zero rows, leaving the destination unchanged.
+When scanning into a slice, behaves exactly like `ScanAny`.
+*/
+func ScanAnyOpt[Src Rows](src Src, out any) {
+	ScanReflectOpt(src, r.ValueOf(out))
+}
+
+// Variant of `ScanAnyOpt` that takes `reflect.Value` rather than `any`.
+func ScanReflectOpt[Src Rows](src Src, out r.Value) {
+	tar, iface := derefAlloc(out)
+
+	if tar.Kind() == r.Slice {
+		scanValsReflect(src, tar)
+	} else {
+		scanValReflect(src, tar, false)
 	}
 
 	if iface.CanSet() {

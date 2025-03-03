@@ -716,22 +716,15 @@ func (self *Fmt) typeString(typ r.Type) string {
 	return self.elidePkg(typeString(typ))
 }
 
-/*
-Known issue: this works only for `pkg.ident` but not for `[]pkg.ident`,
-`map[pkg.ident]pkg.ident`, `func(pkg.ident)`, and so on. We should either
-implement proper rewriting that works in all cases, or remove this feature.
-*/
 func (self *Fmt) elidePkg(src string) string {
 	pkg := self.Pkg
 	if pkg == `` {
 		return src
 	}
-
-	tar := strings.TrimPrefix(src, pkg)
-	if len(src) != len(tar) && len(tar) > 0 && tar[0] == '.' {
-		return tar[1:]
+	if self.PkgReg == nil {
+		self.PkgReg = regexp.MustCompile(`\b` + self.Pkg + `[.]`)
 	}
-	return src
+	return self.PkgReg.ReplaceAllLiteralString(src, ``)
 }
 
 func typeString(typ r.Type) string { return string(typeStringCache.Get(typ)) }

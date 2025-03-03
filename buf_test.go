@@ -91,34 +91,34 @@ func TestBuf_AppendAnysln(t *testing.T) {
 
 	{
 		var buf gg.Buf
-		buf.AppendAnysln(`one`, `two`+gg.Newline)
-		gtest.Str(buf, `onetwo`+gg.Newline)
+		buf.AppendAnysln(`one`, `two`+"\n")
+		gtest.Str(buf, `onetwo`+"\n")
 	}
 
 	{
 		var buf gg.Buf
-		buf.AppendAnysln(`one`+gg.Newline, `two`+gg.Newline)
-		gtest.Str(buf, `one`+gg.Newline+`two`+gg.Newline)
+		buf.AppendAnysln(`one`+"\n", `two`+"\n")
+		gtest.Str(buf, `one`+"\n"+`two`+"\n")
 	}
 
 	{
 		var buf gg.Buf
-		buf.AppendAnysln(`one`+gg.Newline, `two`)
-		gtest.Str(buf, `one`+gg.Newline+`two`+gg.Newline)
+		buf.AppendAnysln(`one`+"\n", `two`)
+		gtest.Str(buf, `one`+"\n"+`two`+"\n")
 	}
 
 	{
 		var buf gg.Buf
 		buf.AppendAnysln(`one`)
-		gtest.Str(buf, `one`+gg.Newline)
+		gtest.Str(buf, `one`+"\n")
 
 		buf.AppendAnysln()
-		gtest.Str(buf, `one`+gg.Newline+gg.Newline)
+		gtest.Str(buf, `one`+"\n\n")
 
 		buf.AppendAnysln(`two`)
-		gtest.Str(buf, `one`+gg.Newline+gg.Newline+`two`+gg.Newline)
+		gtest.Str(buf, `one`+"\n\n"+`two`+"\n")
 
 		buf.AppendAnysln()
-		gtest.Str(buf, `one`+gg.Newline+gg.Newline+`two`+gg.Newline+gg.Newline)
+		gtest.Str(buf, `one`+"\n\n"+`two`+"\n\n")
 	}
 }

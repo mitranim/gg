@@ -11,6 +11,56 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
+func Test_num_parse(t *testing.T) {
+	defer gtest.Catch(t)
+
+	test := func(src rune, expNum byte, expBool bool) {
+		outNum, outBool := undigit(src)
+		gtest.Eq(outNum, expNum)
+		gtest.Eq(outBool, expBool)
+	}
+
+	gtest.Eq('0'-1, 47)
+	gtest.Eq('0', 48)
+	gtest.Eq('1', 49)
+	gtest.Eq('2', 50)
+	gtest.Eq('3', 51)
+	gtest.Eq('4', 52)
+	gtest.Eq('5', 53)
+	gtest.Eq('6', 54)
+	gtest.Eq('7', 55)
+	gtest.Eq('8', 56)
+	gtest.Eq('9', 57)
+	gtest.Eq('9'+1, 58)
+
+	test('P', 0, false)
+	test('I', 0, false)
+	test('D', 0, false)
+	test(' ', 0, false)
+	test('\n', 0, false)
+
+	test('0'-1, 0, false)
+	test('0', 0, true)
+	test('1', 1, true)
+	test('2', 2, true)
+	test('3', 3, true)
+	test('4', 4, true)
+	test('5', 5, true)
+	test('6', 6, true)
+	test('7', 7, true)
+	test('8', 8, true)
+	test('9', 9, true)
+	test('9'+1, 0, false)
+}
+
+func undigit(src rune) (byte, bool) {
+	src -= '0'
+	if src >= 0 && src <= 9 {
+		return byte(src), true
+	}
+	return 0, false
+}
+
 func TestZero(t *testing.T) {
 	defer gtest.Catch(t)
 

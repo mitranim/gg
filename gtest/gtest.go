@@ -32,7 +32,7 @@ with a stack trace.
 func (self VerbErr) String() string {
 	var buf gg.Buf
 	buf = self.Err.AppendStackTo(buf)
-	buf.AppendString(gg.Newline)
+	buf.AppendNewlineOpt()
 	return buf.String()
 }
 
@@ -544,8 +544,8 @@ func HasSome[A ~[]B, B comparable](src, exp A, opt ...any) {
 }
 
 /*
-Asserts that the first slice does not contain any from the second slice. In
-other words, asserts that the element sets are disjoint. Otherwise fails the
+Asserts that the first slice does not contain any elements from the second slice.
+In other words, asserts that the element sets are disjoint. Otherwise fails the
 test, printing the optional additional messages and the stack trace.
 */
 func HasNone[A ~[]B, B comparable](src, exp A, opt ...any) {

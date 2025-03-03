@@ -346,6 +346,15 @@ func (self Errs) HasErr() bool {
 // First non-nil error.
 func (self Errs) First() error { return Find(self, IsErrNotNil) }
 
+// Appends non-nil errors, ignoring nils.
+func (self *Errs) Add(src ...error) {
+	for _, src := range src {
+		if src != nil {
+			*self = append(*self, src)
+		}
+	}
+}
+
 // Returns an error message. Same as `.Error`.
 func (self Errs) String() string {
 	err, count := self.find()
@@ -492,6 +501,12 @@ func (self ErrStr) Error() string { return string(self) }
 
 // Implement `fmt.Stringer`.
 func (self ErrStr) String() string { return string(self) }
+
+// Implement a hidden interface for compatibility with `"errors".Is`.
+func (self ErrStr) Is(err error) bool {
+	tar, ok := err.(ErrStr)
+	return ok && self == tar
+}
 
 // Self-explanatory.
 func IsErrNil(val error) bool { return val == nil }

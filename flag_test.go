@@ -119,7 +119,7 @@ func TestFlagDef(t *testing.T) {
 func TestFlagHelp(t *testing.T) {
 	defer gtest.Catch(t)
 
-	testFlagHelp[SomeModel](gg.Newline)
+	testFlagHelp[SomeModel]("\n")
 
 	testFlagHelp[Flags](`
 flag
@@ -230,7 +230,7 @@ flag    init     desc
 
 func testFlagHelp[A any](exp string) {
 	gtest.Eq(
-		trimLines(gg.Newline+gg.FlagHelp[A]()),
+		trimLines("\n"+gg.FlagHelp[A]()),
 		trimLines(exp),
 	)
 }

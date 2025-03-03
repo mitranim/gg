@@ -8,8 +8,8 @@ import (
 )
 
 /*
-Short for "buffer". Simpler, cleaner, more usable alternative to
-`strings.Builder` and `bytes.Buffer`.
+Short for "buffer". Simpler, cleaner, more usable alternative
+to `strings.Builder` and `bytes.Buffer`.
 */
 type Buf []byte
 
@@ -105,8 +105,8 @@ func (self *Buf) AppendByteN(val byte, count int) {
 	}
 }
 
-// Appends `Newline`. Mutates the receiver.
-func (self *Buf) AppendNewline() { self.AppendString(Newline) }
+// Appends a newline. Mutates the receiver.
+func (self *Buf) AppendNewline() { self.AppendByte('\n') }
 
 /*
 If the buffer is non-empty and doesn't end with a newline, appends a newline.
@@ -118,8 +118,8 @@ func (self *Buf) AppendNewlineOpt() {
 	}
 }
 
-// Appends `Newline` N times. Mutates the receiver.
-func (self *Buf) AppendNewlines(count int) { self.AppendStringN(Newline, count) }
+// Appends a newline N times. Mutates the receiver.
+func (self *Buf) AppendNewlines(count int) { self.AppendByteN('\n', count) }
 
 /*
 Appends text representation of the numeric value of the given byte in base 16.

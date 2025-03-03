@@ -1,6 +1,8 @@
 package gg
 
-import "os"
+import (
+	"os"
+)
 
 /*
 If the error is nil, returns void. If the error is non-nil, panics with that
@@ -480,7 +482,10 @@ easier to read trace. See our types `Err` and `Trace`. Usage example:
 func Fatal() {
 	val := recover()
 	if val != nil {
-		Nop2(os.Stderr.Write(AnyToErrTracedAt(val, 1).AppendStackTo(nil)))
+		var buf Buf
+		buf = AnyToErrTracedAt(val, 1).AppendStackTo(buf)
+		buf.AppendNewline()
+		Nop2(os.Stderr.Write(buf))
 		os.Exit(1)
 	}
 }

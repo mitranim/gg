@@ -9,6 +9,7 @@ package grepr
 import (
 	"fmt"
 	r "reflect"
+	"regexp"
 	u "unsafe"
 
 	"github.com/mitranim/gg"
@@ -23,10 +24,10 @@ var ConfFull = Conf{Indent: gg.Indent, ZeroFields: true}
 /*
 Formatting config.
 
-	* `.Indent` controls indentation. If empty, output is single line.
-	* `.ZeroFields`, if set, forces printing of zero fields in structs.
-		By default zero fields are skipped.
-	* `.Pkg`, if set, indicates the package name to strip from type names.
+  - `.Indent` controls indentation. If empty, output is single line.
+  - `.ZeroFields`, if set, forces printing of zero fields in structs.
+    By default zero fields are skipped.
+  - `.Pkg`, if set, indicates the package name to strip from type names.
 */
 type Conf struct {
 	Indent     string
@@ -60,6 +61,7 @@ type Fmt struct {
 	Lvl       int
 	ElideType bool
 	Visited   gg.Set[u.Pointer]
+	PkgReg    *regexp.Regexp
 }
 
 /*

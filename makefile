@@ -1,5 +1,5 @@
 MAKEFLAGS := --silent --always-make
-MAKE_CONC := $(MAKE) -j 128 -f $(lastword $(MAKEFILE_LIST)) clear=$(or $(clear),false)
+MAKE_CONC := $(MAKE) -j 128 CONF=true clear=$(or $(clear),false)
 GO_FLAGS := -tags=$(tags) -mod=mod
 VERB := $(if $(filter true,$(verb)),-v,)
 FAIL := $(if $(filter false,$(fail)),,-failfast)

@@ -354,15 +354,38 @@ func TestErrStr(t *testing.T) {
 	wrap0 := gg.Wrapf(err0, `wrap0`)
 	wrap1 := gg.Wrapf(err1, `wrap1`)
 
+	// Different error values should not be equal
 	gtest.False(errors.Is(err0, err1))
 	gtest.False(errors.Is(err1, err0))
 	gtest.False(errors.Is(wrap0, err1))
 	gtest.False(errors.Is(wrap1, err0))
 
+	// Same error values should be equal
 	gtest.True(errors.Is(err0, err0))
 	gtest.True(errors.Is(err1, err1))
 	gtest.True(errors.Is(wrap0, err0))
 	gtest.True(errors.Is(wrap1, err1))
+
+	// Test ErrStr Is method directly
+	t.Run(`ErrStr_Is_method`, func(t *testing.T) {
+		defer gtest.Catch(t)
+
+		// Same ErrStr values
+		gtest.True(err0.Is(err0))
+		gtest.True(err1.Is(err1))
+
+		// Different ErrStr values
+		gtest.False(err0.Is(err1))
+		gtest.False(err1.Is(err0))
+
+		// Non-ErrStr error values
+		gtest.False(err0.Is(io.EOF))
+		gtest.False(err0.Is(gg.Err{Msg: string(err0)}))
+		gtest.False(err0.Is(fmt.Errorf(string(err0))))
+
+		// String that matches but different type
+		gtest.False(err0.Is(errors.New(string(err0))))
+	})
 }
 
 func TestWrapf(t *testing.T) {

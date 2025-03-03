@@ -40,6 +40,10 @@ type LogTime struct {
 Logs the beginning of the activity denoted by `.Msg`:
 
 	[some_activity] starting
+
+Note that when logging start AND end, the time spent in `.LogStart` is
+unavoidably included into the difference. If you want precise timing,
+avoid logging the start.
 */
 func (self LogTime) LogStart() LogTime {
 	fmt.Fprintf(os.Stderr, "[%v] starting\n", self.Msg)

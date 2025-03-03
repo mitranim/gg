@@ -141,6 +141,17 @@ func WriteFile[A Text](path string, body A) {
 }
 
 /*
+A hugely more expensive version of `WriteFile` using `(*os.File).Sync`.
+Only when fsync is essential and you have an actual problem solved by this.
+*/
+func WriteFileFsync[A Text](path string, body A) {
+	file := Try1(os.Create(path))
+	defer Close(file)
+	Write(file, body)
+	Try(file.Sync())
+}
+
+/*
 Fully reads the given stream via `io.ReadAll` and returns two "forks". If
 reading fails, panics. If the input is nil, both outputs are nil.
 */

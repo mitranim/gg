@@ -5,11 +5,7 @@ import (
 	"database/sql/driver"
 )
 
-var (
-	Indent  = `    `
-	Space   = ` `
-	Newline = "\n"
-)
+var Indent = `    `
 
 // Does nothing.
 func Nop() {}

@@ -5,41 +5,69 @@ import (
 	r "reflect"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/mitranim/gg"
 )
 
-/*
-TODO:
-  - Properly support multiple delimiter types: braces, parens, quotes.
-  - Decode recursively to any level.
-*/
 func popSqlArrSegment(ptr *string) string {
-	var lvl int
+	if ptr == nil {
+		return ``
+	}
 	src := *ptr
+	end, off := sqlArrAdvance(*ptr)
+	*ptr = src[end+off:]
+	return src[:end]
+}
 
-	for ind, char := range src {
-		if char == '{' || char == '"' {
-			lvl++
-			continue
-		}
-
-		if char == '}' || char == '"' {
-			lvl--
-			if lvl < 0 {
-				panic(gg.ErrInvalidInput)
-			}
-			continue
-		}
-
-		if char == ',' && lvl == 0 {
-			*ptr = src[ind+1:]
-			return src[:ind]
-		}
+// TODO make properly recursive.
+func sqlArrAdvance(src string) (int, int) {
+	if len(src) <= 0 {
+		return 0, 0
+	}
+	if src[0] == '{' {
+		return sqlArrAdvanceUntil(src, 1, '}')
+	}
+	if src[0] == '(' {
+		return sqlArrAdvanceUntil(src, 1, ')')
+	}
+	if src[0] == '[' {
+		return sqlArrAdvanceUntil(src, 1, ']')
+	}
+	if src[0] == '"' {
+		return sqlArrAdvanceUntil(src, 1, '"')
+	}
+	if src[0] == '\'' {
+		return sqlArrAdvanceUntil(src, 1, '\'')
 	}
 
-	*ptr = ``
-	return src
+	for ind, char := range src {
+		if char == ',' {
+			return ind, 1
+		}
+	}
+	return len(src), 0
+}
+
+func sqlArrAdvanceUntil(src string, start int, delim rune) (int, int) {
+	for ind, char := range src[start:] {
+		if char != delim {
+			continue
+		}
+
+		ind += start
+		var off int
+		size := gg.MaxPrim2(0, utf8.RuneLen(delim))
+
+		rem := src[ind+size:]
+		if len(rem) > 0 && rem[0] == ',' {
+			off = 1
+		}
+
+		return ind + size, off
+	}
+
+	panic(gg.Errf(`expected closing delimiter %q, got end of input`, delim))
 }
 
 func typeReferenceField(typ r.Type) (_ r.StructField, _ bool) {

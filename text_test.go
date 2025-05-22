@@ -650,7 +650,7 @@ func BenchmarkStr_3_JoinDense(b *testing.B) {
 
 func BenchmarkStr_3_fmt_Sprint(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		fmt.Sprint(`one`, `two`, `three`)
+		_ = fmt.Sprint(`one`, `two`, `three`)
 	}
 }
 

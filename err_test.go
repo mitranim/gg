@@ -381,6 +381,8 @@ func TestErrStr(t *testing.T) {
 		// Non-ErrStr error values
 		gtest.False(err0.Is(io.EOF))
 		gtest.False(err0.Is(gg.Err{Msg: string(err0)}))
+
+		// nolint typecheck
 		gtest.False(err0.Is(fmt.Errorf(string(err0))))
 
 		// String that matches but different type

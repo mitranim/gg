@@ -41,6 +41,9 @@ func TestArr(t *testing.T) {
 		testParser(`{10,20,30}`, gsql.Arr[int]{10, 20, 30})
 		testParser(`{{},{}}`, gsql.Arr[gsql.Arr[int]]{{}, {}})
 		testParser(`{{10},{20},{30,40}}`, gsql.Arr[gsql.Arr[int]]{{10}, {20}, {30, 40}})
+		testParser(`{"10","20","30"}`, gsql.Arr[string]{`"10"`, `"20"`, `"30"`})
+		testParser(`{("10","20"),("30","40")}`, gsql.Arr[string]{`("10","20")`, `("30","40")`})
+		testParser(`{"(10,20)","(30,40)"}`, gsql.Arr[string]{`"(10,20)"`, `"(30,40)"`})
 	})
 }
 

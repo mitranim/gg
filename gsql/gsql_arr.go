@@ -91,7 +91,9 @@ func (self *Arr[A]) Parse(src string) (err error) {
 	src = src[1 : len(src)-1]
 
 	for len(src) > 0 {
-		gg.Append(self, gg.ParseTo[A](popSqlArrSegment(&src)))
+		end, size := popSqlArrSegment(src, 0, 0, ',')
+		gg.Append(self, gg.ParseTo[A](unquoteOpt(src[:end])))
+		src = src[end+size:]
 	}
 	return nil
 }

@@ -10,64 +10,63 @@ import (
 	"github.com/mitranim/gg"
 )
 
-func popSqlArrSegment(ptr *string) string {
-	if ptr == nil {
-		return ``
-	}
-	src := *ptr
-	end, off := sqlArrAdvance(*ptr)
-	*ptr = src[end+off:]
-	return src[:end]
+var sqlArrDelims = map[rune]rune{
+	'(':  ')',
+	'[':  ']',
+	'{':  '}',
+	'"':  '"',
+	'\'': '\'',
 }
 
-// TODO make properly recursive.
-func sqlArrAdvance(src string) (int, int) {
+func popSqlArrSegment(src string, pos int, expBackslash uint, delim rune) (int, int) {
 	if len(src) <= 0 {
 		return 0, 0
 	}
-	if src[0] == '{' {
-		return sqlArrAdvanceUntil(src, 1, '}')
-	}
-	if src[0] == '(' {
-		return sqlArrAdvanceUntil(src, 1, ')')
-	}
-	if src[0] == '[' {
-		return sqlArrAdvanceUntil(src, 1, ']')
-	}
-	if src[0] == '"' {
-		return sqlArrAdvanceUntil(src, 1, '"')
-	}
-	if src[0] == '\'' {
-		return sqlArrAdvanceUntil(src, 1, '\'')
-	}
 
-	for ind, char := range src {
-		if char == ',' {
-			return ind, 1
+	var backslash uint
+
+	for pos < len(src) {
+		char, size := utf8.DecodeRuneInString(src[pos:])
+		if size <= 0 {
+			panic(gg.ErrInvalidInput)
 		}
-	}
-	return len(src), 0
-}
 
-func sqlArrAdvanceUntil(src string, start int, delim rune) (int, int) {
-	for ind, char := range src[start:] {
-		if char != delim {
+		if char == '\\' {
+			backslash++
+			pos += size
 			continue
 		}
 
-		ind += start
-		var off int
-		size := gg.MaxPrim2(0, utf8.RuneLen(delim))
-
-		rem := src[ind+size:]
-		if len(rem) > 0 && rem[0] == ',' {
-			off = 1
+		if char == delim && backslash <= expBackslash {
+			return pos, size
 		}
 
-		return ind + size, off
+		slash := backslash
+		backslash = 0
+
+		closer, ok := sqlArrDelims[char]
+		if ok {
+			pos += size
+			pos, size = popSqlArrSegment(src, pos, slash, closer)
+			pos += size
+			continue
+		}
+
+		pos += size
 	}
 
-	panic(gg.Errf(`expected closing delimiter %q, got end of input`, delim))
+	return pos, 0
+}
+
+/*
+Makes our parsing suboptimal.
+TODO unquote on the fly as we parse.
+*/
+func unquoteOpt(src string) string {
+	if len(src) > 0 && src[0] == '"' {
+		return gg.JsonDecodeTo[string](src)
+	}
+	return src
 }
 
 func typeReferenceField(typ r.Type) (_ r.StructField, _ bool) {

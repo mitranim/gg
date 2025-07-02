@@ -328,7 +328,7 @@ func TestFlagParseTo(t *testing.T) {
 		test(Src{{`-ss=one`, `-ss=`, `-ss=two`}, {`one`, ``, `two`}})
 	})
 
-	var boolInvalid = []string{
+	boolInvalid := []string{
 		` `, `FALSE`, `TRUE`, `0`, `1`, `123`, `false `, `true `, ` false`, ` true`,
 	}
 
@@ -397,7 +397,7 @@ func TestFlagParseTo(t *testing.T) {
 		test([]string{`-bs=false`, `arg`, `-bs`}, []bool{false})
 	})
 
-	var numInvalid = []string{` `, `false`, `true`, `±1`, ` 1 `, `1a`, `a1`}
+	numInvalid := []string{` `, `false`, `true`, `±1`, ` 1 `, `1a`, `a1`}
 
 	t.Run(`num_scalar`, func(t *testing.T) {
 		defer gtest.Catch(t)

@@ -795,52 +795,48 @@ func derefIface(val r.Value) r.Value {
 	return val
 }
 
-func textPrintability[A gg.Text](src A) (out printability) {
-	out.init(gg.ToString(src))
-	return
-}
-
 type printability struct {
 	errors, lineFeeds, carriageReturns, backquotes, escapes, unprintables bool
 }
 
-func (self *printability) init(src string) {
-	for _, val := range src {
+func textPrintability[A gg.Text](src A) (out printability) {
+	for _, val := range gg.ToString(src) {
 		/**
 		`unicode.IsPrint` uses `unicode.S` which includes `utf8.RuneError`.
 		As a result, it considers error runes printable, which is wildly
 		inappropriate for our purposes. So we have to handle it separately.
 		*/
 		if val == utf8.RuneError {
-			self.errors = true
+			out.errors = true
 			return
 		}
 
 		if val == '\n' {
-			self.lineFeeds = true
+			out.lineFeeds = true
 			continue
 		}
 
 		if val == '\r' {
-			self.carriageReturns = true
+			out.carriageReturns = true
 			continue
 		}
 
 		if val == '`' {
-			self.backquotes = true
+			out.backquotes = true
 			continue
 		}
 
 		if int(val) < len(stringEsc) && stringEsc[byte(val)] {
-			self.escapes = true
+			out.escapes = true
 			continue
 		}
 
 		if !unicode.IsPrint(val) {
-			self.unprintables = true
+			out.unprintables = true
 			return
 		}
 	}
+	return
 }
 
 // https://go.dev/ref/spec#String_literals

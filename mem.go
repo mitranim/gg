@@ -155,6 +155,11 @@ func isExpired(inst time.Time, dur time.Duration) bool {
 /*
 Implements `Durationer` by returning `time.Second`. This type is zero-sized, and
 can be embedded in other types, like a mixin, at no additional cost.
+
+When embedding a zero-sized type, prefer to place it at the beginning of a
+struct, or at least avoid placing it at the end. Otherwise it may add padding.
+See https://dave.cheney.net/2015/10/09/padding-is-hard. Last tested in Go 1.25.
+This may or may not change in future Go versions.
 */
 type DurSecond struct{}
 

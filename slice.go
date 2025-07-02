@@ -15,27 +15,11 @@ func ToSlice[A any](val ...A) []A { return val }
 
 /*
 Syntactic shortcut for making `Slice[A]` out of the given values. Can also be
-used to perform a free type conversion from an existing slice, with no
-allocation. Also see `ToSlice` which returns `[]A` rather than `Slice[A]`.
+used to type-convert an existing slice to `Slice` without having to specify the
+element type; the conversion is free. Also see `ToSlice` which returns `[]A`
+rather than `Slice[A]`.
 */
 func SliceOf[A any](val ...A) Slice[A] { return Slice[A](val) }
-
-/*
-Shortcut for converting an arbitrary number of slices to `Slice[Elem]`. When
-called with exactly one argument, this performs a free type conversion without
-an allocation. When called with 2 or more arguments, this concatenates the
-inputs, allocating a new slice.
-*/
-func SliceFrom[Src ~[]Elem, Elem any](src ...Src) Slice[Elem] {
-	switch len(src) {
-	case 0:
-		return nil
-	case 1:
-		return Slice[Elem](src[0])
-	default:
-		return Slice[Elem](Concat(src...))
-	}
-}
 
 /*
 Typedef of an arbitrary slice with various methods that duplicate global slice
@@ -101,7 +85,7 @@ func CapMissing[Slice ~[]Elem, Elem any](src Slice, size int) int {
 func (self Slice[_]) CapMissing(size int) int { return CapMissing(self, size) }
 
 // Counts the total length of the given slices.
-func Lens[Slice ~[]Elem, Elem any](val ...Slice) int { return Sum(val, Len[Slice]) }
+func Lens[Slice ~[]Elem, Elem any](val ...Slice) int { return SumBy(val, Len[Slice]) }
 
 // Grows the length of the given slice by appending N zero values.
 func GrowLen[Slice ~[]Elem, Elem any](src Slice, size int) Slice {
@@ -274,8 +258,9 @@ Returns a shallow copy of the given slice. The capacity of the resulting slice
 is equal to its length.
 */
 func Clone[Slice ~[]Elem, Elem any](src Slice) Slice {
-	if src == nil {
-		return nil
+	// SYNC[slice_cloning].
+	if cap(src) <= 0 {
+		return src
 	}
 
 	out := make(Slice, len(src))
@@ -715,10 +700,16 @@ func MaxBy[Src any, Out Lesser[Out]](src []Src, fun func(Src) Out) Out {
 }
 
 /*
+Returns the result of adding all slice elements via `+`. Elements can be numbers
+or strings. Also see [Plus] for a variadic equivalent.
+*/
+func Sum[A Plusable](src []A) A { return Foldz(src, Plus2[A]) }
+
+/*
 Calls the given function on each element of the given slice and returns the sum
 of all results, combined via `+`.
 */
-func Sum[Src any, Out Plusable](src []Src, fun func(Src) Out) Out {
+func SumBy[Src any, Out Plusable](src []Src, fun func(Src) Out) Out {
 	if fun == nil {
 		return Zero[Out]()
 	}

@@ -43,10 +43,10 @@ file in the same directory. Example import annotations:
 
 Current limitations:
 
-	* Annotations are non-customizable.
-	* No support for relative paths. Imports must refer to files by base names.
-	* No support for `fs.FS` or other ways to customize reading.
-	  Always uses the OS filesystem.
+  - Annotations are non-customizable.
+  - No support for relative paths. Imports must refer to files by base names.
+  - No support for `fs.FS` or other ways to customize reading.
+    Always uses the OS filesystem.
 */
 type GraphDir struct {
 	Path  string
@@ -213,10 +213,10 @@ func isBaseName(val string) bool { return filepath.Base(val) == val }
 /*
 Features:
 
-	* Determines valid execution order.
+  - Determines valid execution order.
 
-	* Forbids cycles. In other words, ensures that our graph is a "multitree".
-	  See https://en.wikipedia.org/wiki/Multitree.
+  - Forbids cycles. In other words, ensures that our graph is a "multitree".
+    See https://en.wikipedia.org/wiki/Multitree.
 */
 type graphWalk struct {
 	Dir   *GraphDir

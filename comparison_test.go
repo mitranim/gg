@@ -244,8 +244,8 @@ func TestIs(t *testing.T) {
 	gtest.True(gg.Is[any](10, 10))
 	gtest.False(gg.Is[any](10, 20))
 
-	var one int = 10
-	var two int = 10
+	one := 10
+	two := 10
 	gtest.True(gg.Is(one, one))
 	gtest.True(gg.Is(one, two))
 	gtest.True(gg.Is(&one, &one))

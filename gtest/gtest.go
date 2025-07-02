@@ -31,7 +31,7 @@ with a stack trace.
 */
 func (self VerbErr) String() string {
 	var buf gg.Buf
-	buf = self.Err.AppendStackTo(buf)
+	buf = self.AppendStackTo(buf)
 	buf.AppendNewlineOpt()
 	return buf.String()
 }
@@ -724,7 +724,22 @@ func NotEmpty[A ~[]B, B any](src A, opt ...any) {
 }
 
 /*
-Asserts that the given slice is not empty, or fails the test, printing the
+Asserts that the given map is empty, or fails the test, printing the optional
+additional messages and the stack trace.
+*/
+func MapEmpty[Src ~map[Key]Val, Key comparable, Val any](src Src, opt ...any) {
+	if len(src) != 0 {
+		panic(ErrAt(1, gg.JoinLinesOpt(
+			`unexpected non-empty map`,
+			Msg(`detailed:`, goStringIndent(src)),
+			Msg(`simple:`, gg.StringAny(src)),
+			MsgExtra(opt...),
+		)))
+	}
+}
+
+/*
+Asserts that the given map is not empty, or fails the test, printing the
 optional additional messages and the stack trace.
 */
 func MapNotEmpty[Src ~map[Key]Val, Key comparable, Val any](src Src, opt ...any) {

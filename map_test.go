@@ -139,10 +139,9 @@ func TestMapClear(t *testing.T) {
 	gtest.Equal(tar, IntMap{})
 }
 
-/*
 func Benchmark_map_iteration(b *testing.B) {
 	tar := make(map[string]float64)
-	for ind := range gg.Iter(1024) {
+	for ind := range gg.Iter(TEST_ITER_SIZE) {
 		tar[gg.String(ind)] = float64((ind % 2) * ind)
 	}
 
@@ -154,4 +153,3 @@ func Benchmark_map_iteration(b *testing.B) {
 		}
 	}
 }
-*/

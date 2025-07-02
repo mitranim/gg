@@ -10,6 +10,8 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
+const TEST_ITER_SIZE = 1024
+
 func ExampleSlice() {
 	values := []string{`one`, `two`, `three`}
 	indexes := []int{0, 2}
@@ -1614,14 +1616,14 @@ func TestPrimSorted(t *testing.T) {
 	defer gtest.Catch(t)
 
 	gtest.Equal(
-		gg.SortedPrim(gg.ToSlice(20, 30, 10, 40)),
-		gg.ToSlice(10, 20, 30, 40),
+		gg.SortedPrim(gg.SliceOf(20, 30, 10, 40)),
+		gg.SliceOf(10, 20, 30, 40),
 	)
 }
 
 func BenchmarkPrimSorted(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
-		gg.Nop1(gg.SortedPrim(gg.ToSlice(20, 30, 10, 40)))
+		gg.Nop1(gg.SortedPrim(gg.SliceOf(20, 30, 10, 40)))
 	}
 }
 
@@ -1833,7 +1835,7 @@ func TestMinPrimBy(t *testing.T) {
 
 	type Out = int
 	type Src = Comparer[Out]
-	var fun = Src.Get
+	fun := Src.Get
 
 	gtest.Zero(gg.MinPrimBy[Src, Out](nil, nil))
 	gtest.Zero(gg.MinPrimBy[Src, Out]([]Src{}, nil))
@@ -1864,7 +1866,7 @@ func TestMaxPrimBy(t *testing.T) {
 
 	type Out = int
 	type Src = Comparer[Out]
-	var fun = Src.Get
+	fun := Src.Get
 
 	gtest.Zero(gg.MaxPrimBy[Src, Out](nil, nil))
 	gtest.Zero(gg.MaxPrimBy[Src, Out]([]Src{}, nil))
@@ -1895,7 +1897,7 @@ func TestMinBy(t *testing.T) {
 
 	type Src = int
 	type Out = Comparer[Src]
-	var fun = ComparerOf[Src]
+	fun := ComparerOf[Src]
 
 	gtest.Zero(gg.MinBy[Src, Out](nil, nil))
 	gtest.Zero(gg.MinBy[Src, Out]([]Src{}, nil))
@@ -1926,7 +1928,7 @@ func TestMaxBy(t *testing.T) {
 
 	type Src = int
 	type Out = Comparer[Src]
-	var fun = ComparerOf[Src]
+	fun := ComparerOf[Src]
 
 	gtest.Zero(gg.MaxBy[Src, Out](nil, nil))
 	gtest.Zero(gg.MaxBy[Src, Out]([]Src{}, nil))
@@ -1955,34 +1957,60 @@ func TestMaxBy(t *testing.T) {
 func TestSum(t *testing.T) {
 	defer gtest.Catch(t)
 
+	gtest.Zero(gg.Sum[int](nil))
+	gtest.Zero(gg.Sum([]int{}))
+
+	gtest.Eq(gg.Sum([]int{0}), 0)
+
+	gtest.Eq(gg.Sum([]int{10}), 10)
+	gtest.Eq(gg.Sum([]int{-10}), -10)
+
+	gtest.Eq(gg.Sum([]int{10, 20}), 30)
+	gtest.Eq(gg.Sum([]int{-10, -20}), -30)
+	gtest.Eq(gg.Sum([]int{-10, 20}), 10)
+	gtest.Eq(gg.Sum([]int{10, -20}), -10)
+
+	gtest.Eq(gg.Sum([]int{10, 20, 30}), 60)
+	gtest.Eq(gg.Sum([]int{-10, -20, -30}), -60)
+	gtest.Eq(gg.Sum([]int{-10, 20, 30}), 40)
+	gtest.Eq(gg.Sum([]int{10, -20, 30}), 20)
+	gtest.Eq(gg.Sum([]int{10, 20, -30}), 0)
+	gtest.Eq(gg.Sum([]int{-10, -20, 30}), 0)
+	gtest.Eq(gg.Sum([]int{10, -20, -30}), -40)
+	gtest.Eq(gg.Sum([]int{-10, 20, -30}), -20)
+}
+
+func TestSumBy(t *testing.T) {
+	defer gtest.Catch(t)
+
 	type Out = int
 	type Src = Comparer[Out]
-	var fun = Src.Get
+	fun := Src.Get
 
-	gtest.Zero(gg.Sum[Src, Out](nil, nil))
-	gtest.Zero(gg.Sum[Src, Out]([]Src{}, nil))
-	gtest.Zero(gg.Sum[Src, Out]([]Src{{10}}, nil))
-	gtest.Zero(gg.Sum[Src, Out]([]Src{{10}, {20}}, nil))
+	gtest.Zero(gg.SumBy[Src, Out](nil, nil))
+	gtest.Zero(gg.SumBy[Src, Out]([]Src{}, nil))
+	gtest.Zero(gg.SumBy[Src, Out]([]Src{{10}}, nil))
+	gtest.Zero(gg.SumBy[Src, Out]([]Src{{10}, {20}}, nil))
 
-	gtest.Zero(gg.Sum[Src, Out](nil, fun))
-	gtest.Zero(gg.Sum([]Src{}, fun))
+	gtest.Zero(gg.SumBy[Src, Out](nil, fun))
+	gtest.Zero(gg.SumBy([]Src{}, fun))
 
-	gtest.Eq(gg.Sum([]Src{{-10}}, fun), -10)
-	gtest.Eq(gg.Sum([]Src{{0}}, fun), 0)
-	gtest.Eq(gg.Sum([]Src{{10}}, fun), 10)
+	gtest.Eq(gg.SumBy([]Src{{-10}}, fun), -10)
+	gtest.Eq(gg.SumBy([]Src{{0}}, fun), 0)
+	gtest.Eq(gg.SumBy([]Src{{10}}, fun), 10)
 
-	gtest.Eq(gg.Sum([]Src{{0}, {-10}}, fun), -10)
-	gtest.Eq(gg.Sum([]Src{{-10}, {0}}, fun), -10)
-	gtest.Eq(gg.Sum([]Src{{0}, {10}}, fun), 10)
-	gtest.Eq(gg.Sum([]Src{{10}, {0}}, fun), 10)
-	gtest.Eq(gg.Sum([]Src{{-10}, {20}}, fun), 10)
-	gtest.Eq(gg.Sum([]Src{{20}, {-10}}, fun), 10)
-	gtest.Eq(gg.Sum([]Src{{10}, {20}}, fun), 30)
-	gtest.Eq(gg.Sum([]Src{{20}, {10}}, fun), 30)
+	gtest.Eq(gg.SumBy([]Src{{0}, {-10}}, fun), -10)
+	gtest.Eq(gg.SumBy([]Src{{-10}, {0}}, fun), -10)
+	gtest.Eq(gg.SumBy([]Src{{0}, {10}}, fun), 10)
+	gtest.Eq(gg.SumBy([]Src{{10}, {0}}, fun), 10)
+	gtest.Eq(gg.SumBy([]Src{{-10}, {20}}, fun), 10)
+	gtest.Eq(gg.SumBy([]Src{{20}, {-10}}, fun), 10)
+	gtest.Eq(gg.SumBy([]Src{{10}, {20}}, fun), 30)
+	gtest.Eq(gg.SumBy([]Src{{20}, {10}}, fun), 30)
 
-	gtest.Eq(gg.Sum([]Src{{-10}, {-20}, {0}}, fun), -30)
-	gtest.Eq(gg.Sum([]Src{{0}, {-10}, {20}}, fun), 10)
-	gtest.Eq(gg.Sum([]Src{{10}, {0}, {20}}, fun), 30)
+	gtest.Eq(gg.SumBy([]Src{{-10}, {-20}, {0}}, fun), -30)
+	gtest.Eq(gg.SumBy([]Src{{0}, {-10}, {20}}, fun), 10)
+	gtest.Eq(gg.SumBy([]Src{{10}, {0}, {20}}, fun), 30)
 }
 
 func TestCounts(t *testing.T) {
@@ -2008,4 +2036,19 @@ func TestCounts(t *testing.T) {
 	gtest.Equal(gg.Counts(Src{10}, gg.String[Val]), Tar{`10`: 1})
 	gtest.Equal(gg.Counts(Src{10, 20}, gg.String[Val]), Tar{`10`: 1, `20`: 1})
 	gtest.Equal(gg.Counts(Src{10, 20, 30}, gg.String[Val]), Tar{`10`: 1, `20`: 1, `30`: 1})
+}
+
+func Benchmark_slice_iteration(b *testing.B) {
+	tar := make([]float64, TEST_ITER_SIZE)
+	for ind := range tar {
+		tar[ind] = float64(ind)
+	}
+
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		for key, val := range tar {
+			gg.Nop2(key, val)
+		}
+	}
 }

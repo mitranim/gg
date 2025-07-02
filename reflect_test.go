@@ -364,8 +364,38 @@ func testCloneDeepSame[A comparable](src A) {
 func testCloneDeepSameSlice[A any](src []A) {
 	gtest.Equal(gg.CloneDeep(src), src)
 
-	gtest.Eq(u.SliceData(gg.Clone(src)), u.SliceData(src))
-	gtest.Eq(u.SliceData(gg.CloneDeep(src)), u.SliceData(src))
+	/**
+	If either of these assertions fails, we seem to have a Go compiler bug.
+	This was experienced on Go 1.25.1 on M3 (arm64) on MacOS Sequoia 15.3;
+	`unsafe.SliceData` seemed to produce invalid output in some cases.
+
+	Assertions use `unsafe.Pointer` because in the broken case, `unsafe.SliceData`
+	seems to return a garbage pointer referencing arbitrary memory. Dereferencing
+	that memory produces an invalid slice header, which not only fails the `gtest`
+	assertion, but can cause nil pointer panics in `grepr`, used internally by
+	`gtest` to format values; since the header is invalid, it can have a nil data
+	pointer and a non-nil length.
+
+	The fix was to change `gg.Clone` from this:
+
+
+		if src == nil {
+			return nil
+		}
+
+	...to this:
+
+		if cap(src) <= 0 {
+			return src
+		}
+
+	Prior to Go 1.25, empty slices shared the same `runtime.zerobase` data pointer
+	whether they were created with `[]T{}` or `make(T, 0)`. Starting with 1.25, it
+	seems like `make` sometimes produces a different data pointer even in zero-cap
+	cases.
+	*/
+	gtest.Eq(u.Pointer(u.SliceData(gg.Clone(src))), u.Pointer(u.SliceData(src)))
+	gtest.Eq(u.Pointer(u.SliceData(gg.Clone(src))), u.Pointer(gg.SliceHeaderOf(src).Dat))
 
 	gtest.SliceIs(gg.Clone(src), src)
 	gtest.SliceIs(gg.CloneDeep(src), src)

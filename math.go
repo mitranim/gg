@@ -107,9 +107,11 @@ func errAdd[A Int](one, two, out A) Err {
 }
 
 /*
-Unchecked addition. Same as Go's `+` operator for numbers, expressed as a
-generic function. Does not take strings. May overflow. For integers, prefer
-`Add` whenever possible, which has overflow checks.
+Unchecked addition. Same as Go's `+` operator, expressed as a generic function.
+May overflow. For integers, prefer `Add`, which has overflow checks.
+
+For strings, use `Plus2`. This function is technically redundant, and added
+only for symmetry with the other "unchecked" arithmetic functions.
 */
 func AddUncheck[A Num](one, two A) A { return one + two }
 
@@ -131,8 +133,7 @@ func errSub[A Int](one, two, out A) Err {
 
 /*
 Unchecked subtraction. Same as Go's `-` operator, expressed as a generic
-function. May overflow. For integers, prefer `Sub` whenever possible, which has
-overflow checks.
+function. May overflow. For integers, prefer `Sub`, which has overflow checks.
 */
 func SubUncheck[A Num](one, two A) A { return one - two }
 

@@ -1,6 +1,7 @@
 MAKEFLAGS := --silent --always-make
 MAKE_CONC := $(MAKE) -j 128 CONF=true clear=$(or $(clear),false)
 GO_FLAGS := -tags=$(tags) -mod=mod
+VET_FLAGS := -unsafeptr=false
 VERB := $(if $(filter true,$(verb)),-v,)
 FAIL := $(if $(filter false,$(fail)),,-failfast)
 SHORT := $(if $(filter true,$(short)),-short,)
@@ -37,16 +38,38 @@ bench:
 lint_w:
 	$(WATCH) -- $(MAKE) lint
 
+# `unused` flags unused struct fields, which is bad for some of our use cases.
+#
+# `staticcheck` has some useful stuff, but some of its rules don't match our
+# own rules. TODO fine-tuned configuration.
 lint:
-	golangci-lint run
+	golangci-lint run --disable unused --disable staticcheck
 	$(OK)
 
 vet_w:
 	$(WATCH) -- $(MAKE) vet
 
 vet:
-	go vet $(GO_FLAGS) $(PKG)
+	go vet $(GO_FLAGS) $(VET_FLAGS) $(PKG)
 	$(OK)
+
+COMP = echo "[comp] $1 $2..." && GOOS=$1 GOARCH=$2 go build -o=/dev/null ./... && echo "[comp] $1 $2 OK"
+
+# Verifies the ability to compile for various platforms and architectures.
+# Must be run after modifying assembly files.
+comp:
+	$(call COMP,linux,386)
+	$(call COMP,linux,amd64)
+	$(call COMP,linux,arm)
+	$(call COMP,linux,arm64)
+	$(call COMP,linux,riscv64)
+	$(call COMP,linux,s390x)
+	$(call COMP,darwin,amd64)
+	$(call COMP,darwin,arm64)
+	$(call COMP,windows,386)
+	$(call COMP,windows,amd64)
+	$(call COMP,windows,arm)
+	$(call COMP,windows,arm64)
 
 prof:
 	$(MAKE_CONC) prof_cpu prof_mem
@@ -60,11 +83,16 @@ prof_mem:
 # Requires `pkgsite`:
 #   go install golang.org/x/pkgsite/cmd/pkgsite@latest
 doc:
-	$(or $(shell which open),echo) http://$(DOC_HOST)/github.com/mitranim/gg
+	$(MAKE_CONC) doc_srv doc_open
+
+doc_srv:
 	pkgsite $(if $(GOREPO),-gorepo=$(GOREPO)) -http=$(DOC_HOST)
 
+doc_open:
+	$(or $(shell which open),echo) http://$(DOC_HOST)/github.com/mitranim/gg
+
 prep:
-	$(MAKE_CONC) test lint
+	$(MAKE_CONC) test vet lint
 
 # Examples:
 # `make pub ver=1`.

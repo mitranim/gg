@@ -150,7 +150,12 @@ Appends a text representation to the given buffer, returning the modified
 buffer. Counterpart to `fmt.Stringer`. All types that implement this interface
 should also implement `fmt.Stringer`, and in most cases this should be
 semantically equivalent to appending the output of `.String`. However, this
-interface allows significantly more efficient text encoding.
+interface allows significantly more efficient text encoding; this is used
+internally in some places.
+
+Very similar to `encoding.TextAppender` added in Go 1.24, but does not
+accomodate errors. All of our types which implement this interface are
+guaranteed to successfully encode.
 */
 type AppenderTo interface{ AppendTo([]byte) []byte }
 

@@ -135,9 +135,9 @@ func (self Rune) Value() (driver.Value, error) {
 /*
 Implement SQL `Scanner`, decoding arbitrary input, which must be one of:
 
-	* Nil  -> use `.Clear`.
-	* Text -> use `.Parse`.
-	* Rune -> assign as-is.
+  - Nil  -> use `.Clear`.
+  - Text -> use `.Parse`.
+  - Rune -> assign as-is.
 */
 func (self *Rune) Scan(src any) error {
 	if src == nil {

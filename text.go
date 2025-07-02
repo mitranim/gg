@@ -70,12 +70,12 @@ cause undefined behavior.
 func TextDat[A Text](val A) *byte { return CastUnsafe[*byte](val) }
 
 /*
-Implementation note. We could write `TextDat` as following, but it would not be
-an improvement, because it still makes assumptions about the underlying
+Implementation note. We could write `TextDat` as following, but it would not
+be an improvement, because it still makes assumptions about the underlying
 structure of the data, specifically it assumes that strings and byte slices
 have a different width. At the time of writing, Go doesn't seem to provide a
-safe and free way to detect if we have `~string` or `~[]byte`. A type switch on
-`any(src)` works only for core types such as `string`, but not for typedefs
+safe and free way to detect if we have `~string` or `~[]byte`. A type switch
+on `any(src)` works only for core types such as `string`, but not for typedefs
 conforming to `~string` and `~[]byte`. Alternatives involve overheads such as
 calling interface methods of `reflect.Type`, which would stop this function
 from being a free cast.
@@ -263,7 +263,7 @@ func Join[A Text](src []A, sep string) string {
 
 	default:
 		var buf Buf
-		buf.GrowCap(Sum(src, TextLen[A]) + (len(sep) * (len(src) - 1)))
+		buf.GrowCap(SumBy(src, TextLen[A]) + (len(sep) * (len(src) - 1)))
 
 		buf.AppendString(ToString(src[0]))
 		for _, src := range src[1:] {

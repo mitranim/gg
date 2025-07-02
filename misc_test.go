@@ -427,3 +427,27 @@ func TestSnapSlice(t *testing.T) {
 	gtest.Equal(tar, []int{10, 20})
 	gtest.Eq(cap(tar), 4)
 }
+
+// In Go 1.24.0, this has no escapes and no allocations.
+func Benchmark_closure(b *testing.B) {
+	defer gtest.Catch(b)
+
+	for ind := 0; ind < b.N; ind++ {
+		funcWithClosure(ind)
+	}
+}
+
+//go:noinline
+func funcWithClosure(val int) {
+	fun := func() int { return val }
+	noinlineNop1(noinlineCall(fun))
+}
+
+//go:noinline
+func noinlineCall[A any](fun func() A) func() A {
+	noinlineNop1(fun())
+	return fun
+}
+
+//go:noinline
+func noinlineNop1[A any](A) {}

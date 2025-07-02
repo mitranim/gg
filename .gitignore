@@ -4,6 +4,7 @@
 !/*ignore
 !/go.mod
 !/*.go
+!/*.s
 !/readme.md
 !/makefile
 !/unlicense

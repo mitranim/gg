@@ -184,12 +184,12 @@ func (self TimeMicro) Value() (driver.Value, error) {
 Implement `sql.Scanner`, converting an arbitrary input to `TimeMicro` and
 modifying the receiver. Acceptable inputs:
 
-	* `nil`         -> use `.Clear`
-	* integer       -> assign, assuming milliseconds
-	* text          -> use `.Parse`
-	* `time.Time`   -> use `.SetTime`
-	* `*time.Time`  -> use `.Clear` or `.SetTime`
-	* `AnyGetter`   -> scan underlying value
+  - `nil`         -> use `.Clear`
+  - integer       -> assign, assuming milliseconds
+  - text          -> use `.Parse`
+  - `time.Time`   -> use `.SetTime`
+  - `*time.Time`  -> use `.Clear` or `.SetTime`
+  - `AnyGetter`   -> scan underlying value
 */
 func (self *TimeMicro) Scan(src any) error {
 	str, ok := AnyToText[string](src)

@@ -242,8 +242,23 @@ func Catch(fun func()) (err error) {
 }
 
 /*
+Runs the given function, returning the function's result along with its panic
+converted to an error. Idempotently adds a stack trace.
+*/
+func Catch1[A any](fun func() A) (val A, err error) {
+	defer RecN(&err, 1)
+	if fun != nil {
+		val = fun()
+	}
+	return
+}
+
+// Alias for `Catch1`, for symmetry with some other "catch" funcs here.
+func Catch01[A any](fun func() A) (A, error) { return Catch1(fun) }
+
+/*
 Runs the given function with the given input, converting a panic to an error.
-Idempotently adds a stack trace. Compare `Catch01` and `Catch11`.
+Idempotently adds a stack trace.
 */
 func Catch10[A any](fun func(A), val A) (err error) {
 	defer RecN(&err, 1)
@@ -254,22 +269,8 @@ func Catch10[A any](fun func(A), val A) (err error) {
 }
 
 /*
-Runs the given function, returning the function's result along with its panic
-converted to an error. Idempotently adds a stack trace. Compare `Catch10` and
-`Catch11`.
-*/
-func Catch01[A any](fun func() A) (val A, err error) {
-	defer RecN(&err, 1)
-	if fun != nil {
-		val = fun()
-	}
-	return
-}
-
-/*
 Runs the given function with the given input, returning the function's result
 along with its panic converted to an error. Idempotently adds a stack trace.
-Compare `Catch10` and `Catch01`.
 */
 func Catch11[A, B any](fun func(A) B, val0 A) (val1 B, err error) {
 	defer RecN(&err, 1)

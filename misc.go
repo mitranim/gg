@@ -34,7 +34,7 @@ func Zero[A any]() (_ A) { return }
 /*
 Same as Go's `+` operator, expressed as a generic function. Input type may be
 numeric or ~string. When the input type is numeric, this is unchecked and may
-overflow. For integers, prefer `Add` whenever possible, which has overflow
+overflow. For integers, prefer [Add] whenever possible, which has overflow
 checks.
 */
 func Plus2[A Plusable](one, two A) A { return one + two }
@@ -42,7 +42,8 @@ func Plus2[A Plusable](one, two A) A { return one + two }
 /*
 Variadic version of Go's `+` operator. Input type may be numeric or ~string.
 If the input is empty, returns a zero value. Use caution: this has no overflow
-checks for numbers. Prefer `Add` for integers.
+checks for numbers. Prefer [Add] for integers. See [Sum] for a non-variadic
+equivalent.
 */
 func Plus[A Plusable](val ...A) A { return Foldz(val, Plus2[A]) }
 
@@ -66,9 +67,10 @@ func ValueNull[A any, B NullableValGetter[A]](src B) (driver.Value, error) {
 }
 
 /*
-Returns true if the given `any` can be usefully converted into a value of the
-given type. If the result is true, `src.(A)` doesn't panic. If the output is
-false, `src.(A)` panics.
+Equivalent to the following, but more convenient:
+
+	_, ok := src.(A)
+	_ = ok
 */
 func AnyIs[A any](src any) bool {
 	_, ok := AnyNoEscUnsafe(src).(A)
@@ -76,8 +78,11 @@ func AnyIs[A any](src any) bool {
 }
 
 /*
-Non-asserting interface conversion. Converts the given `any` into the given
-type, returning zero value on failure.
+Equivalent to the following, but more convenient. When conversion can't be
+performed, the output is a zero value of `A`.
+
+	val, _ := src.(A)
+	_ = val
 */
 func AnyAs[A any](src any) A {
 	val, _ := AnyNoEscUnsafe(src).(A)

@@ -145,7 +145,7 @@ func JsonEncodeFile[A any](path string, src A) {
 	MkdirAll(filepath.Dir(path))
 
 	file := Try1(os.Create(path))
-	defer file.Close()
+	defer file.Close() // nolint errcheck
 
 	Try(json.NewEncoder(file).Encode(src))
 	Try(file.Close())

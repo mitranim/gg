@@ -2,14 +2,14 @@ package gg
 
 import (
 	"sync"
-	"sync/atomic"
 )
 
 /*
 Shortcut for single-line mutex usage. Usage:
 
-	defer Lock(someLock).Unlock()
-	defer Lock(someLock.RLocker()).Unlock()
+	var lock sync.Mutex
+	defer Lock(&lock).Unlock()
+	defer Lock(lock.RLocker()).Unlock()
 */
 func Lock[A sync.Locker](val A) A {
 	val.Lock()
@@ -35,44 +35,6 @@ func LockSet[Lock sync.Locker, Val any](lock Lock, ptr *Val, val Val) {
 	}
 	defer Lock(lock).Unlock()
 	*ptr = val
-}
-
-/*
-Typed version of `atomic.Value`. Currently implemented as a typedef of
-`atomic.Value` where the value is internally stored as `any`. Converting
-non-interface values to `any` may automatically create a copy on the heap.
-Values wider than a machine number should be stored by pointer to minimize
-copying. This may change in the future.
-*/
-type Atom[A any] atomic.Value
-
-/*
-Like `.Load` but returns true if anything was previously stored, and false if
-nothing was previously stored.
-*/
-func (self *Atom[A]) Loaded() (A, bool) {
-	val := (*atomic.Value)(self).Load()
-	return AnyAs[A](val), val != nil
-}
-
-// Typed version of `atomic.Value.Load`.
-func (self *Atom[A]) Load() A {
-	return AnyAs[A]((*atomic.Value)(self).Load())
-}
-
-// Typed version of `atomic.Value.Store`.
-func (self *Atom[A]) Store(val A) {
-	(*atomic.Value)(self).Store(val)
-}
-
-// Typed version of `atomic.Value.Swap`.
-func (self *Atom[A]) Swap(val A) A {
-	return AnyAs[A]((*atomic.Value)(self).Swap(val))
-}
-
-// Typed version of `atomic.Value.CompareAndSwap`.
-func (self *Atom[A]) CompareAndSwap(prev, next A) bool {
-	return (*atomic.Value)(self).CompareAndSwap(prev, next)
 }
 
 /*
@@ -123,7 +85,7 @@ func (self *SyncMap[Key, Val]) Range(fun func(Key, Val) bool) {
 	})
 }
 
-// Alias of `chan` with additional convenience methods.
+// Typedef of `chan` with additional convenience methods.
 type Chan[A any] chan A
 
 // Closes the channel unless it's nil.
@@ -188,6 +150,12 @@ func Send[Tar ~chan Val, Val any](tar Tar, val Val) {
 func errNilChanSend[Tar, Val any]() error {
 	return Errf(`unable to send %v over nil %v`, Type[Val](), Type[Tar]())
 }
+
+// Same as global `SendZero`.
+func (self Chan[A]) SendZero() { SendZero(self) }
+
+// Shortcut for sending a zero value over a channel. Also see `SendZeroOpt`.
+func SendZero[Tar ~chan Val, Val any](tar Tar) { tar <- Zero[Val]() }
 
 // Same as global `SendOpt`.
 func (self Chan[A]) SendOpt(val A) { SendOpt(self, val) }

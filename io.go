@@ -73,7 +73,7 @@ func ReadCloseAll(src io.ReadCloser) []byte {
 	if src == nil {
 		return nil
 	}
-	defer src.Close()
+	defer Close(src)
 	return Try1(io.ReadAll(src))
 }
 
@@ -81,10 +81,7 @@ func ReadCloseAll(src io.ReadCloser) []byte {
 Shortcut for using `os.Stat` to check if there is an existing file or directory
 at the given path.
 */
-func PathExists(path string) bool {
-	info := fileInfo(path)
-	return info != nil
-}
+func PathExists(path string) bool { return fileInfo(path) != nil }
 
 /*
 Shortcut for using `os.Stat` to check if there is an existing directory at the

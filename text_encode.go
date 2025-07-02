@@ -21,12 +21,15 @@ func StringNull[A any, B NullableValGetter[A]](val B) string {
 }
 
 /*
-Alias for `fmt.Sprint` defined as a generic function for compatibility with
-higher-order functions like `Map`. Slightly more efficient than `fmt.Sprint`:
-avoids spurious heap escape and copying.
+Alias of `fmt.Sprint` defined as an unary generic function for compatibility
+with higher-order functions like `Map`.
+
+Has a very marginal performance benefit over `fmt.Sprint`: avoids copying the
+input to the heap; last checked in Go 1.24.0.
 
 The output of this function is intended only for debug purposes. For machine
-consumption or user display, use `String`, which is more restrictive.
+consumption or user display, use `String`, which is more restrictive. Also see
+`Str` for a variadic version of `String`.
 */
 func StringAny[A any](val A) string { return fmt.Sprint(AnyNoEscUnsafe(val)) }
 
@@ -37,19 +40,19 @@ func String[A any](val A) string { return Try1(StringCatch(val)) }
 Missing feature of the standard library. Converts an arbitrary value to a
 string, allowing only INTENTIONALLY stringable values. Rules:
 
-	* Nil is considered "".
-	* A string is returned as-is.
-	* A byte slice is cast to a string without copying.
-	* Any other primitive value (see constraint `Prim`) is encoded via `strconv`.
-	* Types that support `fmt.Stringer`, `AppenderTo` or `encoding.TextMarshaler`
-	  are encoded by using the corresponding method.
-	* As a special case, `time.Time` is encoded in `time.RFC3339` to make encoding
-	  and decoding automatically reversible, and generally for better
-	  compatibility with machine parsing. This format is already used by
-	  `time.Time.MarshalText`, `time.Time.MarshalJSON`, and the corresponding
-	  unmarshaling methods. The different format used by `time.Time.String` tends
-	  to be an inconvenience, one we rectify here.
-	* Any other type causes an error.
+  - Nil is considered "".
+  - A string is returned as-is.
+  - A byte slice is cast to a string without copying.
+  - Any other primitive value (see constraint `Prim`) is encoded via `strconv`.
+  - Types that support `fmt.Stringer`, `AppenderTo` or `encoding.TextMarshaler`
+    are encoded by using the corresponding method.
+  - As a special case, `time.Time` is encoded in `time.RFC3339` to make encoding
+    and decoding automatically reversible, and generally for better
+    compatibility with machine parsing. This format is already used by
+    `time.Time.MarshalText`, `time.Time.MarshalJSON`, and the corresponding
+    unmarshaling methods. The different format used by `time.Time.String` tends
+    to be an inconvenience, one we rectify here.
+  - Any other type causes an error.
 */
 func StringCatch[A any](val A) (string, error) {
 	box := AnyNoEscUnsafe(val)
@@ -322,7 +325,7 @@ func AppendGoString[A any](inout []byte, val A) []byte {
 		return buf
 	}
 
-	fmt.Fprintf(NoEscUnsafe(&buf), `%#v`, box)
+	_, _ = fmt.Fprintf(NoEscUnsafe(&buf), `%#v`, box)
 	return buf
 }
 

@@ -15,7 +15,7 @@ func typeBitSize(typ r.Type) int { return int(typ.Size() * 8) }
 // Borrowed from the standard library. Requires caution.
 func noescape(src u.Pointer) u.Pointer {
 	out := uintptr(src)
-	//nolint:staticcheck
+	// nolint govet staticcheck
 	return u.Pointer(out ^ 0)
 }
 

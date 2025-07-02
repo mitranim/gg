@@ -168,7 +168,7 @@ func (self Err) Format(out fmt.State, verb rune) {
 
 	if out.Flag('#') {
 		type Error Err
-		fmt.Fprintf(out, `%#v`, Error(self))
+		_, _ = fmt.Fprintf(out, `%#v`, Error(self))
 		return
 	}
 
@@ -182,7 +182,7 @@ func (self Err) OwnTrace() Trace { return PtrGet(self.Trace) }
 Implement `StackTraced`, which allows to retrieve stack traces from nested
 errors.
 */
-func (self Err) StackTrace() []uintptr { return self.OwnTrace().Prim() }
+func (self Err) StackTrace() []uintptr { return self.OwnTrace() }
 
 // Returns a modified version where `.Msg` is set to the input.
 func (self Err) Msgd(val string) Err {
@@ -419,7 +419,7 @@ func (self Errs) Format(out fmt.State, verb rune) {
 
 	if out.Flag('#') {
 		type Errs []error
-		fmt.Fprintf(out, `%#v`, Errs(self))
+		_, _ = fmt.Fprintf(out, `%#v`, Errs(self))
 		return
 	}
 

@@ -4,7 +4,6 @@ import (
 	"path"
 	r "reflect"
 	"runtime"
-	rt "runtime"
 	"strings"
 )
 
@@ -42,12 +41,29 @@ func TypeKind(val r.Type) r.Kind {
 	return val.Kind()
 }
 
-// Nil-safe version of `reflect.Type.String`. If the input is nil, returns zero.
+/*
+Nil-safe version of `reflect.Type.String`. If the input is nil, returns zero.
+Unlike [TypeName], returns the output as-is without eliding the package name.
+*/
 func TypeString(val r.Type) string {
 	if val == nil {
 		return ``
 	}
 	return val.String()
+}
+
+/*
+Returns the name of the given type without its package name. Sometimes useful
+for generating user-facing messages intentionally containing type names,
+without leaking package names which tend to be internal or irrelevant.
+*/
+func TypeName[A any]() string {
+	out := Type[A]().String()
+	ind := strings.IndexByte(out, '.')
+	if ind >= 0 {
+		return out[ind+1:]
+	}
+	return out
 }
 
 // True if both type parameters are exactly the same.
@@ -83,12 +99,12 @@ func ZeroValue[A any]() r.Value { return r.Zero(Type[A]()) }
 func FuncName(val any) string { return FuncNameBase(RuntimeFunc(val)) }
 
 // Takes an arbitrary function and returns its `runtime.Func`.
-func RuntimeFunc(val any) *rt.Func {
+func RuntimeFunc(val any) *runtime.Func {
 	return runtime.FuncForPC(r.ValueOf(val).Pointer())
 }
 
 // Returns the given function's name without the package path prefix.
-func FuncNameBase(fun *rt.Func) string {
+func FuncNameBase(fun *runtime.Func) string {
 	if fun == nil {
 		return ``
 	}
@@ -239,6 +255,10 @@ func ValueToStringCatch(val r.Value) (string, error) {
 	return out, ErrConv(val.Interface(), Type[string]())
 }
 
+/*
+Asserts that the type has the expected kind. If not, panics with a descriptive
+error message.
+*/
 func ValidateKind(tar r.Type, exp r.Kind) {
 	if TypeKind(tar) != exp {
 		panic(Errf(
@@ -248,39 +268,56 @@ func ValidateKind(tar r.Type, exp r.Kind) {
 	}
 }
 
+/*
+Can be used to retrieve a slice of all fields of a struct type. The slice is
+cached for each type and reused in each future call for that type. Avoid
+modifying the slices. Also see [StructFieldCache] and
+[StructDeepPublicFieldCache].
+*/
 var StructFieldCache = TypeCacheOf[StructFields]()
 
+// Internal detail of [StructFieldCache].
 type StructFields []r.StructField
 
+// Internal detail of [StructFieldCache].
 func (self *StructFields) Init(src r.Type) {
 	TimesAppend(self, src.NumField(), src.Field)
 }
 
+/*
+Can be used to retrieve a slice of public / exported fields of a struct type.
+The slice is cached for each type and reused in each future call for that type.
+Avoid modifying the slices. Also see [StructFieldCache] and
+[StructDeepPublicFieldCache].
+*/
 var StructPublicFieldCache = TypeCacheOf[StructPublicFields]()
 
+// Internal detail of [StructPublicFieldCache].
 type StructPublicFields []r.StructField
 
+// Internal detail of [StructPublicFieldCache].
 func (self *StructPublicFields) Init(src r.Type) {
 	FilterAppend(self, StructFieldCache.Get(src), IsFieldPublic)
 }
 
 /*
-For any given struct type, returns a slice of its fields including fields of
-embedded structs. Structs embedded by value (not by pointer) are considered
-parts of the enclosing struct, rather than fields in their own right, and their
-fields are included into this function's output. This is NOT equivalent to the
-fields you would get by iterating over `reflect.Type.NumField`. Not only
-because it includes the fields of value-embedded structs, but also because it
-adjusts `reflect.StructField.Index` and `reflect.StructField.Offset`
-specifically for the given ancestor type. In particular,
-`reflect.StructField.Offset` of deeply-nested fields is exactly equivalent to
-the output of `unsafe.Offsetof` for the same parent type and field, which is
-NOT what you would normally get from the "reflect" package.
+Can be used to retrieve a slice of all public fields of a struct type. Includes
+fields of embedded structs, both for value types and pointer types.
 
-For comparison. Normally when using `reflect.Type.FieldByIndex`, the returned
+This is NOT equivalent to the fields you would get by naively iterating the
+fields of the outer and inner structs via [reflect.Type.Field] in accordance
+with their respective [reflect.Type.NumField], for two reasons. First and
+obvious, this includes the fields of embedded structs. Second and perhaps
+more importantly, this adjusts the values of [reflect.StructField.Index] and
+[reflect.StructField.Offset] specifically for the given ancestor type. In
+particular, [reflect.StructField.Offset] of deeply-nested fields is exactly
+equivalent to the output of [unsafe.Offsetof] for the same parent type and
+field, which is NOT what you would normally get from the [reflect] package.
+
+For comparison. Normally when using [reflect.Type.FieldByIndex], the returned
 fields have both their offset and their index relative to their most immediate
 parent, rather than the given ancestor. But it's also inconsistent. When using
-`reflect.Type.FieldByName`, the returned fields have their index relative to
+[reflect.Type.FieldByName], the returned fields have their index relative to
 the ancestor, but their offset is still relative to their most immediate
 parent.
 

@@ -18,6 +18,8 @@ func CacheOf[
 Concurrency-safe cache that creates and initializes values on demand, using keys
 as inputs. Does not support eviction or expiration. Suitable when values are
 unambiguously related to keys and don't need to be evicted or refreshed.
+Zero value is ready to use. Contains a synchronization primitive and must
+not be copied after first use.
 */
 type Cache[
 	Key comparable,

@@ -16,8 +16,8 @@ func TestTextDat(t *testing.T) {
 	defer gtest.Catch(t)
 
 	const init = `hello world`
-	var sliced string = init[:0]
 	var empty string
+	sliced := init[:0]
 
 	gtest.NotZero(init)
 	gtest.Zero(sliced)
@@ -431,43 +431,43 @@ func BenchmarkReWord_reuse(b *testing.B) {
 func TestSplitLines(t *testing.T) {
 	defer gtest.Catch(t)
 
-	var Split = gg.SplitLines[string]
+	fun := gg.SplitLines[string]
 
-	gtest.Empty(Split(``))
-	gtest.Equal(Split(` `), []string{` `})
+	gtest.Empty(fun(``))
+	gtest.Equal(fun(` `), []string{` `})
 
-	gtest.Equal(Split("\n"), []string{``, ``})
-	gtest.Equal(Split("\r"), []string{``, ``})
-	gtest.Equal(Split("\r\n"), []string{``, ``})
+	gtest.Equal(fun("\n"), []string{``, ``})
+	gtest.Equal(fun("\r"), []string{``, ``})
+	gtest.Equal(fun("\r\n"), []string{``, ``})
 
-	gtest.Equal(Split("one"), []string{`one`})
-	gtest.Equal(Split("one\n"), []string{`one`, ``})
-	gtest.Equal(Split("one\r"), []string{`one`, ``})
-	gtest.Equal(Split("one\r\n"), []string{`one`, ``})
+	gtest.Equal(fun("one"), []string{`one`})
+	gtest.Equal(fun("one\n"), []string{`one`, ``})
+	gtest.Equal(fun("one\r"), []string{`one`, ``})
+	gtest.Equal(fun("one\r\n"), []string{`one`, ``})
 
-	gtest.Equal(Split("\none"), []string{``, `one`})
-	gtest.Equal(Split("\rone"), []string{``, `one`})
-	gtest.Equal(Split("\r\none"), []string{``, `one`})
+	gtest.Equal(fun("\none"), []string{``, `one`})
+	gtest.Equal(fun("\rone"), []string{``, `one`})
+	gtest.Equal(fun("\r\none"), []string{``, `one`})
 
-	gtest.Equal(Split("\none\n"), []string{``, `one`, ``})
-	gtest.Equal(Split("\rone\r"), []string{``, `one`, ``})
-	gtest.Equal(Split("\r\none\r\n"), []string{``, `one`, ``})
+	gtest.Equal(fun("\none\n"), []string{``, `one`, ``})
+	gtest.Equal(fun("\rone\r"), []string{``, `one`, ``})
+	gtest.Equal(fun("\r\none\r\n"), []string{``, `one`, ``})
 
-	gtest.Equal(Split("one\ntwo"), []string{`one`, `two`})
-	gtest.Equal(Split("one\rtwo"), []string{`one`, `two`})
-	gtest.Equal(Split("one\r\ntwo"), []string{`one`, `two`})
+	gtest.Equal(fun("one\ntwo"), []string{`one`, `two`})
+	gtest.Equal(fun("one\rtwo"), []string{`one`, `two`})
+	gtest.Equal(fun("one\r\ntwo"), []string{`one`, `two`})
 
-	gtest.Equal(Split("one\ntwo\n"), []string{`one`, `two`, ``})
-	gtest.Equal(Split("one\rtwo\r"), []string{`one`, `two`, ``})
-	gtest.Equal(Split("one\r\ntwo\r\n"), []string{`one`, `two`, ``})
+	gtest.Equal(fun("one\ntwo\n"), []string{`one`, `two`, ``})
+	gtest.Equal(fun("one\rtwo\r"), []string{`one`, `two`, ``})
+	gtest.Equal(fun("one\r\ntwo\r\n"), []string{`one`, `two`, ``})
 
-	gtest.Equal(Split("\none\ntwo"), []string{``, `one`, `two`})
-	gtest.Equal(Split("\rone\rtwo"), []string{``, `one`, `two`})
-	gtest.Equal(Split("\r\none\r\ntwo"), []string{``, `one`, `two`})
+	gtest.Equal(fun("\none\ntwo"), []string{``, `one`, `two`})
+	gtest.Equal(fun("\rone\rtwo"), []string{``, `one`, `two`})
+	gtest.Equal(fun("\r\none\r\ntwo"), []string{``, `one`, `two`})
 
-	gtest.Equal(Split("\none\ntwo\n"), []string{``, `one`, `two`, ``})
-	gtest.Equal(Split("\rone\rtwo\r"), []string{``, `one`, `two`, ``})
-	gtest.Equal(Split("\r\none\r\ntwo\r\n"), []string{``, `one`, `two`, ``})
+	gtest.Equal(fun("\none\ntwo\n"), []string{``, `one`, `two`, ``})
+	gtest.Equal(fun("\rone\rtwo\r"), []string{``, `one`, `two`, ``})
+	gtest.Equal(fun("\r\none\r\ntwo\r\n"), []string{``, `one`, `two`, ``})
 }
 
 func BenchmarkSplitLines(b *testing.B) {

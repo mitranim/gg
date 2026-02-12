@@ -1,8 +1,6 @@
 package gg
 
-import (
-	"sort"
-)
+import "sort"
 
 /*
 Syntactic shortcut for creating a slice out of the given values. Simply returns
@@ -98,9 +96,9 @@ func (self Slice[A]) GrowLen(size int) Slice[A] { return GrowLen(self, size) }
 /*
 Missing feature of the language / standard library. Ensures at least this much
 unused capacity (not total capacity). If there is already enough capacity,
-returns the slice as-is. Otherwise allocates a new slice, doubling the capacity
-as many times as needed until it accommodates enough elements. Use this when
-further growth is expected. When further growth is not expected, use
+returns the slice as-is. Otherwise allocates a new slice, with the capacity
+doubled as many times as needed until it accommodates enough elements. Use this
+when further growth is expected. When further growth is not expected, use
 `GrowCapExact` instead. Similar to `(*bytes.Buffer).Grow` but works for all
 slice types and avoids any wrapping, unwrapping, or spurious escapes to the
 heap.

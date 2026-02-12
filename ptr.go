@@ -3,6 +3,8 @@ package gg
 /*
 Takes an arbitrary value and returns a non-nil pointer to a new memory region
 containing a shallow copy of that value.
+
+In Go 1.26, `new(val)` does the same, making this obsolete.
 */
 func Ptr[A any](val A) *A { return &val }
 

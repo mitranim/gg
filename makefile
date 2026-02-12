@@ -12,7 +12,7 @@ TEST := test $(TEST_FLAGS) -timeout=1s -run=$(run)
 PKG := ./$(or $(pkg),...)
 BENCH := test $(TEST_FLAGS) -run=- -bench=$(or $(run),.) -benchmem -benchtime=256ms
 GOW_HOTKEYS := -r=$(if $(filter 0,$(MAKELEVEL)),true,false)
-GOW := gow $(CLEAR) $(GOW_HOTKEYS) $(VERB) -e=go,mod,pgsql
+GOW := gow $(CLEAR) $(GOW_HOTKEYS) $(VERB) -e=s,go,mod,pgsql
 WATCH := watchexec -r $(CLEAR) -d=0 -n
 DOC_HOST := localhost:58214
 OK = echo [$@] ok

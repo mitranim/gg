@@ -335,7 +335,7 @@ func BenchmarkDynVar_with_minor_concurrency(b *testing.B) {
 				defer gg.GlsClear()
 				defer DYN_MOD.Set(SomeModel{}).Use()
 
-				for range gg.Iter(32) {
+				for range gg.Iter(64) {
 					gg.Nop1(DYN_MOD.Get())
 				}
 			}()
